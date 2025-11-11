@@ -1,0 +1,146 @@
+{
+  "auth": {
+    "login_success": "Connexion réussie",
+    "login_failed": "Email ou mot de passe incorrect",
+    "logout_success": "Déconnexion réussie",
+    "register_success": "Inscription réussie",
+    "register_failed": "Échec de l'inscription",
+    "email_already_exists": "Cet email existe déjà",
+    "invalid_token": "Token invalide ou expiré",
+    "unauthorized": "Non autorisé",
+    "token_required": "Token requis",
+    "password_reset_success": "Mot de passe réinitialisé avec succès",
+    "password_changed": "Mot de passe modifié avec succès",
+    "email_verified": "Email vérifié avec succès"
+  },
+  "user": {
+    "not_found": "Utilisateur non trouvé",
+    "profile_updated": "Profil mis à jour avec succès",
+    "account_deactivated": "Compte désactivé",
+    "invalid_credentials": "Identifiants invalides",
+    "profile_retrieved": "Profil récupéré avec succès"
+  },
+  "bike": {
+    "not_found": "Vélo non trouvé",
+    "not_available": "Vélo non disponible",
+    "already_in_use": "Vélo déjà en cours d'utilisation",
+    "unlocked": "Vélo déverrouillé avec succès",
+    "locked": "Vélo verrouillé avec succès",
+    "created": "Vélo créé avec succès",
+    "updated": "Vélo mis à jour avec succès",
+    "deleted": "Vélo supprimé avec succès",
+    "list_retrieved": "Liste des vélos récupérée",
+    "nearby_retrieved": "Vélos à proximité récupérés"
+  },
+  "ride": {
+    "started": "Trajet démarré avec succès",
+    "ended": "Trajet terminé avec succès",
+    "not_found": "Trajet non trouvé",
+    "already_in_progress": "Vous avez déjà un trajet en cours",
+    "no_active_ride": "Aucun trajet actif",
+    "history_retrieved": "Historique des trajets récupéré",
+    "cancelled": "Trajet annulé"
+  },
+  "wallet": {
+    "insufficient_balance": "Solde insuffisant",
+    "deposit_success": "Dépôt effectué avec succès",
+    "deposit_failed": "Échec du dépôt",
+    "withdrawal_success": "Retrait effectué avec succès",
+    "withdrawal_failed": "Échec du retrait",
+    "balance_retrieved": "Solde récupéré avec succès",
+    "transaction_history": "Historique des transactions récupéré",
+    "transaction_not_found": "Transaction non trouvée"
+  },
+  "payment": {
+    "initiated": "Paiement initié avec succès",
+    "completed": "Paiement effectué avec succès",
+    "failed": "Échec du paiement",
+    "invalid_amount": "Montant invalide",
+    "coolpay_error": "Erreur My-CoolPay",
+    "fees_calculated": "Frais calculés: {{fees}} XAF sur {{amount}} XAF",
+    "total_amount": "Montant total à payer: {{total}} XAF"
+  },
+  "chat": {
+    "message_sent": "Message envoyé",
+    "message_received": "Message reçu",
+    "history_retrieved": "Historique de chat récupéré"
+  },
+  "notification": {
+    "sent": "Notification envoyée",
+    "marked_read": "Notification marquée comme lue",
+    "list_retrieved": "Liste des notifications récupérée",
+    "all_marked_read": "Toutes les notifications marquées comme lues",
+    "deleted": "Notification supprimée",
+    "ride_started": "Trajet démarré",
+    "ride_ended": "Trajet terminé - Coût: {{cost}} XAF",
+    "wallet_deposit": "Dépôt de {{amount}} XAF effectué",
+    "wallet_withdrawal": "Retrait de {{amount}} XAF effectué",
+    "ride_payment": "Paiement de trajet: {{amount}} XAF",
+    "account_created": "Bienvenue sur FreeBike!",
+    "password_reset_requested": "Demande de réinitialisation de mot de passe",
+    "bike_booked": "Vélo réservé avec succès",
+    "incident_reported": "Incident signalé - En cours de traitement",
+    "incident_resolved": "Votre incident a été résolu",
+    "promotion": "Offre spéciale FreeBike",
+    "maintenance_scheduled": "Maintenance programmée pour le vélo {{bikeCode}}"
+  },
+  "admin": {
+    "access_denied": "Accès refusé - Privilèges administrateur requis",
+    "users_retrieved": "Liste des utilisateurs récupérée",
+    "bikes_retrieved": "Liste des vélos récupérée",
+    "stats_retrieved": "Statistiques récupérées",
+    "settings_updated": "Paramètres mis à jour",
+    "pricing_updated": "Tarification mise à jour"
+  },
+  "validation": {
+    "email_invalid": "Email invalide",
+    "password_weak": "Le mot de passe doit contenir au moins 8 caractères",
+    "field_required": "Le champ {{field}} est requis",
+    "invalid_format": "Format invalide",
+    "invalid_phone": "Numéro de téléphone invalide"
+  },
+  "error": {
+    "internal_server": "Erreur interne du serveur",
+    "not_found": "Ressource non trouvée",
+    "bad_request": "Requête invalide",
+    "database_error": "Erreur de base de données",
+    "service_unavailable": "Service temporairement indisponible"
+  },
+  "success": {
+    "operation_completed": "Opération terminée avec succès",
+    "data_retrieved": "Données récupérées avec succès",
+    "created": "Créé avec succès",
+    "updated": "Mis à jour avec succès",
+    "deleted": "Supprimé avec succès"
+  },
+  "email": {
+    "welcome_subject": "Bienvenue sur FreeBike - Votre compte a été créé",
+    "welcome_title": "Bienvenue sur FreeBike!",
+    "welcome_message": "Bonjour {{firstName}},\n\nNous sommes ravis de vous accueillir sur FreeBike! Votre compte a été créé avec succès.\n\nVous pouvez maintenant profiter de nos vélos électriques partout dans la ville.",
+    "welcome_cta": "Commencer à rouler",
+    "password_reset_subject": "Réinitialisation de votre mot de passe FreeBike",
+    "password_reset_title": "Réinitialisation de mot de passe",
+    "password_reset_message": "Bonjour {{firstName}},\n\nVous avez demandé la réinitialisation de votre mot de passe.\n\nCliquez sur le bouton ci-dessous pour créer un nouveau mot de passe. Ce lien expirera dans 1 heure.",
+    "password_reset_cta": "Réinitialiser mon mot de passe",
+    "password_reset_ignore": "Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.",
+    "ride_completed_subject": "Trajet terminé - FreeBike",
+    "ride_completed_title": "Trajet terminé avec succès!",
+    "ride_completed_message": "Bonjour {{firstName}},\n\nVotre trajet est terminé.\n\nDurée: {{duration}} minutes\nDistance: {{distance}} km\nCoût: {{cost}} XAF",
+    "ride_completed_cta": "Voir les détails",
+    "deposit_subject": "Dépôt effectué - FreeBike",
+    "deposit_title": "Dépôt confirmé",
+    "deposit_message": "Bonjour {{firstName}},\n\nVotre dépôt de {{amount}} XAF a été effectué avec succès.\n\nNouveau solde: {{balance}} XAF",
+    "deposit_cta": "Voir mon portefeuille",
+    "promotion_subject": "{{subject}}",
+    "promotion_title": "{{title}}",
+    "promotion_message": "{{message}}",
+    "promotion_cta": "En savoir plus",
+    "incident_resolved_subject": "Votre incident a été résolu - FreeBike",
+    "incident_resolved_title": "Incident résolu",
+    "incident_resolved_message": "Bonjour {{firstName}},\n\nNous vous informons que votre incident #{{incidentId}} a été résolu.\n\nMerci de votre patience.",
+    "incident_resolved_cta": "Voir les détails",
+    "footer_text": "Merci d'utiliser FreeBike",
+    "footer_contact": "Besoin d'aide? Contactez-nous",
+    "unsubscribe": "Se désabonner"
+  }
+}

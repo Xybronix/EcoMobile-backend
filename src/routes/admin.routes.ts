@@ -1,0 +1,241 @@
+import { Router } from 'express';
+import AdminController from '../controllers/AdminController';
+import { authenticate, requirePermission } from '../middleware/auth';
+
+const router = Router();
+
+// All admin routes require authentication
+router.use(authenticate);
+
+/**
+ * @swagger
+ * tags:
+ *   name: Admin
+ *   description: Administration endpoints
+ */
+
+/**
+ * @route   GET /api/v1/admin/dashboard/stats
+ * @desc    Get dashboard statistics
+ * @access  Private/Admin
+ */
+router.get('/dashboard/stats', requirePermission('admin', 'read'), AdminController.getDashboardStats);
+
+/**
+ * @route   GET /api/v1/admin/dashboard
+ * @desc    Get dashboard data
+ * @access  Private/Admin
+ */
+router.get('/dashboard', requirePermission('admin', 'read'), AdminController.getDashboardStats);
+
+/**
+ * @route   GET /api/v1/admin/settings
+ * @desc    Get application settings
+ * @access  Private/Admin
+ */
+router.get('/settings', requirePermission('settings', 'read'), AdminController.getSettings);
+
+/**
+ * @route   PUT /api/v1/admin/settings
+ * @desc    Update application settings
+ * @access  Private/Admin
+ */
+router.put('/settings', requirePermission('settings', 'update'), AdminController.updateSettings);
+
+/**
+ * @route   GET /api/v1/admin/pricing
+ * @desc    Get pricing configuration
+ * @access  Private/Admin
+ */
+router.get('/pricing', requirePermission('pricing', 'read'), AdminController.getPricing);
+
+/**
+ * @route   PUT /api/v1/admin/pricing
+ * @desc    Update pricing configuration
+ * @access  Private/Admin
+ */
+router.put('/pricing', requirePermission('pricing', 'update'), AdminController.updatePricing);
+
+/**
+ * @route   GET /api/v1/admin/promotions
+ * @desc    Get all promotions (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/promotions', requirePermission('promotions', 'read'), AdminController.getPromotions);
+
+/**
+ * @route   POST /api/v1/admin/promotions
+ * @desc    Create new promotion (Admin only)
+ * @access  Private/Admin
+ */
+router.post('/promotions', requirePermission('promotions', 'create'), AdminController.createPromotion);
+
+/**
+ * @route   PUT /api/v1/admin/promotions/:id
+ * @desc    Update promotion (Admin only)
+ * @access  Private/Admin
+ */
+router.put('/promotions/:id', requirePermission('promotions', 'update'), AdminController.updatePromotion);
+
+/**
+ * @route   PUT /api/v1/admin/promotions/:id/status
+ * @desc    Toggle promotion status (Admin only)
+ * @access  Private/Admin
+ */
+router.put('/promotions/:id/status', requirePermission('promotions', 'update'), AdminController.togglePromotionStatus);
+
+/**
+ * @route   DELETE /api/v1/admin/plans/:id
+ * @desc    Delete pricing plan (Admin only)
+ * @access  Private/Admin
+ */
+router.delete('/plans/:id', requirePermission('pricing', 'delete'), AdminController.deletePlan);
+
+/**
+ * @route   DELETE /api/v1/admin/rules/:id
+ * @desc    Delete pricing rule (Admin only)
+ * @access  Private/Admin
+ */
+router.delete('/rules/:id', requirePermission('pricing', 'delete'), AdminController.deleteRule);
+
+/**
+ * @route   DELETE /api/v1/admin/promotions/:id
+ * @desc    Delete promotion (Admin only)
+ * @access  Private/Admin
+ */
+router.delete('/promotions/:id', requirePermission('promotions', 'delete'), AdminController.deletePromotion);
+
+/**
+ * @route   GET /api/v1/admin/financial/stats
+ * @desc    Get financial statistics
+ * @access  Private/Admin
+ */
+router.get('/financial/stats', requirePermission('financial', 'read'), AdminController.getFinancialStats);
+
+/**
+ * @route   GET /api/v1/admin/financial/data
+ * @desc    Get financial chart data
+ * @access  Private/Admin
+ */
+router.get('/financial/data', requirePermission('financial', 'read'), AdminController.getFinancialData);
+
+/**
+ * @route   GET /api/v1/admin/financial/transactions
+ * @desc    Get transaction summary
+ * @access  Private/Admin
+ */
+router.get('/financial/transactions', requirePermission('financial', 'read'), AdminController.getFinancialTransactions);
+
+/**
+ * @route   GET /api/v1/admin/financial/export
+ * @desc    Export financial data
+ * @access  Private/Admin
+ */
+router.get('/financial/export', requirePermission('financial', 'read'), AdminController.exportFinancialData);
+
+/**
+ * @route   GET /api/v1/admin/incidents
+ * @desc    Get all incidents
+ * @access  Private/Admin
+ */
+router.get('/incidents', requirePermission('incidents', 'read'), AdminController.getIncidents);
+
+/**
+ * @route   PUT /api/v1/admin/incidents/:id
+ * @desc    Update incident status
+ * @access  Private/Admin
+ */
+router.put('/incidents/:id', requirePermission('incidents', 'update'), AdminController.updateIncident);
+
+/**
+ * @route   GET /api/v1/admin/reviews
+ * @desc    Get all reviews (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/reviews', requirePermission('reviews', 'read'), AdminController.getAllReviews);
+
+/**
+ * @route   POST /api/v1/admin/reviews
+ * @desc    Create new review (Admin only)
+ * @access  Private/Admin
+ */
+router.post('/reviews', requirePermission('reviews', 'create'), AdminController.createReview);
+
+/**
+ * @route   PUT /api/v1/admin/reviews/:id
+ * @desc    Update review (Admin only)
+ * @access  Private/Admin
+ */
+router.put('/reviews/:id', requirePermission('reviews', 'update'), AdminController.updateReview);
+
+/**
+ * @route   PUT /api/v1/admin/reviews/:id/moderate
+ * @desc    Moderate review (Admin only)
+ * @access  Private/Admin
+ */
+router.put('/reviews/:id/moderate', requirePermission('reviews', 'update'), AdminController.moderateReview);
+
+/**
+ * @route   DELETE /api/v1/admin/reviews/:id
+ * @desc    Delete review (Admin only)
+ * @access  Private/Admin
+ */
+router.delete('/reviews/:id', requirePermission('reviews', 'delete'), AdminController.deleteReview);
+
+/**
+ * @route   GET /api/v1/admin/activity-logs
+ * @desc    Get system activity logs
+ * @access  Private/Admin
+ */
+router.get('/activity-logs', requirePermission('logs', 'read'), AdminController.getActivityLogs);
+
+/**
+ * @route   GET /api/v1/admin/roles
+ * @desc    Get all roles
+ * @access  Private/Admin
+ */
+router.get('/roles', requirePermission('roles', 'read'), AdminController.getRoles);
+
+/**
+ * @route   POST /api/v1/admin/roles
+ * @desc    Create new role
+ * @access  Private/Admin
+ */
+router.post('/roles', requirePermission('roles', 'create'), AdminController.createRole);
+
+/**
+ * @route   PUT /api/v1/admin/roles/:id
+ * @desc    Update role
+ * @access  Private/Admin
+ */
+router.put('/roles/:id', requirePermission('roles', 'update'), AdminController.updateRole);
+
+/**
+ * @route   PUT /api/v1/admin/roles/:id/assign
+ * @desc    Assign role to employees
+ * @access  Private/Admin
+ */
+router.put('/roles/:id/assign', requirePermission('roles', 'update'), AdminController.assignRoleToEmployees);
+
+/**
+ * @route   DELETE /api/v1/admin/roles/:id
+ * @desc    Delete role
+ * @access  Private/Admin
+ */
+router.delete('/roles/:id', requirePermission('roles', 'delete'), AdminController.deleteRole);
+
+/**
+ * @route   GET /api/v1/admin/permissions
+ * @desc    Get all permissions
+ * @access  Private/Admin
+ */
+router.get('/permissions', requirePermission('permissions', 'read'), AdminController.getPermissions);
+
+/**
+ * @route   PUT /api/v1/admin/roles/:id/permissions
+ * @desc    Update role permissions
+ * @access  Private/Admin
+ */
+router.put('/roles/:id/permissions', requirePermission('roles', 'update'), AdminController.updateRolePermissions);
+
+export default router;
