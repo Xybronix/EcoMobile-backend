@@ -1,0 +1,146 @@
+{
+  "auth": {
+    "login_success": "Login successful",
+    "login_failed": "Invalid email or password",
+    "logout_success": "Logout successful",
+    "register_success": "Registration successful",
+    "register_failed": "Registration failed",
+    "email_already_exists": "This email already exists",
+    "invalid_token": "Invalid or expired token",
+    "unauthorized": "Unauthorized",
+    "token_required": "Token required",
+    "password_reset_success": "Password reset successfully",
+    "password_changed": "Password changed successfully",
+    "email_verified": "Email verified successfully"
+  },
+  "user": {
+    "not_found": "User not found",
+    "profile_updated": "Profile updated successfully",
+    "account_deactivated": "Account deactivated",
+    "invalid_credentials": "Invalid credentials",
+    "profile_retrieved": "Profile retrieved successfully"
+  },
+  "bike": {
+    "not_found": "Bike not found",
+    "not_available": "Bike not available",
+    "already_in_use": "Bike already in use",
+    "unlocked": "Bike unlocked successfully",
+    "locked": "Bike locked successfully",
+    "created": "Bike created successfully",
+    "updated": "Bike updated successfully",
+    "deleted": "Bike deleted successfully",
+    "list_retrieved": "Bike list retrieved",
+    "nearby_retrieved": "Nearby bikes retrieved"
+  },
+  "ride": {
+    "started": "Ride started successfully",
+    "ended": "Ride ended successfully",
+    "not_found": "Ride not found",
+    "already_in_progress": "You already have a ride in progress",
+    "no_active_ride": "No active ride",
+    "history_retrieved": "Ride history retrieved",
+    "cancelled": "Ride cancelled"
+  },
+  "wallet": {
+    "insufficient_balance": "Insufficient balance",
+    "deposit_success": "Deposit successful",
+    "deposit_failed": "Deposit failed",
+    "withdrawal_success": "Withdrawal successful",
+    "withdrawal_failed": "Withdrawal failed",
+    "balance_retrieved": "Balance retrieved successfully",
+    "transaction_history": "Transaction history retrieved",
+    "transaction_not_found": "Transaction not found"
+  },
+  "payment": {
+    "initiated": "Payment initiated successfully",
+    "completed": "Payment completed successfully",
+    "failed": "Payment failed",
+    "invalid_amount": "Invalid amount",
+    "coolpay_error": "My-CoolPay error",
+    "fees_calculated": "Fees calculated: {{fees}} XAF on {{amount}} XAF",
+    "total_amount": "Total amount to pay: {{total}} XAF"
+  },
+  "chat": {
+    "message_sent": "Message sent",
+    "message_received": "Message received",
+    "history_retrieved": "Chat history retrieved"
+  },
+  "notification": {
+    "sent": "Notification sent",
+    "marked_read": "Notification marked as read",
+    "list_retrieved": "Notification list retrieved",
+    "all_marked_read": "All notifications marked as read",
+    "deleted": "Notification deleted",
+    "ride_started": "Ride started",
+    "ride_ended": "Ride completed - Cost: {{cost}} XAF",
+    "wallet_deposit": "Deposit of {{amount}} XAF completed",
+    "wallet_withdrawal": "Withdrawal of {{amount}} XAF completed",
+    "ride_payment": "Ride payment: {{amount}} XAF",
+    "account_created": "Welcome to FreeBike!",
+    "password_reset_requested": "Password reset requested",
+    "bike_booked": "Bike booked successfully",
+    "incident_reported": "Incident reported - Being processed",
+    "incident_resolved": "Your incident has been resolved",
+    "promotion": "Special FreeBike Offer",
+    "maintenance_scheduled": "Maintenance scheduled for bike {{bikeCode}}"
+  },
+  "admin": {
+    "access_denied": "Access denied - Admin privileges required",
+    "users_retrieved": "User list retrieved",
+    "bikes_retrieved": "Bike list retrieved",
+    "stats_retrieved": "Statistics retrieved",
+    "settings_updated": "Settings updated",
+    "pricing_updated": "Pricing updated"
+  },
+  "validation": {
+    "email_invalid": "Invalid email",
+    "password_weak": "Password must be at least 8 characters long",
+    "field_required": "Field {{field}} is required",
+    "invalid_format": "Invalid format",
+    "invalid_phone": "Invalid phone number"
+  },
+  "error": {
+    "internal_server": "Internal server error",
+    "not_found": "Resource not found",
+    "bad_request": "Invalid request",
+    "database_error": "Database error",
+    "service_unavailable": "Service temporarily unavailable"
+  },
+  "success": {
+    "operation_completed": "Operation completed successfully",
+    "data_retrieved": "Data retrieved successfully",
+    "created": "Created successfully",
+    "updated": "Updated successfully",
+    "deleted": "Deleted successfully"
+  },
+  "email": {
+    "welcome_subject": "Welcome to FreeBike - Your account has been created",
+    "welcome_title": "Welcome to FreeBike!",
+    "welcome_message": "Hello {{firstName}},\n\nWe're excited to welcome you to FreeBike! Your account has been successfully created.\n\nYou can now enjoy our electric bikes throughout the city.",
+    "welcome_cta": "Start Riding",
+    "password_reset_subject": "Reset your FreeBike password",
+    "password_reset_title": "Password Reset",
+    "password_reset_message": "Hello {{firstName}},\n\nYou requested to reset your password.\n\nClick the button below to create a new password. This link will expire in 1 hour.",
+    "password_reset_cta": "Reset my password",
+    "password_reset_ignore": "If you didn't request this reset, please ignore this email.",
+    "ride_completed_subject": "Ride completed - FreeBike",
+    "ride_completed_title": "Ride completed successfully!",
+    "ride_completed_message": "Hello {{firstName}},\n\nYour ride is completed.\n\nDuration: {{duration}} minutes\nDistance: {{distance}} km\nCost: {{cost}} XAF",
+    "ride_completed_cta": "View details",
+    "deposit_subject": "Deposit completed - FreeBike",
+    "deposit_title": "Deposit confirmed",
+    "deposit_message": "Hello {{firstName}},\n\nYour deposit of {{amount}} XAF has been completed successfully.\n\nNew balance: {{balance}} XAF",
+    "deposit_cta": "View my wallet",
+    "promotion_subject": "{{subject}}",
+    "promotion_title": "{{title}}",
+    "promotion_message": "{{message}}",
+    "promotion_cta": "Learn more",
+    "incident_resolved_subject": "Your incident has been resolved - FreeBike",
+    "incident_resolved_title": "Incident resolved",
+    "incident_resolved_message": "Hello {{firstName}},\n\nWe inform you that your incident #{{incidentId}} has been resolved.\n\nThank you for your patience.",
+    "incident_resolved_cta": "View details",
+    "footer_text": "Thank you for using FreeBike",
+    "footer_contact": "Need help? Contact us",
+    "unsubscribe": "Unsubscribe"
+  }
+}

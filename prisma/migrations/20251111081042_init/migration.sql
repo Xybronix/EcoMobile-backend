@@ -1,0 +1,397 @@
+-- CreateTable
+CREATE TABLE `users` (
+    `id` VARCHAR(191) NOT NULL,
+    `email` VARCHAR(191) NOT NULL,
+    `password` VARCHAR(191) NOT NULL,
+    `firstName` VARCHAR(191) NOT NULL,
+    `lastName` VARCHAR(191) NOT NULL,
+    `phone` VARCHAR(191) NULL,
+    `address` VARCHAR(191) NULL,
+    `avatar` VARCHAR(191) NULL,
+    `role` ENUM('USER', 'ADMIN', 'SUPER_ADMIN', 'EMPLOYEE') NOT NULL DEFAULT 'USER',
+    `status` VARCHAR(191) NOT NULL DEFAULT 'active',
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `emailVerified` BOOLEAN NOT NULL DEFAULT false,
+    `language` VARCHAR(191) NOT NULL DEFAULT 'fr',
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+    `roleId` VARCHAR(191) NULL,
+
+    UNIQUE INDEX `users_email_key`(`email`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `roles` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `isDefault` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `roles_name_key`(`name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `permissions` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `resource` VARCHAR(191) NOT NULL,
+    `action` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `permissions_name_key`(`name`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `role_permissions` (
+    `id` VARCHAR(191) NOT NULL,
+    `roleId` VARCHAR(36) NOT NULL,
+    `permissionId` VARCHAR(36) NOT NULL,
+
+    UNIQUE INDEX `role_permissions_roleId_permissionId_key`(`roleId`, `permissionId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `activity_logs` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NULL,
+    `action` VARCHAR(191) NOT NULL,
+    `resource` VARCHAR(191) NOT NULL,
+    `resourceId` VARCHAR(191) NULL,
+    `details` VARCHAR(191) NULL,
+    `metadata` JSON NULL,
+    `ipAddress` VARCHAR(191) NULL,
+    `userAgent` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `wallets` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `balance` DOUBLE NOT NULL DEFAULT 0,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `wallets_userId_key`(`userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `transactions` (
+    `id` VARCHAR(191) NOT NULL,
+    `walletId` VARCHAR(191) NOT NULL,
+    `type` ENUM('DEPOSIT', 'WITHDRAWAL', 'RIDE_PAYMENT', 'REFUND') NOT NULL,
+    `amount` DOUBLE NOT NULL,
+    `fees` DOUBLE NOT NULL DEFAULT 0,
+    `totalAmount` DOUBLE NOT NULL,
+    `status` ENUM('PENDING', 'COMPLETED', 'FAILED', 'CANCELLED') NOT NULL DEFAULT 'PENDING',
+    `paymentMethod` VARCHAR(191) NULL,
+    `paymentProvider` VARCHAR(191) NULL,
+    `externalId` VARCHAR(191) NULL,
+    `metadata` JSON NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `bikes` (
+    `id` VARCHAR(191) NOT NULL,
+    `code` VARCHAR(191) NOT NULL,
+    `model` VARCHAR(191) NOT NULL,
+    `status` ENUM('AVAILABLE', 'IN_USE', 'MAINTENANCE', 'UNAVAILABLE') NOT NULL DEFAULT 'AVAILABLE',
+    `batteryLevel` INTEGER NOT NULL DEFAULT 100,
+    `latitude` DOUBLE NULL,
+    `longitude` DOUBLE NULL,
+    `locationName` VARCHAR(191) NULL,
+    `equipment` JSON NULL,
+    `lastMaintenanceAt` DATETIME(3) NULL,
+    `qrCode` VARCHAR(191) NOT NULL,
+    `gpsDeviceId` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `bikes_code_key`(`code`),
+    UNIQUE INDEX `bikes_qrCode_key`(`qrCode`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `rides` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `bikeId` VARCHAR(191) NOT NULL,
+    `startTime` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `endTime` DATETIME(3) NULL,
+    `startLatitude` DOUBLE NOT NULL,
+    `startLongitude` DOUBLE NOT NULL,
+    `endLatitude` DOUBLE NULL,
+    `endLongitude` DOUBLE NULL,
+    `distance` DOUBLE NULL,
+    `duration` INTEGER NULL,
+    `cost` DOUBLE NULL,
+    `status` ENUM('IN_PROGRESS', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'IN_PROGRESS',
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `maintenance_logs` (
+    `id` VARCHAR(191) NOT NULL,
+    `bikeId` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NOT NULL,
+    `cost` DOUBLE NULL,
+    `performedBy` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `incidents` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `bikeId` VARCHAR(191) NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NOT NULL,
+    `status` ENUM('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED') NOT NULL DEFAULT 'OPEN',
+    `priority` VARCHAR(191) NOT NULL DEFAULT 'MEDIUM',
+    `resolvedAt` DATETIME(3) NULL,
+    `refundAmount` DOUBLE NULL,
+    `adminNote` VARCHAR(191) NULL,
+    `resolvedBy` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `notifications` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NOT NULL,
+    `message` VARCHAR(191) NOT NULL,
+    `type` VARCHAR(191) NOT NULL,
+    `isRead` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `chat_messages` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `message` VARCHAR(191) NOT NULL,
+    `isAdmin` BOOLEAN NOT NULL DEFAULT false,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `sessions` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `token` VARCHAR(191) NOT NULL,
+    `device` VARCHAR(191) NULL,
+    `location` VARCHAR(191) NULL,
+    `ipAddress` VARCHAR(191) NULL,
+    `userAgent` TEXT NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `expiresAt` DATETIME(3) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `sessions_token_key`(`token`),
+    INDEX `sessions_userId_idx`(`userId`),
+    INDEX `sessions_isActive_idx`(`isActive`),
+    INDEX `sessions_expiresAt_idx`(`expiresAt`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `settings` (
+    `id` VARCHAR(191) NOT NULL,
+    `key` VARCHAR(191) NOT NULL,
+    `value` VARCHAR(191) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `settings_key_key`(`key`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `pricing_configs` (
+    `id` VARCHAR(191) NOT NULL,
+    `unlockFee` DOUBLE NOT NULL DEFAULT 100,
+    `baseHourlyRate` DOUBLE NOT NULL DEFAULT 200,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `pricing_plans` (
+    `id` VARCHAR(191) NOT NULL,
+    `pricingConfigId` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `hourlyRate` DOUBLE NOT NULL,
+    `dailyRate` DOUBLE NOT NULL,
+    `weeklyRate` DOUBLE NOT NULL,
+    `monthlyRate` DOUBLE NOT NULL,
+    `minimumHours` INTEGER NOT NULL DEFAULT 1,
+    `discount` DOUBLE NOT NULL DEFAULT 0,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `conditions` JSON NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `pricing_rules` (
+    `id` VARCHAR(191) NOT NULL,
+    `pricingConfigId` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `dayOfWeek` INTEGER NULL,
+    `startHour` INTEGER NULL,
+    `endHour` INTEGER NULL,
+    `multiplier` DOUBLE NOT NULL DEFAULT 1,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `priority` INTEGER NOT NULL DEFAULT 0,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `promotions` (
+    `id` VARCHAR(191) NOT NULL,
+    `pricingConfigId` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `discountType` ENUM('PERCENTAGE', 'FIXED_AMOUNT') NOT NULL DEFAULT 'PERCENTAGE',
+    `discountValue` DOUBLE NOT NULL,
+    `startDate` DATETIME(3) NOT NULL,
+    `endDate` DATETIME(3) NOT NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `usageLimit` INTEGER NULL,
+    `usageCount` INTEGER NOT NULL DEFAULT 0,
+    `conditions` JSON NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `promotion_plans` (
+    `id` VARCHAR(191) NOT NULL,
+    `promotionId` VARCHAR(100) NOT NULL,
+    `planId` VARCHAR(100) NOT NULL,
+
+    UNIQUE INDEX `promotion_plans_promotionId_planId_key`(`promotionId`, `planId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `reviews` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NULL,
+    `firstName` VARCHAR(191) NOT NULL,
+    `lastName` VARCHAR(191) NOT NULL,
+    `socialStatus` VARCHAR(191) NOT NULL,
+    `photo` VARCHAR(191) NULL,
+    `rating` INTEGER NOT NULL,
+    `comment` TEXT NOT NULL,
+    `status` ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    `reviewedBy` VARCHAR(191) NULL,
+    `reviewedAt` DATETIME(3) NULL,
+    `moderatorComment` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `reviews_status_idx`(`status`),
+    INDEX `reviews_rating_idx`(`rating`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `users` ADD CONSTRAINT `users_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `roles`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `role_permissions` ADD CONSTRAINT `role_permissions_roleId_fkey` FOREIGN KEY (`roleId`) REFERENCES `roles`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `role_permissions` ADD CONSTRAINT `role_permissions_permissionId_fkey` FOREIGN KEY (`permissionId`) REFERENCES `permissions`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `activity_logs` ADD CONSTRAINT `activity_logs_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `wallets` ADD CONSTRAINT `wallets_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `transactions` ADD CONSTRAINT `transactions_walletId_fkey` FOREIGN KEY (`walletId`) REFERENCES `wallets`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `rides` ADD CONSTRAINT `rides_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `rides` ADD CONSTRAINT `rides_bikeId_fkey` FOREIGN KEY (`bikeId`) REFERENCES `bikes`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `maintenance_logs` ADD CONSTRAINT `maintenance_logs_bikeId_fkey` FOREIGN KEY (`bikeId`) REFERENCES `bikes`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `incidents` ADD CONSTRAINT `incidents_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `incidents` ADD CONSTRAINT `incidents_bikeId_fkey` FOREIGN KEY (`bikeId`) REFERENCES `bikes`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `notifications` ADD CONSTRAINT `notifications_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `chat_messages` ADD CONSTRAINT `chat_messages_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `sessions` ADD CONSTRAINT `sessions_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `pricing_plans` ADD CONSTRAINT `pricing_plans_pricingConfigId_fkey` FOREIGN KEY (`pricingConfigId`) REFERENCES `pricing_configs`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `pricing_rules` ADD CONSTRAINT `pricing_rules_pricingConfigId_fkey` FOREIGN KEY (`pricingConfigId`) REFERENCES `pricing_configs`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `promotions` ADD CONSTRAINT `promotions_pricingConfigId_fkey` FOREIGN KEY (`pricingConfigId`) REFERENCES `pricing_configs`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `promotion_plans` ADD CONSTRAINT `promotion_plans_promotionId_fkey` FOREIGN KEY (`promotionId`) REFERENCES `promotions`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `promotion_plans` ADD CONSTRAINT `promotion_plans_planId_fkey` FOREIGN KEY (`planId`) REFERENCES `pricing_plans`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `reviews` ADD CONSTRAINT `reviews_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
