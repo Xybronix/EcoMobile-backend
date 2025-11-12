@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -19,7 +19,7 @@ import { dbManager } from './config/database';
 import { errorHandler } from './middleware/errorHandler';
 import { i18nMiddleware } from './middleware/i18n';
 
-const app: Application = express();
+const app = express();
 
 // Security Middleware
 app.use(helmet());
@@ -53,7 +53,7 @@ if (config.env === 'development') {
 app.use(i18nMiddleware);
 
 // Health Check
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/health', (_req: express.Request, res: express.Response) => {
   res.json({
     success: true,
     message: 'EcoMobile API is running',
@@ -71,7 +71,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 
 // Seed endpoint (seulement en développement)
-app.post('/api/seed', async (_req: Request, res: Response): Promise<void> => {
+app.post('/api/seed', async (_req: express.Request, res: express.Response): Promise<void> => {
   if (process.env.NODE_ENV !== 'development') {
     res.status(403).json({
       success: false,
@@ -106,7 +106,7 @@ app.post('/api/seed', async (_req: Request, res: Response): Promise<void> => {
 });
 
 // 404 Handler
-app.use((_req: Request, res: Response) => {
+app.use((_req: express.Request, res: express.Response) => {
   res.status(404).json({
     success: false,
     message: 'Route not found'
