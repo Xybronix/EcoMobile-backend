@@ -1,6 +1,6 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
-import { AuthRequest, logActivity } from '../middleware/auth';
+import { logActivity } from '../middleware/auth';
 import { t } from '../locales';
 
 export class AdminController {
@@ -17,7 +17,7 @@ export class AdminController {
    *       200:
    *         description: Dashboard statistics retrieved
    */
-  async getDashboardStats(req: AuthRequest, res: Response) {
+  async getDashboardStats(req: Request, res: Response) {
     try {
       const [
         totalUsers,
@@ -130,7 +130,7 @@ export class AdminController {
    *       200:
    *         description: Settings retrieved
    */
-  async getSettings(req: AuthRequest, res: Response) {
+  async getSettings(req: Request, res: Response) {
     try {
       const settings = await prisma.settings.findMany();
       
@@ -181,7 +181,7 @@ export class AdminController {
    *       200:
    *         description: Settings updated
    */
-  async updateSettings(req: AuthRequest, res: Response) {
+  async updateSettings(req: Request, res: Response) {
     try {
       const settings = req.body;
       const oldSettings = await prisma.settings.findMany();
@@ -228,7 +228,7 @@ export class AdminController {
    *       200:
    *         description: Pricing retrieved
    */
-  async getPricing(req: AuthRequest, res: Response) {
+  async getPricing(req: Request, res: Response) {
     try {
       const pricing = await prisma.pricingConfig.findFirst({
         where: { isActive: true },
@@ -320,7 +320,7 @@ export class AdminController {
    *       200:
    *         description: Pricing updated
    */
-  async updatePricing(req: AuthRequest, res: Response) {
+  async updatePricing(req: Request, res: Response) {
     try {
       const { unlockFee, baseHourlyRate, plans, rules } = req.body;
       
@@ -497,7 +497,7 @@ export class AdminController {
    *       200:
    *         description: Current pricing retrieved successfully
    */
-  async getCurrentPricing(req: AuthRequest, res: Response) {
+  async getCurrentPricing(req: Request, res: Response) {
     try {
       const { date, hour } = req.query;
       const targetDate = date ? new Date(date as string) : new Date();
@@ -665,7 +665,7 @@ export class AdminController {
    *       200:
    *         description: Promotions retrieved successfully
    */
-  async getPromotions(req: AuthRequest, res: Response) {
+  async getPromotions(req: Request, res: Response) {
     try {
       const promotions = await prisma.promotion.findMany({
         include: {
@@ -748,7 +748,7 @@ export class AdminController {
    *       200:
    *         description: Promotion created successfully
    */
-  async createPromotion(req: AuthRequest, res: Response) {
+  async createPromotion(req: Request, res: Response) {
     try {
       const { 
         name, 
@@ -870,7 +870,7 @@ export class AdminController {
    *       200:
    *         description: Promotion updated successfully
    */
-  async updatePromotion(req: AuthRequest, res: Response) {
+  async updatePromotion(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { 
@@ -1006,7 +1006,7 @@ export class AdminController {
    *       200:
    *         description: Promotion status updated
    */
-  async togglePromotionStatus(req: AuthRequest, res: Response) {
+  async togglePromotionStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { isActive } = req.body;
@@ -1075,7 +1075,7 @@ export class AdminController {
    *       200:
    *         description: Plan deleted successfully
    */
-  async deletePlan(req: AuthRequest, res: Response) {
+  async deletePlan(req: Request, res: Response) {
     try {
       const { id } = req.params;
 
@@ -1135,7 +1135,7 @@ export class AdminController {
    *       200:
    *         description: Rule deleted successfully
    */
-  async deleteRule(req: AuthRequest, res: Response) {
+  async deleteRule(req: Request, res: Response) {
     try {
       const { id } = req.params;
 
@@ -1209,7 +1209,7 @@ export class AdminController {
    *       200:
    *         description: Promotion deleted successfully
    */
-  async deletePromotion(req: AuthRequest, res: Response) {
+  async deletePromotion(req: Request, res: Response) {
     try {
       const { id } = req.params;
 
@@ -1299,7 +1299,7 @@ export class AdminController {
    *       200:
    *         description: Financial statistics retrieved
    */
-  async getFinancialStats(req: AuthRequest, res: Response) {
+  async getFinancialStats(req: Request, res: Response) {
     try {
       const { startDate, endDate, type } = req.query;
       
@@ -1388,7 +1388,7 @@ export class AdminController {
    *       200:
    *         description: Financial chart data retrieved
    */
-  async getFinancialData(req: AuthRequest, res: Response) {
+  async getFinancialData(req: Request, res: Response) {
     try {
       const { startDate, endDate, type } = req.query;
       
@@ -1485,7 +1485,7 @@ export class AdminController {
    *       200:
    *         description: Transaction summary retrieved
    */
-  async getFinancialTransactions(req: AuthRequest, res: Response) {
+  async getFinancialTransactions(req: Request, res: Response) {
     try {
       const { startDate, endDate } = req.query;
       
@@ -1569,7 +1569,7 @@ export class AdminController {
    *       200:
    *         description: Financial data exported
    */
-  async exportFinancialData(req: AuthRequest, res: Response) {
+  async exportFinancialData(req: Request, res: Response) {
     try {
       const { startDate, endDate, type, format = 'csv' } = req.query;
       
@@ -1675,7 +1675,7 @@ export class AdminController {
    *       200:
    *         description: Incidents retrieved
    */
-  async getIncidents(req: AuthRequest, res: Response) {
+  async getIncidents(req: Request, res: Response) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -1775,7 +1775,7 @@ export class AdminController {
    *       200:
    *         description: Incident updated
    */
-  async updateIncident(req: AuthRequest, res: Response) {
+  async updateIncident(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { status, priority, refundAmount, adminNote } = req.body;
@@ -1886,7 +1886,7 @@ export class AdminController {
    *       200:
    *         description: Approved reviews retrieved successfully
    */
-  async getApprovedReviews(_req: AuthRequest, res: Response) {
+  async getApprovedReviews(_req: Request, res: Response) {
     try {
       const reviews = await prisma.review.findMany({
         where: { status: 'APPROVED' },
@@ -1943,7 +1943,7 @@ export class AdminController {
    *       200:
    *         description: Review submitted successfully
    */
-  async submitReview(req: AuthRequest, res: Response) {
+  async submitReview(req: Request, res: Response) {
     try {
       const { photo, firstName, lastName, socialStatus, rating, comment } = req.body;
 
@@ -2022,7 +2022,7 @@ export class AdminController {
    *       200:
    *         description: Reviews retrieved successfully
    */
-  async getAllReviews(req: AuthRequest, res: Response) {
+  async getAllReviews(req: Request, res: Response) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -2109,7 +2109,7 @@ export class AdminController {
    *       200:
    *         description: Review created successfully
    */
-  async createReview(req: AuthRequest, res: Response) {
+  async createReview(req: Request, res: Response) {
     try {
       const { photo, firstName, lastName, socialStatus, rating, comment } = req.body;
 
@@ -2201,7 +2201,7 @@ export class AdminController {
    *       200:
    *         description: Review updated successfully
    */
-  async updateReview(req: AuthRequest, res: Response) {
+  async updateReview(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { photo, firstName, lastName, socialStatus, rating, comment } = req.body;
@@ -2293,7 +2293,7 @@ export class AdminController {
    *       200:
    *         description: Review moderated successfully
    */
-  async moderateReview(req: AuthRequest, res: Response) {
+  async moderateReview(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { action, moderatorComment } = req.body;
@@ -2372,7 +2372,7 @@ export class AdminController {
    *       200:
    *         description: Review deleted successfully
    */
-  async deleteReview(req: AuthRequest, res: Response) {
+  async deleteReview(req: Request, res: Response) {
     try {
       const { id } = req.params;
 
@@ -2446,7 +2446,7 @@ export class AdminController {
    *       200:
    *         description: Activity logs retrieved
    */
-  async getActivityLogs(req: AuthRequest, res: Response) {
+  async getActivityLogs(req: Request, res: Response) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
@@ -2512,7 +2512,7 @@ export class AdminController {
    *       200:
    *         description: Roles retrieved successfully
    */
-  async getRoles(req: AuthRequest, res: Response) {
+  async getRoles(req: Request, res: Response) {
     try {
       const roles = await prisma.role.findMany({
         include: {
@@ -2589,7 +2589,7 @@ export class AdminController {
    *       200:
    *         description: Role created successfully
    */
-  async createRole(req: AuthRequest, res: Response) {
+  async createRole(req: Request, res: Response) {
     try {
       const { name, description, permissions } = req.body;
 
@@ -2714,7 +2714,7 @@ export class AdminController {
    *       200:
    *         description: Role updated successfully
    */
-  async updateRole(req: AuthRequest, res: Response) {
+  async updateRole(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { name, description, permissions } = req.body;
@@ -2884,7 +2884,7 @@ export class AdminController {
    *       200:
    *         description: Role deleted successfully
    */
-  async deleteRole(req: AuthRequest, res: Response): Promise<Response> {
+  async deleteRole(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
 
@@ -2981,7 +2981,7 @@ export class AdminController {
    *       200:
    *         description: Role assigned successfully
    */
-  async assignRoleToEmployees(req: AuthRequest, res: Response): Promise<Response> {
+  async assignRoleToEmployees(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
       const { employeeIds } = req.body;
@@ -3081,7 +3081,7 @@ export class AdminController {
    *       200:
    *         description: Permissions retrieved successfully
    */
-  async getPermissions(req: AuthRequest, res: Response) {
+  async getPermissions(req: Request, res: Response) {
     try {
       const permissions = await prisma.permission.findMany({
         orderBy: [{ resource: 'asc' }, { action: 'asc' }]
@@ -3138,7 +3138,7 @@ export class AdminController {
    *       200:
    *         description: Role permissions updated successfully
    */
-  async updateRolePermissions(req: AuthRequest, res: Response) {
+  async updateRolePermissions(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { permissions } = req.body;

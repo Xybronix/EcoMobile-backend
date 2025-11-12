@@ -1,6 +1,6 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import ChatService from '../services/ChatService';
-import { AuthRequest, logActivity } from '../middleware/auth';
+import { logActivity } from '../middleware/auth';
 import { t } from '../locales';
 
 export class ChatController {
@@ -27,7 +27,7 @@ export class ChatController {
    *       201:
    *         description: Message sent
    */
-  async sendMessage(req: AuthRequest, res: Response): Promise<void> {
+  async sendMessage(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { message } = req.body;
@@ -86,7 +86,7 @@ export class ChatController {
    *       200:
    *         description: Messages retrieved
    */
-  async getMessages(req: AuthRequest, res: Response): Promise<void> {
+  async getMessages(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const page = parseInt(req.query.page as string) || 1;
@@ -135,7 +135,7 @@ export class ChatController {
    *       200:
    *         description: Message deleted
    */
-  async deleteMessage(req: AuthRequest, res: Response): Promise<void> {
+  async deleteMessage(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { id } = req.params;
@@ -185,7 +185,7 @@ export class ChatController {
    *       200:
    *         description: Conversations retrieved
    */
-  async getAllConversations(req: AuthRequest, res: Response): Promise<void> {
+  async getAllConversations(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -242,7 +242,7 @@ export class ChatController {
    *       200:
    *         description: Messages retrieved
    */
-  async getUserMessagesAsAdmin(req: AuthRequest, res: Response): Promise<void> {
+  async getUserMessagesAsAdmin(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
       const page = parseInt(req.query.page as string) || 1;
@@ -303,7 +303,7 @@ export class ChatController {
    *       201:
    *         description: Message sent
    */
-  async sendMessageAsAdmin(req: AuthRequest, res: Response): Promise<void> {
+  async sendMessageAsAdmin(req: Request, res: Response): Promise<void> {
     try {
       const { userId } = req.params;
       const { message } = req.body;
