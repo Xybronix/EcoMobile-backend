@@ -1,7 +1,7 @@
 {
-  "name": "freebike-backend",
+  "name": "ecomobile-backend",
   "version": "1.0.0",
-  "description": "FreeBike Backend API - Multi-database support",
+  "description": "EcoMobile Backend API - Multi-database support",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
@@ -10,15 +10,16 @@
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts"
   },
   "keywords": [
-    "freebike",
+    "ecomobile",
     "bike-sharing",
     "api"
   ],
-  "author": "FreeBike Team",
+  "author": "Brayan Weko",
   "license": "MIT",
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.2",
@@ -51,7 +52,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.9",
     "@types/multer": "^1.4.11",
-    "@types/node": "^20.10.6",
+    "@types/node": "^20.19.25",
     "@types/nodemailer": "^6.4.14",
     "@types/pg": "^8.15.5",
     "@types/swagger-jsdoc": "^6.0.4",

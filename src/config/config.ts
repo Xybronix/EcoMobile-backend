@@ -1,7 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config();
+if (process.env.NODE_ENV === 'production') {
+  dotenv.config({ path: path.join(__dirname, '../../.env.production') });
+} else {
+  dotenv.config();
+}
 
 export const config = {
   env: process.env.NODE_ENV || 'development',
@@ -16,7 +20,7 @@ export const config = {
       port: parseInt(process.env.MYSQL_PORT || '3306', 10),
       user: process.env.MYSQL_USER || 'root',
       password: process.env.MYSQL_PASSWORD || '',
-      database: process.env.MYSQL_DATABASE || 'freebike'
+      database: process.env.MYSQL_DATABASE || 'ecomobile'
     },
 
     postgres: {
@@ -24,20 +28,20 @@ export const config = {
       port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
       user: process.env.POSTGRES_USER || 'postgres',
       password: process.env.POSTGRES_PASSWORD || '',
-      database: process.env.POSTGRES_DATABASE || 'freebike'
+      database: process.env.POSTGRES_DATABASE || 'ecomobile'
     },
 
     sqlite: {
-      path: process.env.SQLITE_PATH || path.join(__dirname, '../../database/freebike.db')
+      path: process.env.SQLITE_PATH || path.join(__dirname, '../../database/ecomobile.db')
     },
 
     mongodb: {
-      uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/freebike'
+      uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/ecomobile'
     },
 
     cassandra: {
       contactPoints: process.env.CASSANDRA_CONTACT_POINTS || 'localhost',
-      keyspace: process.env.CASSANDRA_KEYSPACE || 'freebike',
+      keyspace: process.env.CASSANDRA_KEYSPACE || 'ecomobile',
       localDataCenter: process.env.CASSANDRA_LOCAL_DATACENTER || 'datacenter1'
     }
   },
@@ -55,7 +59,7 @@ export const config = {
     secure: process.env.SMTP_SECURE === 'true',
     user: process.env.SMTP_USER || '',
     password: process.env.SMTP_PASSWORD || '',
-    from: process.env.EMAIL_FROM || 'noreply@freebike.com',
+    from: process.env.EMAIL_FROM || 'noreply@ecomobile.com',
     fromName: process.env.EMAIL_FROM_NAME || 'FreeBike'
   },
 
@@ -95,4 +99,19 @@ export const config = {
   cors: {
     origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',')
   }
-};
+} as const;
+
+
+if (config.env === 'production') {
+  const requiredVars = [
+    'MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE',
+    'JWT_SECRET', 'JWT_REFRESH_SECRET'
+  ];
+
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    console.error('❌ Variables manquantes en production:', missingVars);
+    process.exit(1);
+  }
+}
