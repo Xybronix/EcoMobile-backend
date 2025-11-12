@@ -1,6 +1,6 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import UserService from '../services/UserService';
-import { AuthRequest, logActivity } from '../middleware/auth';
+import { logActivity } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 import { t } from '../locales';
 
@@ -17,7 +17,7 @@ export class UserController {
    *       200:
    *         description: Profile retrieved
    */
-  async getProfile(req: AuthRequest, res: Response): Promise<void> {
+  async getProfile(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const user = await UserService.getUserById(userId);
@@ -81,7 +81,7 @@ export class UserController {
    *       200:
    *         description: Profile updated
    */
-  async updateProfile(req: AuthRequest, res: Response): Promise<void> {
+  async updateProfile(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const oldUser = await UserService.getUserById(userId);
@@ -152,7 +152,7 @@ export class UserController {
    *       200:
    *         description: Password updated
    */
-  async updatePassword(req: AuthRequest, res: Response): Promise<void> {
+  async updatePassword(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       await UserService.updatePassword(userId, req.body);
@@ -191,7 +191,7 @@ export class UserController {
    *       200:
    *         description: Statistics retrieved
    */
-  async getStats(req: AuthRequest, res: Response): Promise<void> {
+  async getStats(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const stats = await UserService.getUserStats(userId);
@@ -239,7 +239,7 @@ export class UserController {
    *       200:
    *         description: Notifications retrieved
    */
-  async getNotifications(req: AuthRequest, res: Response): Promise<void> {
+  async getNotifications(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const page = parseInt(req.query.page as string) || 1;
@@ -288,7 +288,7 @@ export class UserController {
    *       200:
    *         description: Notification marked as read
    */
-  async markNotificationAsRead(req: AuthRequest, res: Response): Promise<void> {
+  async markNotificationAsRead(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { id } = req.params;
@@ -329,7 +329,7 @@ export class UserController {
    *       200:
    *         description: All notifications marked as read
    */
-  async markAllNotificationsAsRead(req: AuthRequest, res: Response): Promise<void> {
+  async markAllNotificationsAsRead(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       await UserService.markAllNotificationsAsRead(userId);
@@ -368,7 +368,7 @@ export class UserController {
    *       200:
    *         description: Count retrieved
    */
-  async getUnreadCount(req: AuthRequest, res: Response): Promise<void> {
+  async getUnreadCount(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const count = await UserService.getUnreadNotificationsCount(userId);
@@ -412,7 +412,7 @@ export class UserController {
    *       200:
    *         description: Users retrieved
    */
-  async getAllUsers(req: AuthRequest, res: Response): Promise<void> {
+  async getAllUsers(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -479,7 +479,7 @@ export class UserController {
    *       201:
    *         description: User created
    */
-  async createUser(req: AuthRequest, res: Response): Promise<void> {
+  async createUser(req: Request, res: Response): Promise<void> {
     try {
       const userData = req.body;
       
@@ -558,7 +558,7 @@ export class UserController {
    *       200:
    *         description: User updated
    */
-  async updateUser(req: AuthRequest, res: Response): Promise<void> {
+  async updateUser(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const updateData = req.body;
@@ -647,7 +647,7 @@ export class UserController {
    *       200:
    *         description: Users found
    */
-  async searchUsers(req: AuthRequest, res: Response): Promise<void> {
+  async searchUsers(req: Request, res: Response): Promise<void> {
     try {
       const query = req.query.q as string;
       const page = parseInt(req.query.page as string) || 1;
@@ -703,7 +703,7 @@ export class UserController {
    *       200:
    *         description: User retrieved
    */
-  async getUserById(req: AuthRequest, res: Response): Promise<void> {
+  async getUserById(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const user = await UserService.getUserById(id);
@@ -770,7 +770,7 @@ export class UserController {
    *       200:
    *         description: Role updated
    */
-  async updateUserRole(req: AuthRequest, res: Response): Promise<void> {
+  async updateUserRole(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const { roleId } = req.body;
@@ -847,7 +847,7 @@ export class UserController {
    *       200:
    *         description: Status updated
    */
-  async toggleUserStatus(req: AuthRequest, res: Response): Promise<void> {
+  async toggleUserStatus(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const { isActive } = req.body;
@@ -902,7 +902,7 @@ export class UserController {
    *       200:
    *         description: User deleted
    */
-  async deleteUser(req: AuthRequest, res: Response): Promise<void> {
+  async deleteUser(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
       const userToDelete = await UserService.getUserById(id);

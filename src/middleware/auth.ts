@@ -2,29 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
 import { prisma } from '../config/prisma';
-import { UserRole } from '@prisma/client';
 import { t } from '../locales';
 
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: UserRole;
-    roleId: string | null;
-    permissions: string[];
-  };
-  language?: 'fr' | 'en';
-}
+export interface AuthRequest extends Request {}
 
-interface LogRequest {
-  ip?: string;
-  connection?: {
-    remoteAddress?: string;
-  };
-  headers?: {
-    'user-agent'?: string;
-  };
-}
+// interface LogRequest extends Request {}
 
 
 // Service pour logger les activités
@@ -35,7 +17,7 @@ export const logActivity = async (
   resourceId?: string,
   details?: string,
   metadata?: any,
-  req?: LogRequest
+  req?: Request
 ) => {
   try {
     await prisma.activityLog.create({
@@ -55,7 +37,7 @@ export const logActivity = async (
   }
 };
 
-export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -166,7 +148,7 @@ export const authorize = (...roles: string[]) => {
 };
 
 export const requirePermission = (resource: string, action: string) => {
-  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
