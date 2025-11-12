@@ -4,21 +4,29 @@ const fs = require('fs');
 console.log('🚀 Starting Render deployment...');
 
 try {
-  // 1. Compilation TypeScript
+  // 1. Installation des dépendances
+  console.log('📦 Installing dependencies...');
+  execSync('npm install', { stdio: 'inherit' });
+
+  // 2. Compilation TypeScript
   console.log('📦 Compiling TypeScript...');
   execSync('npx tsc', { stdio: 'inherit' });
 
-  // 2. Génération Prisma Client
+  // 3. Génération Prisma Client
   console.log('🔧 Generating Prisma client...');
   execSync('npx prisma generate', { stdio: 'inherit' });
 
-  // 3. Push du schema (pour Railway MySQL)
+  // 4. Push du schema (pour Railway MySQL)
   console.log('🗄️ Pushing database schema...');
   execSync('npx prisma db push', { stdio: 'inherit' });
 
-  // 4. Seed de la base
+  // 5. Seed de la base (optionnel - seulement si nécessaire)
   console.log('🌱 Seeding database...');
-  execSync('npx ts-node prisma/seed.ts', { stdio: 'inherit' });
+  try {
+    execSync('npx ts-node prisma/seed.ts', { stdio: 'inherit' });
+  } catch (seedError) {
+    console.log('⚠️ Seed failed, continuing deployment...', seedError.message);
+  }
 
   console.log('✅ Render build completed successfully!');
 } catch (error) {
