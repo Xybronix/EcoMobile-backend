@@ -5,15 +5,19 @@ import { prisma } from '../config/prisma';
 import { UserRole } from '@prisma/client';
 import { t } from '../locales';
 
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: UserRole;
-    roleId: string | null;
-    permissions: string[];
-  };
-  language?: 'fr' | 'en';
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        role: UserRole;
+        roleId: string | null;
+        permissions: string[];
+      };
+      language?: 'fr' | 'en';
+    }
+  }
 }
 
 interface LogRequest {
@@ -26,6 +30,7 @@ interface LogRequest {
   };
 }
 
+export type AuthRequest = Request;
 
 // Service pour logger les activités
 export const logActivity = async (
