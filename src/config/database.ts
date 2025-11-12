@@ -2,7 +2,7 @@ import mysql from 'mysql2/promise';
 import { Pool as PgPool } from 'pg';
 import sqlite3 from 'sqlite3';
 import { Client as CassandraClient } from 'cassandra-driver';
-import { MongoClient/*, Db*/ } from 'mongodb';
+import { MongoClient } from 'mongodb';
 import { config } from './config';
 
 // Database Connection Interface
