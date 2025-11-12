@@ -19,7 +19,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["node", "express"],
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
