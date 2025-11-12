@@ -6,7 +6,6 @@ import swaggerUi from 'swagger-ui-express';
 import dotenv from 'dotenv';
 import path from 'path';
 
-
 if (process.env.NODE_ENV === 'production') {
   dotenv.config({ path: path.join(__dirname, '../../.env.production') });
 } else {
@@ -71,9 +70,40 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: 'EcoMobile API Documentation'
 }));
 
-// Routes (chargées dynamiquement)
-import routes from './routes';
-app.use(`/api/${config.apiVersion}`, routes);
+// Seed endpoint (seulement en développement)
+app.post('/api/seed', async (_req: Request, res: Response): Promise<void> => {
+  if (process.env.NODE_ENV !== 'development') {
+    res.status(403).json({
+      success: false,
+      message: 'Seeding only allowed in development mode'
+    });
+    return;
+  }
+
+  try {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+
+    const { stdout, stderr } = await execAsync('npx ts-node prisma/seed.ts');
+    
+    console.log('Seed output:', stdout);
+    if (stderr) console.error('Seed errors:', stderr);
+
+    res.json({
+      success: true,
+      message: 'Database seeded successfully',
+      output: stdout
+    });
+  } catch (error: any) {
+    console.error('Seed failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Seed failed',
+      error: error.message || 'Unknown error occurred'
+    });
+  }
+});
 
 // 404 Handler
 app.use((_req: Request, res: Response) => {
@@ -98,46 +128,16 @@ const startServer = async () => {
     await prisma.$connect();
     console.log('✅ Prisma database connected successfully');
 
-    // 2. Connect DatabaseManager (si nécessaire)
+    // 2. Connect DatabaseManager
     if (dbManager && typeof dbManager.connect === 'function') {
       await dbManager.connect();
       console.log('✅ DatabaseManager connected successfully');
     }
 
-    // Seed endpoint (seulement en développement)
-    app.post('/api/seed', async (_req: Request, res: Response): Promise<void> => {
-      if (process.env.NODE_ENV !== 'development') {
-        res.status(403).json({
-          success: false,
-          message: 'Seeding only allowed in development mode'
-        });
-        return;
-      }
-
-      try {
-        const { exec } = require('child_process');
-        const { promisify } = require('util');
-        const execAsync = promisify(exec);
-
-        const { stdout, stderr } = await execAsync('npx ts-node prisma/seed.ts');
-        
-        console.log('Seed output:', stdout);
-        if (stderr) console.error('Seed errors:', stderr);
-
-        res.json({
-          success: true,
-          message: 'Database seeded successfully',
-          output: stdout
-        });
-      } catch (error: any) {
-        console.error('Seed failed:', error);
-        res.status(500).json({
-          success: false,
-          message: 'Seed failed',
-          error: error.message || 'Unknown error occurred'
-        });
-      }
-    });
+    // 3. IMPORTANT: Charger les routes APRÈS la connexion à la base de données
+    const routes = await import('./routes');
+    app.use(`/api/${config.apiVersion}`, routes.default);
+    console.log('✅ Routes loaded successfully');
 
     app.listen(PORT, HOST, () => {
       console.log(`
