@@ -225,10 +225,10 @@ async function main() {
 
   const admin = await prisma.user.create({
     data: {
-      email: 'admin@freebike.cm',
+      email: 'admin@ecomobile.cm',
       password: hashedPassword,
       firstName: 'Admin',
-      lastName: 'FreeBike',
+      lastName: 'EcoMobile',
       phone: '+237600000001',
       role: 'SUPER_ADMIN',
       roleId: superAdminRole.id,
@@ -240,7 +240,7 @@ async function main() {
 
   await prisma.user.create({
     data: {
-      email: 'manager@freebike.cm',
+      email: 'manager@ecomobile.cm',
       password: hashedPassword,
       firstName: 'Manager',
       lastName: 'System',
@@ -255,7 +255,7 @@ async function main() {
 
   const user1 = await prisma.user.create({
     data: {
-      email: 'user@freebike.cm',
+      email: 'user@ecomobile.cm',
       password: userPassword,
       firstName: 'Jean',
       lastName: 'Dupont',
@@ -270,7 +270,7 @@ async function main() {
 
   const user2 = await prisma.user.create({
     data: {
-      email: 'marie@freebike.cm',
+      email: 'marie@ecomobile.cm',
       password: userPassword,
       firstName: 'Marie',
       lastName: 'Martin',
@@ -285,7 +285,7 @@ async function main() {
 
   await prisma.user.create({
     data: {
-      email: 'support@freebike.cm',
+      email: 'support@ecomobile.cm',
       password: hashedPassword,
       firstName: 'Support',
       lastName: 'Team',
@@ -588,7 +588,7 @@ async function main() {
   await prisma.notification.create({
     data: {
       userId: user1.id,
-      title: 'Bienvenue sur FreeBike',
+      title: 'Bienvenue sur EcoMobile',
       message: 'Merci de vous être inscrit ! Profitez de 10% de réduction sur votre premier trajet.',
       type: 'welcome',
     },
@@ -685,14 +685,14 @@ async function main() {
   await prisma.settings.create({
     data: {
       key: 'company_name',
-      value: 'FreeBike Cameroun',
+      value: 'EcoMobile Cameroun',
     },
   });
 
   await prisma.settings.create({
     data: {
       key: 'support_email',
-      value: 'support@freebike.cm',
+      value: 'support@ecomobile.cm',
     },
   });
 
@@ -711,23 +711,23 @@ async function main() {
   console.log('📝 Test Accounts:');
   console.log('');
   console.log('👑 Super Admin:');
-  console.log('   Email: admin@freebike.cm');
+  console.log('   Email: admin@ecomobile.cm');
   console.log('   Password: admin123');
   console.log('   Permissions: Full access');
   console.log('');
   console.log('👨‍💼 Manager:');
-  console.log('   Email: manager@freebike.cm');
+  console.log('   Email: manager@ecomobile.cm');
   console.log('   Password: admin123');
   console.log('   Permissions: Limited admin access');
   console.log('');
   console.log('👤 User:');
-  console.log('   Email: user@freebike.cm');
+  console.log('   Email: user@ecomobile.cm');
   console.log('   Password: user123');
   console.log('   Balance: 5000 FCFA');
   console.log('   Permissions: Basic user access');
   console.log('');
   console.log('👩‍💼 Support:');
-  console.log('   Email: support@freebike.cm');
+  console.log('   Email: support@ecomobile.cm');
   console.log('   Password: admin123');
   console.log('   Permissions: Employee access');
   console.log('');
