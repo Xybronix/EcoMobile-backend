@@ -1,14 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserRole } from '@prisma/client';
-export interface AuthRequest extends Request {
-    user?: {
-        id: string;
-        email: string;
-        role: UserRole;
-        roleId: string | null;
-        permissions: string[];
-    };
-    language?: 'fr' | 'en';
+declare global {
+    namespace Express {
+        interface Request {
+            user?: {
+                id: string;
+                email: string;
+                role: UserRole;
+                roleId: string | null;
+                permissions: string[];
+            };
+            language?: 'fr' | 'en';
+        }
+    }
 }
 interface LogRequest {
     ip?: string;
@@ -19,6 +23,7 @@ interface LogRequest {
         'user-agent'?: string;
     };
 }
+export type AuthRequest = Request;
 export declare const logActivity: (userId: string | null, action: string, resource: string, resourceId?: string, details?: string, metadata?: any, req?: LogRequest) => Promise<void>;
 export declare const authenticate: (req: AuthRequest, res: Response, next: NextFunction) => Promise<void>;
 export declare const authorize: (...roles: string[]) => (req: AuthRequest, res: Response, next: NextFunction) => void;
@@ -44,4 +49,4 @@ export declare const verifyRefreshToken: (token: string) => {
     roleId: string;
 } | null;
 export {};
-//# sourceMappingURL=auth.d.ts.map
+//# sourceMappingURL=auth%20copy.d.ts.map

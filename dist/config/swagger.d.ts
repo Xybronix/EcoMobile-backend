@@ -1,2 +1,2 @@
-export declare const swaggerSpec: object;
+export declare const swaggerSpec: any;
 //# sourceMappingURL=swagger.d.ts.map
