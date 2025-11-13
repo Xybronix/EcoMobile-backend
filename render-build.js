@@ -1,43 +1,57 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
 console.log('🚀 Starting Render deployment...');
 
 try {
-  // 1. Installation des dépendances (y compris devDependencies)
+  // 1. Installation complète
   console.log('📦 Installing all dependencies...');
-  execSync('npm install', { stdio: 'inherit' });
+  execSync('npm ci', { stdio: 'inherit' });
 
-  // 2. Installation spécifique des types manquants au cas où
-  console.log('📦 Installing missing type definitions...');
-  try {
-    execSync('npm install --save-dev @types/pg @types/swagger-jsdoc @types/jsonwebtoken @types/morgan @types/swagger-ui-express @types/bcryptjs @types/nodemailer', { stdio: 'inherit' });
-  } catch (typeError) {
-    console.log('⚠️ Some type installations failed, continuing...');
-  }
-
-  // 3. Compilation TypeScript
-  // console.log('📦 Compiling TypeScript...');
-  // execSync('npx tsc', { stdio: 'inherit' });
-
-  // 4. Génération Prisma Client
+  // 2. Génération Prisma Client
   console.log('🔧 Generating Prisma client...');
   execSync('npx prisma generate', { stdio: 'inherit' });
 
-  // 5. Push du schema
-  console.log('🗄️ Pushing database schema...');
+  // 3. Build TypeScript
+  console.log('🏗️ Building TypeScript...');
+  execSync('npm run build', { stdio: 'inherit' });
+
+  // 4. Vérification de la connexion base de données
+  console.log('🔌 Testing database connection...');
   execSync('npx prisma db push', { stdio: 'inherit' });
 
-  // 6. Seed de la base (optionnel)
+  // 5. Seed intelligent avec plusieurs méthodes
   console.log('🌱 Seeding database...');
-  try {
-    execSync('npx ts-node prisma/seed.ts', { stdio: 'inherit' });
-  } catch (seedError) {
-    console.log('⚠️ Seed failed, continuing deployment...', seedError.message);
+  
+  const seedMethods = [
+    () => execSync('npx prisma db seed', { stdio: 'inherit' }),
+    () => execSync('npx ts-node prisma/seed.ts', { stdio: 'inherit' }),
+    () => execSync('npm run db:seed', { stdio: 'inherit' }),
+  ];
+
+  let seedSuccessful = false;
+  
+  for (let i = 0; i < seedMethods.length; i++) {
+    try {
+      console.log(`🔄 Trying seed method ${i + 1}...`);
+      seedMethods[i]();
+      console.log('✅ Database seeded successfully!');
+      seedSuccessful = true;
+      break;
+    } catch (seedError) {
+      console.log(`⚠️ Seed method ${i + 1} failed:`, seedError.message);
+    }
+  }
+
+  if (!seedSuccessful) {
+    console.log('⚠️ All seed methods failed, but continuing deployment...');
+    console.log('💡 You can manually seed later using: npm run db:seed');
   }
 
   console.log('✅ Render build completed successfully!');
 } catch (error) {
-  console.error('❌ Build failed:', error);
+  console.error('❌ Build failed:', error.message);
+  console.error('Stack:', error.stack);
   process.exit(1);
 }
