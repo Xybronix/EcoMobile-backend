@@ -1,4 +1,4 @@
-import express, { Request, NextFunction } from 'express';
+import express, { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
 import { prisma } from '../config/prisma';
@@ -62,7 +62,7 @@ export const logActivity = async (
   }
 };
 
-export const authenticate = async (req: AuthRequest, res: express.Response, next: NextFunction): Promise<void> => {
+export const authenticate = async (req: AuthRequest, res: express.Response, next: express.NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -151,7 +151,7 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
 };
 
 export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: express.Response, next: NextFunction): void => {
+  return (req: AuthRequest, res: express.Response, next: express.NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -173,7 +173,7 @@ export const authorize = (...roles: string[]) => {
 };
 
 export const requirePermission = (resource: string, action: string) => {
-  return async (req: AuthRequest, res: express.Response, next: NextFunction): Promise<void> => {
+  return async (req: AuthRequest, res: express.Response, next: express.NextFunction): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -212,7 +212,7 @@ export const requirePermission = (resource: string, action: string) => {
 
 export const requireAdmin = authorize('ADMIN', 'SUPER_ADMIN');
 
-export const optionalAuth = async (req: AuthRequest, _res: express.Response, next: NextFunction): Promise<void> => {
+export const optionalAuth = async (req: AuthRequest, _res: express.Response, next: express.NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
