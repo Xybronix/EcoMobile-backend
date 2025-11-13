@@ -8,9 +8,9 @@ export interface I18nRequest extends Request {
 export const i18nMiddleware = (req: I18nRequest, _res: express.Response, next: express.NextFunction) => {
   // Priority order: query param > header > default
   const langFromQuery = req.query.lang as string;
-  const langFromHeader = req.headers['accept-language'];
+  const langFromHeader = req.headers['accept-language'] as string;
 
-  let language: 'fr' | 'en' = config.app.defaultLanguage;
+  let language: 'fr' | 'en' = config.app.defaultLanguage as 'fr' | 'en';
 
   if (langFromQuery && config.app.supportedLanguages.includes(langFromQuery)) {
     language = langFromQuery as 'fr' | 'en';
