@@ -99,17 +99,6 @@ app.post('/api/seed', async (_req: express.Request, res: express.Response): Prom
   }
 });
 
-// 404 Handler
-app.use((_req: express.Request, res: express.Response) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
-});
-
-// Error Handler
-app.use(errorHandler);
-
 // Start Server
 const PORT = Number(process.env.PORT || config.port);
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
@@ -132,6 +121,17 @@ const startServer = async () => {
     const routes = await import('./routes');
     app.use(`/api/${config.apiVersion}`, routes.default);
     console.log('✅ Routes loaded successfully');
+
+    // 404 Handler
+    app.use((_req: express.Request, res: express.Response) => {
+      res.status(404).json({
+        success: false,
+        message: 'Route not found'
+      });
+    });
+
+    // Error Handler
+    app.use(errorHandler);
 
     app.listen(PORT, HOST, () => {
       console.log(`
