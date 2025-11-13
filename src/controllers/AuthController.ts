@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import { logActivity } from '../middleware/auth';
+import { Response } from 'express';
+import { AuthRequest, logActivity } from '../middleware/auth';
 import { AuthService } from '../services';
 import { asyncHandler } from '../middleware/errorHandler';
 import { t } from '../locales';
@@ -45,7 +45,7 @@ export class AuthController {
    *       201:
    *         description: User successfully registered
    */
-  register = asyncHandler(async (req: Request, res: Response) => {
+  register = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const result = await this.authService.register(req.body, language);
 
@@ -92,7 +92,7 @@ export class AuthController {
    *       200:
    *         description: User successfully logged in
    */
-  login = asyncHandler(async (req: Request, res: Response) => {
+  login = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const result = await this.authService.login(req.body, language, req);
 
@@ -125,7 +125,7 @@ export class AuthController {
    *       200:
    *         description: User profile retrieved successfully
    */
-  me = asyncHandler(async (req: Request, res: Response) => {
+  me = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const userId = req.user!.id;
     
@@ -183,7 +183,7 @@ export class AuthController {
    *       200:
    *         description: Profile updated successfully
    */
-  updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  updateProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const userId = req.user!.id;
     
@@ -232,7 +232,7 @@ export class AuthController {
    *       200:
    *         description: Sessions retrieved successfully
    */
-  getSessions = asyncHandler(async (req: Request, res: Response) => {
+  getSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const userId = req.user!.id;
 
@@ -266,7 +266,7 @@ export class AuthController {
    *       200:
    *         description: Session disconnected successfully
    */
-  disconnectSession = asyncHandler(async (req: Request, res: Response) => {
+  disconnectSession = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const userId = req.user!.id;
     const { sessionId } = req.params;
@@ -301,7 +301,7 @@ export class AuthController {
    *       200:
    *         description: All other sessions disconnected successfully
    */
-  disconnectAllSessions = asyncHandler(async (req: Request, res: Response) => {
+  disconnectAllSessions = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const userId = req.user!.id;
 
@@ -345,7 +345,7 @@ export class AuthController {
    *       200:
    *         description: Password reset email sent
    */
-  forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  forgotPassword = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const { email } = req.body;
 
@@ -393,7 +393,7 @@ export class AuthController {
    *       200:
    *         description: Password successfully reset
    */
-  resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  resetPassword = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const { email, newPassword } = req.body;
 
@@ -443,7 +443,7 @@ export class AuthController {
    *       200:
    *         description: Password successfully changed
    */
-  changePassword = asyncHandler(async (req: Request, res: Response) => {
+  changePassword = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const { currentPassword, newPassword } = req.body;
     const userId = req.user!.id;
@@ -478,7 +478,7 @@ export class AuthController {
    *       200:
    *         description: Token is valid
    */
-  validateToken = asyncHandler(async (req: Request, res: Response) => {
+  validateToken = asyncHandler(async (req: AuthRequest, res: Response) => {
     res.status(200).json({
       success: true,
       message: 'Token is valid',
@@ -501,7 +501,7 @@ export class AuthController {
    *       200:
    *         description: User successfully logged out
    */
-  logout = asyncHandler(async (req: Request, res: Response) => {
+  logout = asyncHandler(async (req: AuthRequest, res: Response) => {
     const language = req.language || 'fr';
     const userId = req.user?.id;
 

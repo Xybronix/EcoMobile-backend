@@ -2,12 +2,37 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
 import { prisma } from '../config/prisma';
+import { UserRole } from '@prisma/client';
 import { t } from '../locales';
 
-export interface AuthRequest extends Request {}
+type SignOptions = Parameters<typeof jwt.sign>[2];
 
-// interface LogRequest extends Request {}
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        role: UserRole;
+        roleId: string | null;
+        permissions: string[];
+      };
+      language?: 'fr' | 'en';
+    }
+  }
+}
 
+interface LogRequest {
+  ip?: string;
+  connection?: {
+    remoteAddress?: string;
+  };
+  headers?: {
+    'user-agent'?: string;
+  };
+}
+
+export type AuthRequest = Request;
 
 // Service pour logger les activités
 export const logActivity = async (
@@ -17,7 +42,7 @@ export const logActivity = async (
   resourceId?: string,
   details?: string,
   metadata?: any,
-  req?: Request
+  req?: LogRequest
 ) => {
   try {
     await prisma.activityLog.create({
@@ -37,7 +62,7 @@ export const logActivity = async (
   }
 };
 
-export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -148,7 +173,7 @@ export const authorize = (...roles: string[]) => {
 };
 
 export const requirePermission = (resource: string, action: string) => {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -257,7 +282,7 @@ export const generateToken = (user: { id: string; email: string; role: string; r
     roleId: user.roleId
   };
   
-  const options = {
+  const options: SignOptions = {
     expiresIn: '24h'
   };
   
@@ -277,7 +302,7 @@ export const generateRefreshToken = (user: { id: string; email: string; role: st
     roleId: user.roleId
   };
   
-  const options = {
+  const options: SignOptions = {
     expiresIn: '7d'
   };
   
