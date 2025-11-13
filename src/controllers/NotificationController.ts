@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import express from 'express';
 import NotificationService from '../services/NotificationService';
 import { AuthRequest, logActivity } from '../middleware/auth';
 import { t } from '../locales';
@@ -38,7 +38,7 @@ class NotificationController {
    *       200:
    *         description: Notifications retrieved successfully
    */
-  async getNotifications(req: AuthRequest, res: Response): Promise<void> {
+  async getNotifications(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const limit = parseInt(req.query.limit as string) || 50;
@@ -94,7 +94,7 @@ class NotificationController {
    *       200:
    *         description: Unread count retrieved successfully
    */
-  async getUnreadCount(req: AuthRequest, res: Response): Promise<void> {
+  async getUnreadCount(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const unreadCount = await this.notificationService.getUnreadCount(userId);
@@ -131,7 +131,7 @@ class NotificationController {
    *       200:
    *         description: Notification marked as read
    */
-  async markAsRead(req: AuthRequest, res: Response): Promise<void> {
+  async markAsRead(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { id } = req.params;
       const notification = await this.notificationService.markAsRead(id);
@@ -181,7 +181,7 @@ class NotificationController {
    *       200:
    *         description: All notifications marked as read
    */
-  async markAllAsRead(req: AuthRequest, res: Response): Promise<void> {
+  async markAllAsRead(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const count = await this.notificationService.markAllAsRead(userId);
@@ -229,7 +229,7 @@ class NotificationController {
    *       200:
    *         description: Notification deleted successfully
    */
-  async deleteNotification(req: AuthRequest, res: Response): Promise<void> {
+  async deleteNotification(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { id } = req.params;
       const success = await this.notificationService.deleteNotification(id);
@@ -291,7 +291,7 @@ class NotificationController {
    *       200:
    *         description: Notifications deleted successfully
    */
-  async bulkDeleteNotifications(req: AuthRequest, res: Response): Promise<void> {
+  async bulkDeleteNotifications(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { notificationIds } = req.body;
 
@@ -369,7 +369,7 @@ class NotificationController {
    *       200:
    *         description: Promotion sent successfully
    */
-  async sendPromotion(req: AuthRequest, res: Response): Promise<void> {
+  async sendPromotion(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { userIds, subject, title, message, ctaUrl, sendEmail = true } = req.body;
 
@@ -501,7 +501,7 @@ class NotificationController {
    *       200:
    *         description: Bulk emails sent successfully
    */
-  async sendBulkEmail(req: AuthRequest, res: Response): Promise<void> {
+  async sendBulkEmail(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { emails, subject, title, message, ctaUrl, ctaText } = req.body;
 

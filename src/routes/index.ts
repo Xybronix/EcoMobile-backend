@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express from 'express';
 import publicRoutes from './public.routes';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
@@ -9,7 +9,7 @@ import adminRoutes from './admin.routes';
 import chatRoutes from './chat.routes';
 import notificationRoutes from './notification.routes';
 
-const router = Router();
+const router = express.Router();
 
 // Health check
 router.get('/health', (_req, res) => {

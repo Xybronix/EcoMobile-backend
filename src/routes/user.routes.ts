@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import express from 'express';
 import UserController from '../controllers/UserController';
 import { authenticate, requirePermission } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
 /**
  * @route   GET /api/v1/users/profile

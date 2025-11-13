@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import express from 'express';
 import { WalletController } from '../controllers/WalletController';
 import { authenticate } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 const walletController = new WalletController();
 
 

@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import express from 'express';
 import { AuthRequest, logActivity } from '../middleware/auth';
 import { RideService } from '../services';
 import { asyncHandler } from '../middleware/errorHandler';
@@ -55,7 +55,7 @@ export class RideController {
    *       201:
    *         description: Trajet démarré avec succès
    */
-  startRide = asyncHandler(async (req: AuthRequest, res: Response) => {
+  startRide = asyncHandler(async (req: AuthRequest, res: express.Response) => {
     const language = req.language || 'fr';
     const userId = req.user!.id;
     const { bikeId, startLocation } = req.body;
@@ -126,7 +126,7 @@ export class RideController {
    *       200:
    *         description: Trajet terminé avec succès
    */
-  endRide = asyncHandler(async (req: AuthRequest, res: Response) => {
+  endRide = asyncHandler(async (req: AuthRequest, res: express.Response) => {
     const language = req.language || 'fr';
     const { id } = req.params;
     const { endLocation } = req.body;
@@ -168,7 +168,7 @@ export class RideController {
    *       200:
    *         description: Ride cancelled successfully
    */
-  cancelRide = asyncHandler(async (req: AuthRequest, res: Response) => {
+  cancelRide = asyncHandler(async (req: AuthRequest, res: express.Response) => {
     const language = req.language || 'fr';
     const userId = req.user!.id;
     const { id } = req.params;
@@ -210,7 +210,7 @@ export class RideController {
    *       200:
    *         description: Ride details retrieved successfully
    */
-  getRideDetails = asyncHandler(async (req: AuthRequest, res: Response) => {
+  getRideDetails = asyncHandler(async (req: AuthRequest, res: express.Response) => {
     const { id } = req.params;
     
     const ride = await this.rideService.getRideById(id);
@@ -250,7 +250,7 @@ export class RideController {
    *       200:
    *         description: Ride statistics retrieved successfully
    */
-  getRideStats = asyncHandler(async (req: AuthRequest, res: Response) => {
+  getRideStats = asyncHandler(async (req: AuthRequest, res: express.Response) => {
     const userId = req.user!.id;
     
     const stats = await this.rideService.getRideStats(userId);
@@ -299,7 +299,7 @@ export class RideController {
    *       200:
    *         description: Historique des trajets récupéré avec succès
    */
-  getUserRides = asyncHandler(async (req: AuthRequest, res: Response) => {
+  getUserRides = asyncHandler(async (req: AuthRequest, res: express.Response) => {
     const userId = req.user!.id;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -334,7 +334,7 @@ export class RideController {
    *       200:
    *         description: Trajet actif récupéré avec succès
    */
-  getActiveRide = asyncHandler(async (req: AuthRequest, res: Response) => {
+  getActiveRide = asyncHandler(async (req: AuthRequest, res: express.Response) => {
     const language = req.language || 'fr';
     const userId = req.user!.id;
 
