@@ -18,7 +18,7 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "typeRoots": ["./node_modules/@types"],
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
@@ -27,7 +27,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["src/**/*", "src/types/**/*", "../prisma/seed.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "coverage"],
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "coverage", "prisma"],
   "ts-node": {"esm": false}
 }
