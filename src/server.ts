@@ -26,13 +26,7 @@ app.use(helmet());
 
 // CORS Configuration pour production
 app.use(cors({
-  origin: [
-    'https://xybronix.github.io',
-    'https://xybronix.github.io/EcoMobile',
-    'https://ecomobile-frontend.onrender.com',
-    'http://localhost:3000',
-    'http://localhost:5173'
-  ],
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Accept-Language']
