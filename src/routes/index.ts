@@ -11,6 +11,18 @@ import notificationRoutes from './notification.routes';
 
 const router = express.Router();
 
+router.get('/', (_req, res) => {
+  res.json({
+    success: true,
+    message: '🚲 EcoMobile API - Welcome!',
+    version: 'v1',
+    endpoints: {
+      health: '/api/v1/health',
+      docs: '/api-docs'
+    }
+  });
+});
+
 // Health check
 router.get('/health', (_req, res) => {
   res.status(200).json({
