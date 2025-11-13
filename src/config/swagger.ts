@@ -14,17 +14,17 @@ const options = {
       },
       license: {
         name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT'
+        url: 'https://opensource.org/license/MIT'
       }
     },
     servers: [
       {
-        url: `http://localhost:${config.port}/api/${config.apiVersion}`,
-        description: 'Development server'
+        url: `http://localhost:3000/api/${config.apiVersion}`,
+        description: 'Development server (Local)'
       },
       {
-        url: `https://api.ecomobile.com/api/${config.apiVersion}`,
-        description: 'Production server'
+        url: `https://ecomobile-8bx0.onrender.com/api/${config.apiVersion}`,
+        description: 'Production server (Render)'
       }
     ],
     components: {
