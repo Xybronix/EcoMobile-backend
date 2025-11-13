@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Request } from 'express';
 import { t } from '../locales';
 
 export class AppError extends Error {
@@ -17,8 +17,8 @@ export class AppError extends Error {
 export const errorHandler = (
   err: Error | AppError,
   req: Request & { language?: 'fr' | 'en' },
-  res: Response,
-  _next: NextFunction
+  res: express.Response,
+  _next: express.NextFunction
 ) => {
   const language = req.language || 'fr';
 
@@ -79,12 +79,12 @@ export const errorHandler = (
 };
 
 export const asyncHandler = (fn: Function) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: express.Response, next: express.NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
 
-export const notFoundHandler = (req: Request & { language?: 'fr' | 'en' }, res: Response) => {
+export const notFoundHandler = (req: Request & { language?: 'fr' | 'en' }, res: express.Response) => {
   const language = req.language || 'fr';
   res.status(404).json({
     success: false,

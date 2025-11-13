@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Request } from 'express';
 
 // Simple in-memory rate limiter
 // For production, use Redis or similar
@@ -43,7 +43,7 @@ export const rateLimiter = (options: RateLimitOptions) => {
     }
   } = options;
 
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: express.Response, next: express.NextFunction) => {
     const key = keyGenerator(req);
     const now = Date.now();
     

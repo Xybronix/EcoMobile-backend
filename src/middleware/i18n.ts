@@ -1,11 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Request } from 'express';
 import { config } from '../config/config';
 
 export interface I18nRequest extends Request {
   language?: 'fr' | 'en';
 }
 
-export const i18nMiddleware = (req: I18nRequest, _res: Response, next: NextFunction) => {
+export const i18nMiddleware = (req: I18nRequest, _res: express.Response, next: express.NextFunction) => {
   // Priority order: query param > header > default
   const langFromQuery = req.query.lang as string;
   const langFromHeader = req.headers['accept-language'];

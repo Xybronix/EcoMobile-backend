@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Request } from 'express';
 import { validationResult, body, param, query } from 'express-validator';
 import { t } from '../locales';
 
-export const validate = (req: Request & { language?: 'fr' | 'en' }, res: Response, next: NextFunction) => {
+export const validate = (req: Request & { language?: 'fr' | 'en' }, res: express.Response, next: express.NextFunction) => {
   const errors = validationResult(req);
   
   if (!errors.isEmpty()) {
