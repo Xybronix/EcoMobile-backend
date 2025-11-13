@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import express from 'express';
 import { prisma } from '../config/prisma';
 import BikeService from '../services/BikeService';
 import { BikeStatus } from '@prisma/client';
@@ -32,7 +32,7 @@ export class BikeController {
    *       200:
    *         description: Bikes retrieved
    */
-  async getAllBikes(req: AuthRequest, res: Response) {
+  async getAllBikes(req: AuthRequest, res: express.Response) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -103,7 +103,7 @@ export class BikeController {
    *       200:
    *         description: Available bikes retrieved successfully
    */
-  async getAvailableBikes(req: AuthRequest, res: Response): Promise<void> {
+  async getAvailableBikes(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -219,7 +219,7 @@ export class BikeController {
    *       200:
    *         description: Nearby bikes retrieved
    */
-  async getNearbyBikes(req: AuthRequest, res: Response): Promise<void> {
+  async getNearbyBikes(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const latitude = parseFloat(req.query.latitude as string);
       const longitude = parseFloat(req.query.longitude as string);
@@ -271,7 +271,7 @@ export class BikeController {
    *       200:
    *         description: Default areas retrieved
    */
-  async getDefaultAreas(_req: AuthRequest, res: Response): Promise<void> {
+  async getDefaultAreas(_req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const areas = await BikeService.getDefaultAreas();
 
@@ -312,7 +312,7 @@ export class BikeController {
    *       200:
    *         description: Areas found
    */
-  async searchAreas(req: AuthRequest, res: Response): Promise<void> {
+  async searchAreas(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { query, country = 'CM' } = req.body;
       
@@ -361,7 +361,7 @@ export class BikeController {
    *       200:
    *         description: GPS sync completed
    */
-  async syncGpsData(req: AuthRequest, res: Response): Promise<void> {
+  async syncGpsData(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       await BikeService.syncAllBikesWithGps();
 
@@ -417,7 +417,7 @@ export class BikeController {
    *       200:
    *         description: GPS track retrieved
    */
-  async getBikeTrack(req: AuthRequest, res: Response): Promise<void> {
+  async getBikeTrack(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { id } = req.params;
       const { startTime, endTime } = req.query;
@@ -489,7 +489,7 @@ export class BikeController {
    *       200:
    *         description: Mileage data retrieved
    */
-  async getBikeMileage(req: AuthRequest, res: Response): Promise<void> {
+  async getBikeMileage(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { id } = req.params;
       const { startTime, endTime } = req.query;
@@ -549,7 +549,7 @@ export class BikeController {
    *       200:
    *         description: Bike retrieved
    */
-  async getBikeById(req: AuthRequest, res: Response): Promise<void> {
+  async getBikeById(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { id } = req.params;
       const bike = await BikeService.getBikeById(id);
@@ -601,7 +601,7 @@ export class BikeController {
    *       200:
    *         description: Bike retrieved
    */
-  async getBikeByCode(req: AuthRequest, res: Response): Promise<void> {
+  async getBikeByCode(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { code } = req.params;
       const bike = await BikeService.getBikeByCode(code);
@@ -669,7 +669,7 @@ export class BikeController {
    *       201:
    *         description: Bike created
    */
-  async createBike(req: AuthRequest, res: Response) {
+  async createBike(req: AuthRequest, res: express.Response) {
     try {
       const bike = await BikeService.createBike(req.body);
 
@@ -719,7 +719,7 @@ export class BikeController {
    *       200:
    *         description: Bike updated
    */
-  async updateBike(req: AuthRequest, res: Response) {
+  async updateBike(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
       const oldBike = await BikeService.getBikeById(id);
@@ -766,7 +766,7 @@ export class BikeController {
    *       200:
    *         description: Bike deleted
    */
-  async deleteBike(req: AuthRequest, res: Response) {
+  async deleteBike(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
       const bike = await BikeService.getBikeById(id);
@@ -812,7 +812,7 @@ export class BikeController {
    *       200:
    *         description: Bike unlocked
    */
-  async unlockBike(req: AuthRequest, res: Response) {
+  async unlockBike(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
       const bike = await BikeService.unlockBike(id);
@@ -858,7 +858,7 @@ export class BikeController {
    *       200:
    *         description: Bike locked
    */
-  async lockBike(req: AuthRequest, res: Response) {
+  async lockBike(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
       const bike = await BikeService.lockBike(id);
@@ -922,7 +922,7 @@ export class BikeController {
    *       201:
    *         description: Maintenance log added
    */
-  async addMaintenance(req: AuthRequest, res: Response) {
+  async addMaintenance(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
       const log = await BikeService.addMaintenanceLog(id, req.body);
@@ -968,7 +968,7 @@ export class BikeController {
    *       200:
    *         description: Bike trips retrieved
    */
-  async getBikeTrips(req: AuthRequest, res: Response) {
+  async getBikeTrips(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
       
@@ -1065,7 +1065,7 @@ export class BikeController {
    *       200:
    *         description: Maintenance history retrieved
    */
-  async getMaintenanceHistory(req: AuthRequest, res: Response) {
+  async getMaintenanceHistory(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
       const page = parseInt(req.query.page as string) || 1;
@@ -1113,7 +1113,7 @@ export class BikeController {
    *       200:
    *         description: Statistics retrieved
    */
-  async getBikeStats(req: AuthRequest, res: Response) {
+  async getBikeStats(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
       const stats = await BikeService.getBikeStats(id);
@@ -1168,7 +1168,7 @@ export class BikeController {
    *       200:
    *         description: Address retrieved successfully
    */
-  async reverseGeocode(req: AuthRequest, res: Response): Promise<void> {
+  async reverseGeocode(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { latitude, longitude } = req.body;
       

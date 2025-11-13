@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import express from 'express';
 import WalletService from '../services/WalletService';
 import PaymentService from '../services/PaymentService';
 import { AuthRequest, logActivity } from '../middleware/auth';
@@ -17,7 +17,7 @@ export class WalletController {
    *       200:
    *         description: Balance retrieved successfully
    */
-  async getBalance(req: AuthRequest, res: Response) {
+  async getBalance(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
       const balance = await WalletService.getBalance(userId);
@@ -68,7 +68,7 @@ export class WalletController {
    *       200:
    *         description: Transaction history retrieved
    */
-  async getTransactions(req: AuthRequest, res: Response) {
+  async getTransactions(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
       const page = parseInt(req.query.page as string) || 1;
@@ -117,7 +117,7 @@ export class WalletController {
    *       200:
    *         description: Transaction retrieved
    */
-  async getTransaction(req: AuthRequest, res: Response) {
+  async getTransaction(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
       const { id } = req.params;
@@ -158,7 +158,7 @@ export class WalletController {
    *       200:
    *         description: Statistics retrieved
    */
-  async getStats(req: AuthRequest, res: Response) {
+  async getStats(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
       const stats = await WalletService.getWalletStats(userId);
@@ -210,7 +210,7 @@ export class WalletController {
    *       200:
    *         description: Fees calculated
    */
-  async calculateFees(req: AuthRequest, res: Response): Promise<void> {
+  async calculateFees(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const { amount } = req.body;
 
@@ -284,7 +284,7 @@ export class WalletController {
    *       200:
    *         description: Deposit initiated
    */
-  async initiateDeposit(req: AuthRequest, res: Response): Promise<void> {
+  async initiateDeposit(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { amount, paymentMethod, phoneNumber, description } = req.body;
@@ -365,7 +365,7 @@ export class WalletController {
    *       200:
    *         description: Callback processed
    */
-  async handlePaymentCallback(req: AuthRequest, res: Response) {
+  async handlePaymentCallback(req: AuthRequest, res: express.Response) {
     try {
       const callbackData = req.body;
       await PaymentService.handlePaymentCallback(callbackData);
@@ -426,7 +426,7 @@ export class WalletController {
    *       200:
    *         description: Payment status retrieved
    */
-  async verifyPayment(req: AuthRequest, res: Response) {
+  async verifyPayment(req: AuthRequest, res: express.Response) {
     try {
       const { transactionId } = req.params;
       const status = await PaymentService.verifyPayment(transactionId);

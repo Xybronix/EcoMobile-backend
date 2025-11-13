@@ -1,9 +1,9 @@
-import { Router } from 'express';
+import express from 'express';
 import { RideController } from '../controllers/RideController';
 import { authenticate } from '../middleware/auth';
 import { startRideValidator, endRideValidator, idValidator, validate } from '../middleware/validator';
 
-const router = Router();
+const router = express.Router();
 const rideController = new RideController();
 
 

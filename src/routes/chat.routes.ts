@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import express from 'express';
 import ChatController from '../controllers/ChatController';
 import { authenticate, requirePermission } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
 // User chat routes (authenticated users)
 router.use(authenticate);

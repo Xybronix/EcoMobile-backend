@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import express from 'express';
 import AdminController from '../controllers/AdminController';
 import { authenticate, requirePermission } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
 // All admin routes require authentication
 router.use(authenticate);

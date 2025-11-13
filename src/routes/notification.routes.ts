@@ -1,8 +1,8 @@
-import { Router } from 'express';
+import express from 'express';
 import NotificationController from '../controllers/NotificationController';
 import { authenticate, requirePermission } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
 /**
  * @route   GET /api/v1/notifications

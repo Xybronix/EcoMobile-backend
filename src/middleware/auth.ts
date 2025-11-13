@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import express, { Request, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
 import { prisma } from '../config/prisma';
@@ -62,7 +62,7 @@ export const logActivity = async (
   }
 };
 
-export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export const authenticate = async (req: AuthRequest, res: express.Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -151,7 +151,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 };
 
 export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction): void => {
+  return (req: AuthRequest, res: express.Response, next: NextFunction): void => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -173,7 +173,7 @@ export const authorize = (...roles: string[]) => {
 };
 
 export const requirePermission = (resource: string, action: string) => {
-  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  return async (req: AuthRequest, res: express.Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       res.status(401).json({
         success: false,
@@ -212,7 +212,7 @@ export const requirePermission = (resource: string, action: string) => {
 
 export const requireAdmin = authorize('ADMIN', 'SUPER_ADMIN');
 
-export const optionalAuth = async (req: AuthRequest, _res: Response, next: NextFunction): Promise<void> => {
+export const optionalAuth = async (req: AuthRequest, _res: express.Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -283,7 +283,8 @@ export const generateToken = (user: { id: string; email: string; role: string; r
   };
   
   const options: SignOptions = {
-    expiresIn: '24h'
+    expiresIn: '24h',
+    algorithm: "none"
   };
   
   return jwt.sign(payload, secret as string, options);
@@ -303,7 +304,8 @@ export const generateRefreshToken = (user: { id: string; email: string; role: st
   };
   
   const options: SignOptions = {
-    expiresIn: '7d'
+    expiresIn: '7d',
+    algorithm: "none"
   };
   
   return jwt.sign(payload, refreshSecret as string, options);

@@ -1,7 +1,7 @@
-import { Router } from 'express';
+import express from 'express';
 import AdminController from '../controllers/AdminController';
 
-const router = Router();
+const router = express.Router();
 
 /**
  * @route   GET /api/v1/public/pricing
