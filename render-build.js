@@ -17,8 +17,8 @@ try {
   }
 
   // 3. Compilation TypeScript
-  console.log('📦 Compiling TypeScript...');
-  execSync('npx tsc', { stdio: 'inherit' });
+  // console.log('📦 Compiling TypeScript...');
+  // execSync('npx tsc', { stdio: 'inherit' });
 
   // 4. Génération Prisma Client
   console.log('🔧 Generating Prisma client...');
