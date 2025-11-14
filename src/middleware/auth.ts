@@ -5,8 +5,6 @@ import { prisma } from '../config/prisma';
 import { UserRole } from '@prisma/client';
 import { t } from '../locales';
 
-type SignOptions = Parameters<typeof jwt.sign>[2];
-
 declare global {
   namespace Express {
     interface Request {
@@ -123,7 +121,7 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
 
       const permissions = userWithPermissions.roleRelation?.permissions.map(
         rp => `${rp.permission.resource}:${rp.permission.action}`
-      );
+      ) || [];
 
       req.user = {
         id: userWithPermissions.id,
@@ -282,12 +280,10 @@ export const generateToken = (user: { id: string; email: string; role: string; r
     roleId: user.roleId
   };
   
-  const options: SignOptions = {
+  return jwt.sign(payload, secret, {
     expiresIn: '24h',
-    algorithm: "none"
-  };
-  
-  return jwt.sign(payload, secret as string, options);
+    algorithm: "HS256"
+  });
 };
 
 export const generateRefreshToken = (user: { id: string; email: string; role: string; roleId: string }): string => {
@@ -303,12 +299,10 @@ export const generateRefreshToken = (user: { id: string; email: string; role: st
     roleId: user.roleId
   };
   
-  const options: SignOptions = {
+  return jwt.sign(payload, refreshSecret, {
     expiresIn: '7d',
-    algorithm: "none"
-  };
-  
-  return jwt.sign(payload, refreshSecret as string, options);
+    algorithm: "HS256"
+  });
 };
 
 export const verifyRefreshToken = (token: string): { id: string; email: string; role: string; roleId: string } | null => {
