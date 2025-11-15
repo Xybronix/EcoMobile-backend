@@ -22,6 +22,40 @@ CREATE TABLE `users` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `user_preferences` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `rideNotifications` BOOLEAN NOT NULL DEFAULT true,
+    `promotionalNotifications` BOOLEAN NOT NULL DEFAULT true,
+    `securityNotifications` BOOLEAN NOT NULL DEFAULT true,
+    `systemNotifications` BOOLEAN NOT NULL DEFAULT true,
+    `emailNotifications` BOOLEAN NOT NULL DEFAULT true,
+    `pushNotifications` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `user_preferences_userId_key`(`userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `push_tokens` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `token` VARCHAR(191) NOT NULL,
+    `device` VARCHAR(191) NULL,
+    `platform` VARCHAR(191) NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `push_tokens_token_key`(`token`),
+    INDEX `push_tokens_userId_idx`(`userId`),
+    INDEX `push_tokens_isActive_idx`(`isActive`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `roles` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
@@ -118,6 +152,7 @@ CREATE TABLE `bikes` (
     `lastMaintenanceAt` DATETIME(3) NULL,
     `qrCode` VARCHAR(191) NOT NULL,
     `gpsDeviceId` VARCHAR(191) NULL,
+    `pricingPlanId` VARCHAR(191) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 

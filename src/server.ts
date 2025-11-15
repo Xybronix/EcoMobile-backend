@@ -57,6 +57,17 @@ app.get('/health', (_req: express.Request, res: express.Response) => {
   });
 });
 
+app.get('/api/v1/health', (_req: express.Request, res: express.Response) => {
+  res.json({
+    success: true,
+    message: 'EcoMobile API Health Check',
+    timestamp: new Date().toISOString(),
+    environment: config.env,
+    database: process.env.DATABASE_TYPE || 'unknown',
+    version: config.apiVersion
+  });
+});
+
 // API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   explorer: true,
@@ -101,7 +112,7 @@ app.post('/api/seed', async (_req: express.Request, res: express.Response): Prom
 
 // Start Server
 const PORT = Number(process.env.PORT || config.port);
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+const HOST = '0.0.0.0';
 
 const startServer = async () => {
   try {

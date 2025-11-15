@@ -91,44 +91,187 @@ export class BikeService {
   /**
    * Get bike by ID
    */
-  async getBikeById(id: string): Promise<Bike | null> {
+  async getBikeById(id: string): Promise<any | null> {
     const bike = await prisma.bike.findUnique({
       where: { id },
       include: {
         maintenanceLogs: {
           orderBy: { createdAt: 'desc' },
           take: 5
+        },
+        pricingPlan: {
+          include: {
+            pricingConfig: true,
+            promotions: {
+              where: {
+                promotion: {
+                  isActive: true,
+                  startDate: { lte: new Date() },
+                  endDate: { gte: new Date() }
+                }
+              },
+              include: {
+                promotion: true
+              }
+            }
+          }
         }
       }
     });
 
-    if (bike) {
-      // Synchroniser avec les données GPS si le vélo a un code GPS
-      return await this.syncBikeWithGps(bike);
-    }
+    if (!bike) return null;
 
-    return bike;
+    // Synchroniser avec GPS
+    const syncedBike = await this.syncBikeWithGps(bike);
+    
+    // Ajouter les informations de pricing
+    const currentPricing = await this.calculateCurrentPricing(syncedBike);
+    
+    return {
+      ...syncedBike,
+      currentPricing
+    };
   }
 
   /**
    * Get bike by code or QR code
    */
-  async getBikeByCode(code: string): Promise<Bike | null> {
+  async getBikeByCode(code: string): Promise<any | null> {
     const bike = await prisma.bike.findFirst({
       where: {
         OR: [
           { code },
           { qrCode: code }
         ]
+      },
+      include: {
+        pricingPlan: {
+          include: {
+            pricingConfig: true,
+            promotions: {
+              where: {
+                promotion: {
+                  isActive: true,
+                  startDate: { lte: new Date() },
+                  endDate: { gte: new Date() }
+                }
+              },
+              include: {
+                promotion: true
+              }
+            }
+          }
+        }
       }
     });
 
-    if (bike) {
-      // Synchroniser avec les données GPS
-      return await this.syncBikeWithGps(bike);
+    if (!bike) return null;
+
+    // Synchroniser avec GPS
+    const syncedBike = await this.syncBikeWithGps(bike);
+    
+    // Ajouter les informations de pricing
+    const currentPricing = await this.calculateCurrentPricing(syncedBike);
+    
+    return {
+      ...syncedBike,
+      currentPricing
+    };
+  }
+
+  /**
+   * Get bike with current pricing
+   */
+  async getBikeWithPricing(id: string): Promise<any> {
+    const bike = await prisma.bike.findUnique({
+      where: { id },
+      include: {
+        pricingPlan: {
+          include: {
+            pricingConfig: true,
+            promotions: {
+              where: {
+                promotion: {
+                  isActive: true,
+                  startDate: { lte: new Date() },
+                  endDate: { gte: new Date() }
+                }
+              },
+              include: {
+                promotion: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!bike || !bike.pricingPlan) {
+      return null; // Vélo non trouvé ou pas de plan tarifaire
     }
 
-    return bike;
+    // Calculer le prix actuel avec règles et promotions
+    const now = new Date();
+    const currentHour = now.getHours();
+    const dayOfWeek = now.getDay();
+
+    // Trouver les règles applicables
+    const rules = await prisma.pricingRule.findMany({
+      where: {
+        pricingConfigId: bike.pricingPlan.pricingConfigId,
+        isActive: true,
+        OR: [
+          { dayOfWeek: null },
+          { dayOfWeek: dayOfWeek }
+        ]
+      },
+      orderBy: { priority: 'desc' }
+    });
+
+    const applicableRule = rules.find(rule => {
+      if (rule.startHour !== null && rule.endHour !== null) {
+        if (rule.startHour <= rule.endHour) {
+          return currentHour >= rule.startHour && currentHour < rule.endHour;
+        } else {
+          return currentHour >= rule.startHour || currentHour < rule.endHour;
+        }
+      }
+      return true;
+    });
+
+    const multiplier = applicableRule?.multiplier || 1;
+    let finalHourlyRate = Math.round(bike.pricingPlan.hourlyRate * multiplier);
+
+    // Appliquer les promotions
+    const activePromotions = bike.pricingPlan.promotions
+      .map(pp => pp.promotion)
+      .filter(p => p.isActive);
+
+    let appliedPromotions: any[] = [];
+    
+    activePromotions.forEach(promotion => {
+      if (promotion.usageLimit === null || promotion.usageCount < promotion.usageLimit) {
+        if (promotion.discountType === 'PERCENTAGE') {
+          const discountAmount = promotion.discountValue / 100;
+          finalHourlyRate = Math.round(finalHourlyRate * (1 - discountAmount));
+        } else {
+          finalHourlyRate = Math.max(0, finalHourlyRate - promotion.discountValue);
+        }
+        appliedPromotions.push(promotion);
+      }
+    });
+
+    return {
+      ...bike,
+      currentPricing: {
+        hourlyRate: finalHourlyRate,
+        originalHourlyRate: bike.pricingPlan.hourlyRate,
+        unlockFee: bike.pricingPlan.pricingConfig.unlockFee,
+        appliedRule: applicableRule,
+        appliedPromotions,
+        pricingPlan: bike.pricingPlan
+      }
+    };
   }
 
   /**
@@ -153,7 +296,26 @@ export class BikeService {
           where,
           skip,
           take: limit,
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: 'desc' },
+          include: {
+            pricingPlan: {
+              include: {
+                pricingConfig: true,
+                promotions: {
+                  where: {
+                    promotion: {
+                      isActive: true,
+                      startDate: { lte: new Date() },
+                      endDate: { gte: new Date() }
+                    }
+                  },
+                  include: {
+                    promotion: true
+                  }
+                }
+              }
+            }
+          }
         }),
         prisma.bike.count({ where })
       ]);
@@ -161,11 +323,23 @@ export class BikeService {
       // Synchroniser tous les vélos avec les données GPS
       const syncedBikes = await this.syncBikesWithGps(bikes);
 
+      // Ajouter le pricing pour chaque vélo
+      const bikesWithPricing = await Promise.all(
+        syncedBikes.map(async (bike) => {
+          const currentPricing = await this.calculateCurrentPricing(bike);
+          return {
+            ...bike,
+            currentPricing
+          };
+        })
+      );
+
       // Si on a des coordonnées de référence, calculer les distances
-      let bikesWithDistance: BikeWithDistance[] = syncedBikes.map(bike => ({ ...bike, distance: null }));
+      let finalBikes: (typeof bikesWithPricing[0] & { distance?: number | null })[] = bikesWithPricing;
       
       if (filter?.latitude && filter?.longitude) {
-        bikesWithDistance = syncedBikes.map(bike => ({
+        // Ajouter la distance à chaque vélo
+        finalBikes = bikesWithPricing.map(bike => ({
           ...bike,
           distance: bike.latitude && bike.longitude 
             ? this.calculateDistance(filter.latitude!, filter.longitude!, bike.latitude, bike.longitude)
@@ -174,13 +348,13 @@ export class BikeService {
 
         // Filtrer par rayon si spécifié
         if (filter.radiusKm) {
-          bikesWithDistance = bikesWithDistance.filter(bike => 
+          finalBikes = finalBikes.filter(bike => 
             bike.distance != null && bike.distance <= filter.radiusKm!
           );
         }
 
         // Trier par distance
-        bikesWithDistance.sort((a, b) => {
+        finalBikes.sort((a, b) => {
           const da = a.distance ?? Number.POSITIVE_INFINITY;
           const db = b.distance ?? Number.POSITIVE_INFINITY;
           if (da === db) return 0;
@@ -189,12 +363,12 @@ export class BikeService {
       }
 
       return {
-        bikes: bikesWithDistance,
+        bikes: finalBikes,
         pagination: {
           page: page,
           limit: limit,
-          total,
-          totalPages: Math.ceil(total / limit)
+          total: filter?.radiusKm ? finalBikes.length : total,
+          totalPages: Math.ceil((filter?.radiusKm ? finalBikes.length : total) / limit)
         }
       };
     } catch (error) {
@@ -627,6 +801,98 @@ export class BikeService {
       console.error('Failed to get bike mileage:', error);
       return null;
     }
+  }
+
+  /**
+   * Calculer le pricing actuel pour un vélo
+   */
+  private async calculateCurrentPricing(bike: any): Promise<any | null> {
+    if (!bike.pricingPlan) {
+      // Récupérer un plan par défaut si le vélo n'en a pas
+      const defaultPlan = await prisma.pricingPlan.findFirst({
+        where: { 
+          isActive: true,
+          pricingConfig: { isActive: true }
+        },
+        include: {
+          pricingConfig: true,
+          promotions: {
+            where: {
+              promotion: {
+                isActive: true,
+                startDate: { lte: new Date() },
+                endDate: { gte: new Date() }
+              }
+            },
+            include: {
+              promotion: true
+            }
+          }
+        }
+      });
+      
+      if (!defaultPlan) return null;
+      bike.pricingPlan = defaultPlan;
+    }
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const dayOfWeek = now.getDay();
+
+    // Trouver les règles applicables
+    const rules = await prisma.pricingRule.findMany({
+      where: {
+        pricingConfigId: bike.pricingPlan.pricingConfig.id,
+        isActive: true,
+        OR: [
+          { dayOfWeek: null },
+          { dayOfWeek: dayOfWeek }
+        ]
+      },
+      orderBy: { priority: 'desc' }
+    });
+
+    const applicableRule = rules.find(rule => {
+      if (rule.startHour !== null && rule.endHour !== null) {
+        if (rule.startHour <= rule.endHour) {
+          return currentHour >= rule.startHour && currentHour < rule.endHour;
+        } else {
+          return currentHour >= rule.startHour || currentHour < rule.endHour;
+        }
+      }
+      return true;
+    });
+
+    const multiplier = applicableRule?.multiplier || 1;
+    let finalHourlyRate = Math.round(bike.pricingPlan.hourlyRate * multiplier);
+
+    // Appliquer les promotions
+    const activePromotions = bike.pricingPlan.promotions
+      ?.map((pp: any) => pp.promotion)
+      ?.filter((p: any) => p?.isActive) || [];
+
+    let appliedPromotions: any[] = [];
+    
+    activePromotions.forEach((promotion: any) => {
+      if (promotion.usageLimit === null || promotion.usageCount < promotion.usageLimit) {
+        if (promotion.discountType === 'PERCENTAGE') {
+          const discountAmount = promotion.discountValue / 100;
+          finalHourlyRate = Math.round(finalHourlyRate * (1 - discountAmount));
+        } else {
+          finalHourlyRate = Math.max(0, finalHourlyRate - promotion.discountValue);
+        }
+        appliedPromotions.push(promotion);
+      }
+    });
+
+    return {
+      hourlyRate: finalHourlyRate,
+      originalHourlyRate: bike.pricingPlan.hourlyRate,
+      unlockFee: bike.pricingPlan.pricingConfig.unlockFee,
+      appliedRule: applicableRule,
+      appliedPromotions,
+      pricingPlan: bike.pricingPlan
+    };
   }
 }
 

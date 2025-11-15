@@ -385,6 +385,265 @@ export class UserController {
     }
   }
 
+  /**
+   * @swagger
+   * /users/account:
+   *   delete:
+   *     summary: Delete user account (archive)
+   *     tags: [Users]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Account deleted successfully
+   */
+  async deleteAccount(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+
+      await UserService.deleteAccount(userId);
+
+      await logActivity(
+        userId,
+        'DELETE',
+        'ACCOUNT',
+        userId,
+        'User deleted their account',
+        null,
+        req
+      );
+
+      res.json({
+        success: true,
+        message: t('account.deleted', req.language)
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /users/preferences:
+   *   get:
+   *     summary: Get user notification preferences
+   *     tags: [Users, Notifications]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Preferences retrieved successfully
+   */
+  async getPreferences(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const preferences = await UserService.getPreferences(userId);
+
+      await logActivity(
+        userId,
+        'VIEW',
+        'PREFERENCES',
+        userId,
+        'Viewed notification preferences',
+        null,
+        req
+      );
+
+      res.json({
+        success: true,
+        message: t('preferences.retrieved', req.language),
+        data: preferences
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /users/preferences:
+   *   put:
+   *     summary: Update user notification preferences
+   *     tags: [Users, Notifications]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               rideNotifications:
+   *                 type: boolean
+   *               promotionalNotifications:
+   *                 type: boolean
+   *               securityNotifications:
+   *                 type: boolean
+   *               systemNotifications:
+   *                 type: boolean
+   *               emailNotifications:
+   *                 type: boolean
+   *               pushNotifications:
+   *                 type: boolean
+   *     responses:
+   *       200:
+   *         description: Preferences updated successfully
+   */
+  async updatePreferences(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const preferences = await UserService.updatePreferences(userId, req.body);
+
+      await logActivity(
+        userId,
+        'UPDATE',
+        'PREFERENCES',
+        userId,
+        'Updated notification preferences',
+        req.body,
+        req
+      );
+
+      res.json({
+        success: true,
+        message: t('preferences.updated', req.language),
+        data: preferences
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /users/push-token:
+   *   post:
+   *     summary: Register push notification token
+   *     tags: [Users, Notifications]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - token
+   *             properties:
+   *               token:
+   *                 type: string
+   *               device:
+   *                 type: string
+   *               platform:
+   *                 type: string
+   *                 enum: [ios, android, web]
+   *     responses:
+   *       200:
+   *         description: Push token registered successfully
+   */
+  async registerPushToken(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { token, device, platform } = req.body;
+
+      if (!token) {
+        res.status(400).json({
+          success: false,
+          message: 'Push token is required'
+        });
+        return;
+      }
+
+      const pushToken = await UserService.registerPushToken(userId, {
+        token,
+        device,
+        platform
+      });
+
+      await logActivity(
+        userId,
+        'CREATE',
+        'PUSH_TOKEN',
+        pushToken.id,
+        'Registered push notification token',
+        { device, platform },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: t('push_token.registered', req.language),
+        data: pushToken
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /users/push-token:
+   *   delete:
+   *     summary: Unregister push notification token
+   *     tags: [Users, Notifications]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               token:
+   *                 type: string
+   *                 description: Specific token to unregister. If not provided, all tokens will be unregistered.
+   *     responses:
+   *       200:
+   *         description: Push token unregistered successfully
+   */
+  async unregisterPushToken(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { token } = req.body;
+
+      await UserService.unregisterPushToken(userId, token);
+
+      await logActivity(
+        userId,
+        'DELETE',
+        'PUSH_TOKEN',
+        '',
+        token ? 'Unregistered specific push token' : 'Unregistered all push tokens',
+        { token },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: t('push_token.unregistered', req.language)
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
   // ==================== ADMIN ENDPOINTS ====================
 
   /**
