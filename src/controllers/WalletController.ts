@@ -452,6 +452,84 @@ export class WalletController {
       });
     }
   }
+
+  /**
+   * @swagger
+   * /wallet/payment-methods:
+   *   get:
+   *     summary: Get available payment methods
+   *     description: Retrieve list of supported payment methods for wallet deposits
+   *     tags: [Wallet, Payments]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Payment methods retrieved successfully
+   */
+  async getPaymentMethods(req: AuthRequest, res: express.Response) {
+    try {
+      const paymentMethods = [
+        {
+          code: 'ORANGE_MONEY',
+          name: 'Orange Money',
+          logo: '/assets/logos/orange-money.png',
+          fees: {
+            percentage: 1.5,
+            fixed: 50,
+            minimum: 50,
+            maximum: 1000
+          },
+          isActive: true,
+          minAmount: 500,
+          maxAmount: 1000000,
+          description: req.language === 'fr' 
+            ? 'Rechargez votre portefeuille via Orange Money'
+            : 'Top up your wallet via Orange Money'
+        },
+        {
+          code: 'MOMO',
+          name: 'Mobile Money',
+          logo: '/assets/logos/momo.png',
+          fees: {
+            percentage: 1.2,
+            fixed: 50,
+            minimum: 50,
+            maximum: 800
+          },
+          isActive: true,
+          minAmount: 500,
+          maxAmount: 1000000,
+          description: req.language === 'fr' 
+            ? 'Rechargez votre portefeuille via Mobile Money'
+            : 'Top up your wallet via Mobile Money'
+        }
+      ];
+
+      const activeMethods = paymentMethods.filter(method => method.isActive);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'PAYMENT_METHODS',
+        '',
+        'Viewed available payment methods',
+        { methodsCount: activeMethods.length },
+        req
+      );
+      
+      res.json({
+        success: true,
+        message: t('payment.methods_retrieved', req.language),
+        data: activeMethods
+      });
+    } catch (error: any) {
+      console.error('Error getting payment methods:', error);
+      res.status(500).json({
+        success: false,
+        message: t('common.server_error', req.language)
+      });
+    }
+  }
 }
 
 export default new WalletController();
