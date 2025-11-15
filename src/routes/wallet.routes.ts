@@ -62,4 +62,11 @@ router.post('/payment/callback', walletController.handlePaymentCallback);
  */
 router.get('/payment/verify/:transactionId', authenticate, walletController.verifyPayment);
 
+/**
+ * @route   GET /api/v1/wallet/payment-methods
+ * @desc    Get list of available payment methods for deposits
+ * @access  Private
+ */
+router.get('/payment-methods', authenticate, walletController.getPaymentMethods);
+
 export default router;
