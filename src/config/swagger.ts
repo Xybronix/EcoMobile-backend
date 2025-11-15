@@ -238,6 +238,80 @@ const options = {
               enum: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED']
             }
           }
+        },
+        Incident: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            bikeId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true
+            },
+            type: {
+              type: 'string',
+              enum: ['brakes', 'battery', 'tire', 'chain', 'lights', 'lock', 'electronics', 'physical_damage', 'other'],
+            },
+            description: {
+              type: 'string'
+            },
+            status: {
+              type: 'string',
+              enum: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
+            },
+            priority: {
+              type: 'string',
+              enum: ['LOW', 'MEDIUM', 'HIGH']
+            },
+            resolvedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            refundAmount: {
+              type: 'number',
+              nullable: true
+            },
+            adminNote: {
+              type: 'string',
+              nullable: true
+            },
+            resolvedBy: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }, 
+            bike: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  format: 'uuid'
+                },
+                code: {
+                  type: 'string'
+                },
+                model: {
+                  type: 'string'
+                }
+              }
+            }
+          }
         }
       }
     },

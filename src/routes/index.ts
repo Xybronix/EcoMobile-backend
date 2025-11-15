@@ -3,6 +3,7 @@ import publicRoutes from './public.routes';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import bikeRoutes from './bike.routes';
+import incidentRoutes from './incident.routes';
 import rideRoutes from './ride.routes';
 import walletRoutes from './wallet.routes';
 import adminRoutes from './admin.routes';
@@ -37,6 +38,7 @@ router.use('/public', publicRoutes);
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/bikes', bikeRoutes);
+router.use('/incidents', incidentRoutes)
 router.use('/rides', rideRoutes);
 router.use('/wallet', walletRoutes);
 router.use('/admin', adminRoutes);

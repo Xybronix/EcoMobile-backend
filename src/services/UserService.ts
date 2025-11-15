@@ -422,6 +422,144 @@ export class UserService {
       where: { userId, isRead: false }
     });
   }
+
+  /**
+   * Archive user account (soft delete)
+   */
+  async deleteAccount(userId: string): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Archive the account by changing email and status
+    const archivedEmail = `deleted_${Date.now()}_${user.email}`;
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        email: archivedEmail,
+        isActive: false,
+        status: 'deleted',
+        // Keep other data for historical purposes
+      }
+    });
+
+    // Deactivate all sessions
+    await prisma.session.updateMany({
+      where: { userId },
+      data: { isActive: false }
+    });
+
+    // Deactivate push tokens
+    await prisma.pushToken.updateMany({
+      where: { userId },
+      data: { isActive: false }
+    });
+  }
+
+  /**
+   * Get user notification preferences
+   */
+  async getPreferences(userId: string) {
+    let preferences = await prisma.userPreferences.findUnique({
+      where: { userId }
+    });
+
+    // Create default preferences if they don't exist
+    if (!preferences) {
+      preferences = await prisma.userPreferences.create({
+        data: { userId }
+      });
+    }
+
+    return preferences;
+  }
+
+  /**
+   * Update user notification preferences
+   */
+  async updatePreferences(userId: string, data: Partial<{
+    rideNotifications: boolean;
+    promotionalNotifications: boolean;
+    securityNotifications: boolean;
+    systemNotifications: boolean;
+    emailNotifications: boolean;
+    pushNotifications: boolean;
+  }>) {
+    const preferences = await prisma.userPreferences.upsert({
+      where: { userId },
+      update: data,
+      create: {
+        userId,
+        ...data
+      }
+    });
+
+    return preferences;
+  }
+
+  /**
+   * Register push token
+   */
+  async registerPushToken(userId: string, tokenData: {
+    token: string;
+    device?: string;
+    platform?: string;
+  }) {
+    // Deactivate existing tokens for this device/user if any
+    await prisma.pushToken.updateMany({
+      where: {
+        userId,
+        token: tokenData.token
+      },
+      data: { isActive: false }
+    });
+
+    // Create new token
+    const pushToken = await prisma.pushToken.create({
+      data: {
+        userId,
+        token: tokenData.token,
+        device: tokenData.device,
+        platform: tokenData.platform,
+        isActive: true
+      }
+    });
+
+    return pushToken;
+  }
+
+  /**
+   * Unregister push token
+   */
+  async unregisterPushToken(userId: string, token?: string) {
+    const whereCondition: any = { userId, isActive: true };
+    
+    if (token) {
+      whereCondition.token = token;
+    }
+
+    await prisma.pushToken.updateMany({
+      where: whereCondition,
+      data: { isActive: false }
+    });
+  }
+
+  /**
+   * Get active push tokens for user
+   */
+  async getUserPushTokens(userId: string) {
+    return await prisma.pushToken.findMany({
+      where: {
+        userId,
+        isActive: true
+      }
+    });
+  }
 }
 
 export default new UserService();

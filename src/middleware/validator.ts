@@ -169,21 +169,28 @@ export const endRideValidator = [
     .withMessage('Longitude invalide')
 ];
 
-export const createIncidentValidator = [
+// Incident validator
+export const incidentValidator = [
   body('type')
-    .isIn(['accident', 'theft', 'vandalism', 'mechanical', 'other'])
-    .withMessage('Type d\'incident invalide'),
-  body('severity')
-    .isIn(['low', 'medium', 'high', 'critical'])
-    .withMessage('Gravité invalide'),
-  body('title')
-    .trim()
     .notEmpty()
-    .withMessage('Le titre est requis'),
+    .withMessage('Type is required')
+    .isIn(['brakes', 'battery', 'tire', 'chain', 'lights', 'lock', 'electronics', 'physical_damage', 'other'])
+    .withMessage('Invalid incident type'),
   body('description')
-    .trim()
     .notEmpty()
-    .withMessage('La description est requise')
+    .withMessage('Description is required')
+    .isLength({ min: 20 })
+    .withMessage('Description must be at least 20 characters')
+    .isLength({ max: 1000 })
+    .withMessage('Description must not exceed 1000 characters'),
+  body('bikeId')
+    .optional()
+    .isUUID()
+    .withMessage('Invalid bike ID'),
+  body('photos')
+    .optional()
+    .isArray({ max: 5 })
+    .withMessage('Maximum 5 photos allowed')
 ];
 
 export const paginationValidator = [

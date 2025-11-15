@@ -61,6 +61,41 @@ router.post('/notifications/read-all', authenticate, UserController.markAllNotif
 router.get('/notifications/unread-count', authenticate, UserController.getUnreadCount);
 
 /**
+ * @route   DELETE /api/v1/users/account
+ * @desc    Delete user account (archive)
+ * @access  Private
+ */
+router.delete('/account', authenticate, UserController.deleteAccount);
+
+/**
+ * @route   GET /api/v1/users/preferences
+ * @desc    Get user notification preferences
+ * @access  Private
+ */
+router.get('/preferences', authenticate, UserController.getPreferences);
+
+/**
+ * @route   PUT /api/v1/users/preferences
+ * @desc    Update user notification preferences
+ * @access  Private
+ */
+router.put('/preferences', authenticate, UserController.updatePreferences);
+
+/**
+ * @route   POST /api/v1/users/push-token
+ * @desc    Register push notification token
+ * @access  Private
+ */
+router.post('/push-token', authenticate, UserController.registerPushToken);
+
+/**
+ * @route   DELETE /api/v1/users/push-token
+ * @desc    Unregister push notification token
+ * @access  Private
+ */
+router.delete('/push-token', authenticate, UserController.unregisterPushToken);
+
+/**
  * @route   GET /api/v1/users
  * @desc    Get all users (Admin only)
  * @access  Private/Admin

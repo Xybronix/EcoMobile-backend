@@ -410,6 +410,116 @@ async function main() {
 
   console.log('✅ Created transactions');
 
+  // Create pricing configuration
+  const pricingConfig = await prisma.pricingConfig.create({
+    data: {
+      unlockFee: 100,
+      baseHourlyRate: 200,
+      isActive: true
+    }
+  });
+
+  // Create pricing plans
+  const standardPlan = await prisma.pricingPlan.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Standard',
+      hourlyRate: 200,
+      dailyRate: 3000,
+      weeklyRate: 18000,
+      monthlyRate: 60000,
+      minimumHours: 1,
+      discount: 0,
+      isActive: true,
+      conditions: {}
+    }
+  });
+
+  const premiumPlan = await prisma.pricingPlan.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Premium',
+      hourlyRate: 300,
+      dailyRate: 4000,
+      weeklyRate: 25000,
+      monthlyRate: 80000,
+      minimumHours: 1,
+      discount: 0,
+      isActive: true,
+      conditions: {}
+    }
+  });
+
+  const studentPlan = await prisma.pricingPlan.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Étudiant',
+      hourlyRate: 150,
+      dailyRate: 2500,
+      weeklyRate: 15000,
+      monthlyRate: 45000,
+      minimumHours: 1,
+      discount: 25,
+      isActive: true,
+      conditions: { requiresStudentId: true }
+    }
+  });
+
+  // Create pricing rules
+  await prisma.pricingRule.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Heures de pointe',
+      dayOfWeek: null,
+      startHour: 7,
+      endHour: 9,
+      multiplier: 1.5,
+      isActive: true,
+      priority: 10
+    }
+  });
+
+  await prisma.pricingRule.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Heures de pointe soir',
+      dayOfWeek: null,
+      startHour: 17,
+      endHour: 19,
+      multiplier: 1.3,
+      isActive: true,
+      priority: 10
+    }
+  });
+
+  await prisma.pricingRule.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Weekend',
+      dayOfWeek: 0, // Dimanche
+      startHour: null,
+      endHour: null,
+      multiplier: 0.9,
+      isActive: true,
+      priority: 5
+    }
+  });
+
+  await prisma.pricingRule.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Weekend',
+      dayOfWeek: 6, // Samedi
+      startHour: null,
+      endHour: null,
+      multiplier: 0.9,
+      isActive: true,
+      priority: 5
+    }
+  });
+
+  console.log('✅ Created pricing configuration');
+
   // Create bikes
   const bikes = [];
   const bikeModels = ['E-Bike Pro', 'E-Bike Sport', 'E-Bike City'];
@@ -423,6 +533,11 @@ async function main() {
 
   for (let i = 1; i <= 10; i++) {
     const location = locations[i % locations.length];
+    let selectedPlanId;
+    if (i <= 4) selectedPlanId = standardPlan.id;
+    else if (i <= 7) selectedPlanId = premiumPlan.id;
+    else selectedPlanId = studentPlan.id;
+
     const bike = await prisma.bike.create({
       data: {
         code: `BIKE${String(i).padStart(3, '0')}`,
@@ -431,7 +546,10 @@ async function main() {
         batteryLevel: 20 + (i * 8),
         latitude: location.lat + (Math.random() - 0.5) * 0.01,
         longitude: location.lng + (Math.random() - 0.5) * 0.01,
+        locationName: location.name,
+        equipment: ['headlight', 'taillight', 'basket', 'lock'],
         qrCode: `QR${String(i).padStart(6, '0')}`,
+        pricingPlanId: selectedPlanId,
         lastMaintenanceAt: new Date(Date.now() - i * 86400000),
       },
     });
@@ -738,7 +856,6 @@ async function main() {
 main()
   .catch((e) => {
     console.error('❌ Error seeding database:', e);
-    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
