@@ -21,6 +21,8 @@ export class DepositService {
       throw new Error('Utilisateur non trouvé');
     }
 
+    const walletId = user.wallet.id;
+
     if (user.wallet.balance < amount) {
       throw new Error('Solde wallet insuffisant');
     }
@@ -28,7 +30,7 @@ export class DepositService {
     await prisma.$transaction(async (tx) => {
       // Déduire du wallet
       await tx.wallet.update({
-        where: { id: user.wallet.id },
+        where: { id: walletId },
         data: { balance: { decrement: amount } }
       });
 
@@ -41,7 +43,7 @@ export class DepositService {
       // Créer transaction
       await tx.transaction.create({
         data: {
-          walletId: user.wallet.id,
+          walletId: walletId,
           type: 'WITHDRAWAL',
           amount,
           fees: 0,
@@ -57,7 +59,7 @@ export class DepositService {
   /**
    * Prélever pour dégâts
    */
-  async deductForDamage(userId: string, amount: number, reason: string, imageUrl?: string): Promise<void> {
+  async deductForDamage(userId: string, amount: number, reason: string, _imageUrl?: string): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { id: userId }
     });
