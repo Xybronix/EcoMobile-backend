@@ -14,7 +14,9 @@ export class WalletService {
       wallet = await prisma.wallet.create({
         data: {
           userId,
-          balance: 0
+          balance: 0,
+          deposit: 0,
+          negativeBalance: 0
         }
       });
     }
@@ -23,14 +25,387 @@ export class WalletService {
   }
 
   /**
-   * Get wallet balance
+   * Get wallet balance with deposit info
    */
   async getBalance(userId: string) {
     const wallet = await this.getOrCreateWallet(userId);
     return {
       balance: wallet.balance,
+      deposit: wallet.deposit,
+      negativeBalance: wallet.negativeBalance,
       walletId: wallet.id
     };
+  }
+
+  /**
+   * Get deposit information
+   */
+  async getDepositInfo(userId: string) {
+    const wallet = await this.getOrCreateWallet(userId);
+    const requiredDeposit = await this.getRequiredDeposit();
+
+    return {
+      currentDeposit: wallet.deposit,
+      requiredDeposit,
+      canUseService: wallet.deposit >= requiredDeposit,
+      negativeBalance: wallet.negativeBalance
+    };
+  }
+
+  /**
+   * Recharge deposit from wallet balance
+   */
+  async rechargeDeposit(userId: string, amount: number) {
+    const wallet = await this.getOrCreateWallet(userId);
+
+    if (wallet.balance < amount) {
+      throw new Error('Solde insuffisant pour recharger la caution');
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Déduire du wallet et ajouter à la caution
+      const updatedWallet = await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          balance: { decrement: amount },
+          deposit: { increment: amount }
+        }
+      });
+
+      // Créer la transaction
+      const transaction = await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          type: TransactionType.DEPOSIT_RECHARGE,
+          amount,
+          fees: 0,
+          totalAmount: amount,
+          status: TransactionStatus.COMPLETED,
+          paymentMethod: 'WALLET',
+          metadata: { 
+            type: 'deposit_recharge',
+            transferredAt: new Date().toISOString()
+          }
+        }
+      });
+
+      return { wallet: updatedWallet, transaction };
+    });
+
+    return result;
+  }
+
+  /**
+   * Charge user for damage (Admin only)
+   */
+  async chargeDamage(userId: string, amount: number, description: string, images?: string[], chargedBy?: string) {
+    const wallet = await this.getOrCreateWallet(userId);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Déduire de la caution (ou mettre en solde négatif si insuffisant)
+      const deductFromDeposit = Math.min(amount, wallet.deposit);
+      const remainingAmount = amount - deductFromDeposit;
+
+      const updatedWallet = await tx.wallet.update({
+        where: { id: wallet.id },
+        data: {
+          deposit: { decrement: deductFromDeposit },
+          negativeBalance: remainingAmount > 0 ? { increment: remainingAmount } : undefined
+        }
+      });
+
+      // Créer la transaction
+      const transaction = await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          type: TransactionType.DAMAGE_CHARGE,
+          amount,
+          fees: 0,
+          totalAmount: amount,
+          status: TransactionStatus.COMPLETED,
+          paymentMethod: 'DEPOSIT',
+          validatedBy: chargedBy,
+          validatedAt: new Date(),
+          metadata: { 
+            description,
+            images: images || [],
+            chargedBy,
+            deductFromDeposit,
+            addedToNegativeBalance: remainingAmount
+          }
+        }
+      });
+
+      // Notification à l'utilisateur
+      await tx.notification.create({
+        data: {
+          userId,
+          title: 'Frais de dégâts',
+          message: `Des frais de ${amount} FCFA ont été prélevés sur votre caution pour : ${description}`,
+          type: 'DAMAGE_CHARGE'
+        }
+      });
+
+      return { wallet: updatedWallet, transaction };
+    });
+
+    return result;
+  }
+
+  /**
+   * Get payment methods
+   */
+  async getPaymentMethods(language: string = 'fr') {
+    return [
+      {
+        code: 'ORANGE_MONEY',
+        name: 'Orange Money',
+        logo: '/assets/logos/orange-money.png',
+        fees: {
+          percentage: 1.5,
+          fixed: 50,
+          minimum: 50,
+          maximum: 1000
+        },
+        isActive: true,
+        minAmount: 500,
+        maxAmount: 1000000,
+        description: language === 'fr' 
+          ? 'Rechargez votre portefeuille via Orange Money'
+          : 'Top up your wallet via Orange Money'
+      },
+      {
+        code: 'MOMO',
+        name: 'Mobile Money',
+        logo: '/assets/logos/momo.png',
+        fees: {
+          percentage: 1.2,
+          fixed: 50,
+          minimum: 50,
+          maximum: 800
+        },
+        isActive: true,
+        minAmount: 500,
+        maxAmount: 1000000,
+        description: language === 'fr' 
+          ? 'Rechargez votre portefeuille via Mobile Money'
+          : 'Top up your wallet via Mobile Money'
+      }
+    ];
+  }
+
+  /**
+   * Get current active subscription
+   */
+  async getCurrentSubscription(userId: string) {
+    const activeReservation = await prisma.reservation.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      },
+      include: {
+        plan: true
+      }
+    });
+
+    if (!activeReservation) return null;
+
+    return {
+      id: activeReservation.id,
+      planName: activeReservation.plan.name,
+      packageType: activeReservation.packageType,
+      startDate: activeReservation.startDate,
+      endDate: activeReservation.endDate,
+      status: activeReservation.status
+    };
+  }
+
+  /**
+   * Get user reports (incidents)
+   */
+  async getUserReports(userId: string) {
+    const incidents = await prisma.incident.findMany({
+      where: { userId },
+      include: {
+        bike: {
+          select: {
+            code: true,
+            model: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return incidents.map(incident => ({
+      id: incident.id,
+      type: incident.type,
+      description: incident.description,
+      status: incident.status,
+      bikeCode: incident.bike?.code,
+      bikeModel: incident.bike?.model,
+      createdAt: incident.createdAt,
+      refundAmount: incident.refundAmount,
+      adminNote: incident.adminNote
+    }));
+  }
+
+  /**
+   * Process ride payment with advanced logic including overtime rules
+   */
+  async processRidePayment(
+    userId: string, 
+    rideId: string, 
+    amount: number, 
+    hasActiveSubscription: boolean = false, 
+    isOvertime: boolean = false,
+    rideStartTime?: Date
+  ) {
+    const wallet = await this.getOrCreateWallet(userId);
+    const requiredDeposit = await this.getRequiredDeposit();
+
+    // Vérifier que la caution est suffisante
+    if (wallet.deposit < requiredDeposit) {
+      throw new Error(`Caution insuffisante. Minimum requis : ${requiredDeposit} FCFA`);
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      let finalAmount = amount;
+      let discountApplied = 0;
+      let appliedRule = null;
+      
+      // Appliquer la réduction si l'utilisateur a un forfait actif
+      if (hasActiveSubscription) {
+        const activeReservation = await tx.reservation.findFirst({
+          where: {
+            userId,
+            status: 'ACTIVE',
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() }
+          },
+          include: { 
+            plan: {
+              include: {
+                overrides: true
+              }
+            }
+          }
+        });
+
+        if (activeReservation) {
+          // Déterminer si on est en overtime (en dehors des heures du forfait)
+          const isActuallyOvertime = this.isOvertimeForSubscription(
+            rideStartTime || new Date(), 
+            activeReservation.packageType
+          );
+
+          if ((isOvertime || isActuallyOvertime) && activeReservation.plan.overrides.length > 0) {
+            // Appliquer les règles d'override pour les dépassements
+            const override = activeReservation.plan.overrides[0];
+            
+            if (override.overTimeType === 'FIXED_PRICE') {
+              finalAmount = override.overTimeValue;
+              appliedRule = `Prix fixe overtime: ${override.overTimeValue} FCFA`;
+            } else if (override.overTimeType === 'PERCENTAGE_REDUCTION') {
+              const reductionAmount = Math.round(amount * (override.overTimeValue / 100));
+              finalAmount = Math.max(0, amount - reductionAmount);
+              appliedRule = `Réduction overtime: ${override.overTimeValue}%`;
+            }
+            discountApplied = amount - finalAmount;
+          } else {
+            // Appliquer la réduction normale du plan (dans les heures du forfait)
+            const discountPercentage = activeReservation.plan.discount || 0;
+            if (discountPercentage > 0) {
+              finalAmount = Math.round(amount * (1 - discountPercentage / 100));
+              discountApplied = amount - finalAmount;
+              appliedRule = `Réduction plan: ${discountPercentage}%`;
+            }
+          }
+        }
+      }
+
+      // Procéder au paiement selon la logique existante
+      if (wallet.balance >= finalAmount) {
+        // Paiement normal depuis le wallet
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: { decrement: finalAmount } }
+        });
+      } else {
+        // Déduire ce qui reste du solde puis de la caution
+        const remaining = finalAmount - wallet.balance;
+        const maxFromDeposit = Math.min(remaining, wallet.deposit);
+        const addToNegative = Math.max(0, remaining - wallet.deposit);
+
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { 
+            balance: 0,
+            deposit: { decrement: maxFromDeposit },
+            negativeBalance: { increment: addToNegative }
+          }
+        });
+      }
+
+      // Créer la transaction
+      const transaction = await tx.transaction.create({
+        data: {
+          walletId: wallet.id,
+          type: TransactionType.RIDE_PAYMENT,
+          amount: finalAmount,
+          fees: 0,
+          totalAmount: finalAmount,
+          status: TransactionStatus.COMPLETED,
+          paymentMethod: 'MIXED',
+          metadata: { 
+            rideId,
+            originalAmount: amount,
+            discountApplied,
+            hasActiveSubscription,
+            isOvertime: isOvertime || false,
+            appliedRule,
+            paidAt: new Date().toISOString()
+          }
+        }
+      });
+
+      return { 
+        transaction, 
+        finalAmount, 
+        discountApplied, 
+        appliedRule,
+        isOvertime: isOvertime || false
+      };
+    });
+
+    return result;
+  }
+
+  /**
+   * Determine if a ride time is considered overtime for a subscription
+   */
+  private isOvertimeForSubscription(rideTime: Date, packageType: string): boolean {
+    const hour = rideTime.getHours();
+    
+    // Définir les heures de validité selon le type de forfait
+    switch (packageType.toLowerCase()) {
+      case 'daily':
+      case 'journalier':
+        // Forfait journalier valide de 8h à 19h
+        return hour < 8 || hour >= 19;
+      case 'morning':
+      case 'matin':
+        // Forfait matinal valide de 6h à 12h
+        return hour < 6 || hour >= 12;
+      case 'evening':
+      case 'soirée':
+        // Forfait soirée valide de 19h à 22h
+        return hour < 19 || hour >= 22;
+      default:
+        return false;
+    }
   }
 
   /**
@@ -93,6 +468,354 @@ export class WalletService {
   }
 
   /**
+   * Create cash deposit request
+   */
+  async createCashDepositRequest(request: { 
+    userId: string; 
+    amount: number; 
+    description?: string; 
+  }) {
+    const wallet = await this.getOrCreateWallet(request.userId);
+    
+    const transaction = await prisma.transaction.create({
+      data: {
+        walletId: wallet.id,
+        type: TransactionType.DEPOSIT,
+        amount: request.amount,
+        fees: 0,
+        totalAmount: request.amount,
+        status: TransactionStatus.PENDING,
+        paymentMethod: 'CASH',
+        paymentProvider: 'MANUAL',
+        requestedBy: request.userId,
+        canModify: true,
+        metadata: {
+          description: request.description,
+          requestedAt: new Date().toISOString(),
+          type: 'cash_deposit_request'
+        }
+      }
+    });
+
+    // Create notification for admins
+    await this.notifyAdminsOfCashRequest(transaction);
+    
+    return transaction;
+  }
+
+  /**
+   * Update cash deposit request amount (only if still pending and modifiable)
+   */
+  async updateCashDepositRequest(transactionId: string, userId: string, newAmount: number) {
+    if (newAmount <= 0) {
+      throw new Error('Le montant doit être supérieur à 0');
+    }
+    
+    if (newAmount < 500) {
+      throw new Error('Le montant minimum est de 500 FCFA');
+    }
+
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id: transactionId,
+        wallet: { userId },
+        type: { in: [TransactionType.DEPOSIT, TransactionType.DEPOSIT_RECHARGE] },
+        status: TransactionStatus.PENDING,
+        canModify: true
+      },
+      include: {
+        wallet: true
+      }
+    });
+
+    if (!transaction) {
+      throw new Error('Demande de recharge non trouvée ou non modifiable');
+    }
+
+    const updatedTransaction = await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        amount: newAmount,
+        totalAmount: newAmount,
+        metadata: {
+          ...transaction.metadata as object,
+          modifiedAt: new Date().toISOString(),
+          originalAmount: transaction.amount
+        }
+      }
+    });
+
+    return updatedTransaction;
+  }
+
+  /**
+   * Cancel cash deposit request (only if still pending and modifiable)
+   */
+  async cancelCashDepositRequest(transactionId: string, userId: string) {
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id: transactionId,
+        wallet: { userId },
+        type: { in: [TransactionType.DEPOSIT, TransactionType.DEPOSIT_RECHARGE] },
+        status: TransactionStatus.PENDING,
+        canModify: true
+      }
+    });
+
+    if (!transaction) {
+      throw new Error('Demande de recharge non trouvée ou non modifiable');
+    }
+
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        status: TransactionStatus.CANCELLED,
+        canModify: false,
+        metadata: {
+          ...transaction.metadata as object,
+          cancelledAt: new Date().toISOString()
+        }
+      }
+    });
+  }
+
+  /**
+   * Get all transactions for admin with filters
+   */
+  async getAllTransactionsAdmin(page: number, limit: number, filters: any) {
+    const where: any = {};
+
+    // Apply filters
+    if (filters.type) {
+      where.type = filters.type;
+    }
+    
+    if (filters.status) {
+      where.status = filters.status;
+    }
+    
+    if (filters.userId) {
+      where.wallet = { userId: filters.userId };
+    }
+    
+    if (filters.dateFrom || filters.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) {
+        where.createdAt.gte = new Date(filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        where.createdAt.lte = new Date(filters.dateTo);
+      }
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        include: {
+          wallet: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                  phone: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.transaction.count({ where })
+    ]);
+
+    return {
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  /**
+   * Validate cash deposit request (Admin only)
+   */
+  async validateCashDeposit(transactionId: string, adminId: string, adminNote?: string) {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        wallet: {
+          include: {
+            user: true
+          }
+        }
+      }
+    });
+
+    if (!transaction) {
+      throw new Error('Transaction non trouvée');
+    }
+
+    if (transaction.type !== TransactionType.DEPOSIT && transaction.type !== TransactionType.DEPOSIT_RECHARGE) {
+      throw new Error('Ce n\'est pas une demande de recharge en espèces');
+    }
+
+    if (transaction.status !== TransactionStatus.PENDING) {
+      throw new Error('Cette demande a déjà été traitée');
+    }
+
+    // Process validation in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Update transaction status
+      const updatedTransaction = await tx.transaction.update({
+        where: { id: transactionId },
+        data: {
+          status: TransactionStatus.COMPLETED,
+          validatedBy: adminId,
+          validatedAt: new Date(),
+          canModify: false,
+          metadata: {
+            ...transaction.metadata as object,
+            validatedAt: new Date().toISOString(),
+            validatedBy: adminId,
+            adminNote: adminNote || 'Validé par l\'administrateur'
+          }
+        },
+        include: {
+          wallet: {
+            include: {
+              user: true
+            }
+          }
+        }
+      });
+
+      // Credit wallet
+      await tx.wallet.update({
+        where: { id: transaction.walletId },
+        data: {
+          balance: { increment: transaction.amount }
+        }
+      });
+
+      // Create notification for user
+      await tx.notification.create({
+        data: {
+          userId: transaction.wallet.userId,
+          title: 'Recharge Validée',
+          message: `Votre demande de recharge de ${transaction.amount} FCFA a été validée. Le montant a été ajouté à votre portefeuille.`,
+          type: 'PAYMENT'
+        }
+      });
+
+      return updatedTransaction;
+    });
+
+    return result;
+  }
+
+  /**
+   * Reject cash deposit request (Admin only)
+   */
+  async rejectCashDeposit(transactionId: string, adminId: string, reason: string) {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        wallet: {
+          include: {
+            user: true
+          }
+        }
+      }
+    });
+
+    if (!transaction) {
+      throw new Error('Transaction non trouvée');
+    }
+
+    if (transaction.type !== TransactionType.DEPOSIT && transaction.type !== TransactionType.DEPOSIT_RECHARGE) {
+      throw new Error('Ce n\'est pas une demande de recharge en espèces');
+    }
+
+    if (transaction.status !== TransactionStatus.PENDING) {
+      throw new Error('Cette demande a déjà été traitée');
+    }
+
+    const updatedTransaction = await prisma.transaction.update({
+      where: { id: transactionId },
+      data: {
+        status: TransactionStatus.FAILED,
+        validatedBy: adminId,
+        validatedAt: new Date(),
+        rejectionReason: reason,
+        canModify: false,
+        metadata: {
+          ...transaction.metadata as object,
+          rejectedAt: new Date().toISOString(),
+          rejectedBy: adminId,
+          rejectionReason: reason
+        }
+      },
+      include: {
+        wallet: {
+          include: {
+            user: true
+          }
+        }
+      }
+    });
+
+    // Create notification for user
+    await prisma.notification.create({
+      data: {
+        userId: transaction.wallet.userId,
+        title: 'Recharge Rejetée',
+        message: `Votre demande de recharge de ${transaction.amount} FCFA a été rejetée. Raison : ${reason}`,
+        type: 'PAYMENT'
+      }
+    });
+
+    return updatedTransaction;
+  }
+
+  /**
+   * Notify admins of new cash deposit request
+   */
+  private async notifyAdminsOfCashRequest(transaction: any) {
+    // Get all admin users
+    const admins = await prisma.user.findMany({
+      where: {
+        OR: [
+          { role: 'ADMIN' },
+          { role: 'SUPER_ADMIN' }
+        ],
+        isActive: true
+      }
+    });
+
+    // Create notifications for each admin
+    for (const admin of admins) {
+      await prisma.notification.create({
+        data: {
+          userId: admin.id,
+          title: 'Nouvelle Demande de Recharge',
+          message: `Une nouvelle demande de recharge en espèces de ${transaction.amount} FCFA nécessite votre validation.`,
+          type: 'ADMIN_ACTION'
+        }
+      });
+    }
+  }
+
+  /**
    * Get transaction history
    */
   async getTransactionHistory(userId: string, page: number = 1, limit: number = 20) {
@@ -149,6 +872,15 @@ export class WalletService {
   async hasSufficientBalance(userId: string, amount: number): Promise<boolean> {
     const wallet = await this.getOrCreateWallet(userId);
     return wallet.balance >= amount;
+  }
+
+  /**
+   * Check if user can use service (has sufficient deposit)
+   */
+  async canUseService(userId: string): Promise<boolean> {
+    const wallet = await this.getOrCreateWallet(userId);
+    const requiredDeposit = await this.getRequiredDeposit();
+    return wallet.deposit >= requiredDeposit;
   }
 
   /**
@@ -213,7 +945,7 @@ export class WalletService {
   async getWalletStats(userId: string) {
     const wallet = await this.getOrCreateWallet(userId);
 
-    const [totalDeposits, totalSpent, totalRefunds] = await Promise.all([
+    const [totalDeposits, totalSpent, totalRefunds, totalDepositRecharges, totalDamageCharges] = await Promise.all([
       prisma.transaction.aggregate({
         where: {
           walletId: wallet.id,
@@ -240,18 +972,215 @@ export class WalletService {
         },
         _sum: { amount: true },
         _count: true
+      }),
+      prisma.transaction.aggregate({
+        where: {
+          walletId: wallet.id,
+          type: TransactionType.DEPOSIT_RECHARGE,
+          status: TransactionStatus.COMPLETED
+        },
+        _sum: { amount: true },
+        _count: true
+      }),
+      prisma.transaction.aggregate({
+        where: {
+          walletId: wallet.id,
+          type: TransactionType.DAMAGE_CHARGE,
+          status: TransactionStatus.COMPLETED
+        },
+        _sum: { amount: true },
+        _count: true
       })
     ]);
 
     return {
       currentBalance: wallet.balance,
+      currentDeposit: wallet.deposit,
+      negativeBalance: wallet.negativeBalance,
       totalDeposited: totalDeposits._sum.amount || 0,
       totalSpent: totalSpent._sum.amount || 0,
       totalRefunded: totalRefunds._sum.amount || 0,
+      totalDepositRecharges: totalDepositRecharges._sum.amount || 0,
+      totalDamageCharges: totalDamageCharges._sum.amount || 0,
       depositCount: totalDeposits._count,
       ridePaymentCount: totalSpent._count,
       refundCount: totalRefunds._count
     };
+  }
+
+  /**
+   * Get global wallet statistics (Admin only)
+   */
+  async getGlobalWalletStats() {
+    // Statistiques globales des portefeuilles
+    const [
+      totalBalanceResult,
+      totalDepositResult,
+      totalNegativeBalanceResult,
+      totalTransactionsResult,
+      pendingCashRequestsResult,
+      completedTransactionsResult,
+      failedTransactionsResult,
+      totalDepositedResult,
+      totalWithdrawnResult
+    ] = await Promise.all([
+      // Balance totale de tous les portefeuilles
+      prisma.wallet.aggregate({
+        _sum: { balance: true }
+      }),
+      // Caution totale
+      prisma.wallet.aggregate({
+        _sum: { deposit: true }
+      }),
+      // Solde négatif total
+      prisma.wallet.aggregate({
+        _sum: { negativeBalance: true }
+      }),
+      // Nombre total de transactions
+      prisma.transaction.count(),
+      // Nombre de demandes en espèces en attente
+      prisma.transaction.count({
+        where: {
+          type: { in: [TransactionType.DEPOSIT, TransactionType.DEPOSIT_RECHARGE] },
+          status: TransactionStatus.PENDING
+        }
+      }),
+      // Transactions complétées
+      prisma.transaction.count({
+        where: { status: TransactionStatus.COMPLETED }
+      }),
+      // Transactions échouées
+      prisma.transaction.count({
+        where: { status: TransactionStatus.FAILED }
+      }),
+      // Total déposé (tous types de dépôts)
+      prisma.transaction.aggregate({
+        where: {
+          OR: [
+            { type: TransactionType.DEPOSIT },
+            { type: TransactionType.DEPOSIT_RECHARGE }
+          ],
+          status: TransactionStatus.COMPLETED
+        },
+        _sum: { amount: true }
+      }),
+      // Total retiré
+      prisma.transaction.aggregate({
+        where: {
+          type: TransactionType.WITHDRAWAL,
+          status: TransactionStatus.COMPLETED
+        },
+        _sum: { amount: true }
+      })
+    ]);
+
+    return {
+      totalBalance: totalBalanceResult._sum.balance || 0,
+      totalDeposit: totalDepositResult._sum.deposit || 0,
+      totalNegativeBalance: totalNegativeBalanceResult._sum.negativeBalance || 0,
+      totalTransactions: totalTransactionsResult || 0,
+      pendingCashRequests: pendingCashRequestsResult || 0,
+      completedTransactions: completedTransactionsResult || 0,
+      failedTransactions: failedTransactionsResult || 0,
+      totalDeposited: totalDepositedResult._sum.amount || 0,
+      totalWithdrawn: totalWithdrawnResult._sum.amount || 0
+    };
+  }
+
+  /**
+   * Get transaction by ID for admin (includes user info)
+   */
+  async getTransactionByIdAdmin(transactionId: string) {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+      include: {
+        wallet: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+                createdAt: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!transaction) {
+      throw new Error('Transaction non trouvée');
+    }
+
+    return transaction;
+  }
+
+  /**
+   * Get required deposit amount from settings
+   */
+  private async getRequiredDeposit(): Promise<number> {
+    const setting = await prisma.settings.findUnique({
+      where: { key: 'required_deposit' }
+    });
+    return setting ? parseInt(setting.value) : 20000;
+  }
+
+  /**
+   * Create or update plan override
+   */
+  async createPlanOverride(
+    planId: string, 
+    overTimeType: 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION', 
+    overTimeValue: number
+  ) {
+    const existingOverride = await prisma.planOverride.findFirst({
+      where: { planId }
+    });
+
+    if (existingOverride) {
+      return await prisma.planOverride.update({
+        where: { id: existingOverride.id },
+        data: {
+          overTimeType,
+          overTimeValue
+        }
+      });
+    } else {
+      return await prisma.planOverride.create({
+        data: {
+          planId,
+          overTimeType,
+          overTimeValue
+        }
+      });
+    }
+  }
+
+  /**
+   * Get plan override
+   */
+  async getPlanOverride(planId: string) {
+    return await prisma.planOverride.findFirst({
+      where: { planId }
+    });
+  }
+
+  /**
+   * Delete plan override
+   */
+  async deletePlanOverride(planId: string) {
+    const override = await prisma.planOverride.findFirst({
+      where: { planId }
+    });
+    
+    if (override) {
+      await prisma.planOverride.delete({
+        where: { id: override.id }
+      });
+    }
   }
 }
 

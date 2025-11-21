@@ -468,44 +468,7 @@ export class WalletController {
    */
   async getPaymentMethods(req: AuthRequest, res: express.Response) {
     try {
-      const paymentMethods = [
-        {
-          code: 'ORANGE_MONEY',
-          name: 'Orange Money',
-          logo: '/assets/logos/orange-money.png',
-          fees: {
-            percentage: 1.5,
-            fixed: 50,
-            minimum: 50,
-            maximum: 1000
-          },
-          isActive: true,
-          minAmount: 500,
-          maxAmount: 1000000,
-          description: req.language === 'fr' 
-            ? 'Rechargez votre portefeuille via Orange Money'
-            : 'Top up your wallet via Orange Money'
-        },
-        {
-          code: 'MOMO',
-          name: 'Mobile Money',
-          logo: '/assets/logos/momo.png',
-          fees: {
-            percentage: 1.2,
-            fixed: 50,
-            minimum: 50,
-            maximum: 800
-          },
-          isActive: true,
-          minAmount: 500,
-          maxAmount: 1000000,
-          description: req.language === 'fr' 
-            ? 'Rechargez votre portefeuille via Mobile Money'
-            : 'Top up your wallet via Mobile Money'
-        }
-      ];
-
-      const activeMethods = paymentMethods.filter(method => method.isActive);
+      const paymentMethods = await WalletService.getPaymentMethods(req.language);
 
       await logActivity(
         req.user!.id,
@@ -513,20 +476,650 @@ export class WalletController {
         'PAYMENT_METHODS',
         '',
         'Viewed available payment methods',
-        { methodsCount: activeMethods.length },
+        { methodsCount: paymentMethods.length },
         req
       );
       
       res.json({
         success: true,
         message: t('payment.methods_retrieved', req.language),
-        data: activeMethods
+        data: paymentMethods
       });
     } catch (error: any) {
       console.error('Error getting payment methods:', error);
       res.status(500).json({
         success: false,
         message: t('common.server_error', req.language)
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/deposit/cash:
+   *   post:
+   *     summary: Request cash deposit
+   *     tags: [Wallet, Cash]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - amount
+   *             properties:
+   *               amount:
+   *                 type: number
+   *                 example: 5000
+   *               description:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Cash deposit request created
+   */
+  async requestCashDeposit(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { amount, description } = req.body;
+
+      if (!amount || amount <= 0) {
+        res.status(400).json({ 
+          success: false, 
+          message: t('payment.invalid_amount', req.language) 
+        });
+        return;
+      }
+
+      if (amount < 500) {
+        res.status(400).json({ 
+          success: false, 
+          message: 'Le montant minimum pour une recharge en espèces est de 500 FCFA' 
+        });
+        return;
+      }
+
+      const result = await WalletService.createCashDepositRequest({
+        userId,
+        amount,
+        description: description || 'Demande de recharge en espèces'
+      });
+
+      await logActivity(
+        userId,
+        'CREATE',
+        'CASH_DEPOSIT_REQUEST',
+        result.id,
+        `Created cash deposit request of ${amount} FCFA`,
+        { amount, description },
+        req
+      );
+
+      res.json({ 
+        success: true, 
+        message: 'Demande de recharge en espèces créée avec succès', 
+        data: result 
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/deposit/cash/{id}:
+   *   put:
+   *     summary: Update cash deposit request amount
+   *     tags: [Wallet, Cash]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - amount
+   *             properties:
+   *               amount:
+   *                 type: number
+   *     responses:
+   *       200:
+   *         description: Cash deposit request updated
+   */
+  async updateCashDepositRequest(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      const { amount } = req.body;
+
+      const result = await WalletService.updateCashDepositRequest(id, userId, amount);
+
+      await logActivity(
+        userId,
+        'UPDATE',
+        'CASH_DEPOSIT_REQUEST',
+        id,
+        `Updated cash deposit request to ${amount} FCFA`,
+        { newAmount: amount },
+        req
+      );
+
+      res.json({ 
+        success: true, 
+        message: 'Demande de recharge modifiée avec succès', 
+        data: result 
+      });
+    } catch (error: any) {
+      res.status(400).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/deposit/cash/{id}:
+   *   delete:
+   *     summary: Cancel cash deposit request
+   *     tags: [Wallet, Cash]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Cash deposit request cancelled
+   */
+  async cancelCashDepositRequest(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+
+      await WalletService.cancelCashDepositRequest(id, userId);
+
+      await logActivity(
+        userId,
+        'DELETE',
+        'CASH_DEPOSIT_REQUEST',
+        id,
+        'Cancelled cash deposit request',
+        null,
+        req
+      );
+
+      res.json({ 
+        success: true, 
+        message: 'Demande de recharge annulée avec succès' 
+      });
+    } catch (error: any) {
+      res.status(400).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  }
+
+  /**
+   * Get deposit information
+   */
+  async getDepositInfo(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const depositInfo = await WalletService.getDepositInfo(userId);
+
+      await logActivity(
+        userId,
+        'VIEW',
+        'DEPOSIT_INFO',
+        '',
+        'Viewed deposit information',
+        { currentDeposit: depositInfo.currentDeposit, canUseService: depositInfo.canUseService },
+        req
+      );
+
+      res.json({
+        success: true,
+        data: depositInfo
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Recharge deposit
+   */
+  async rechargeDeposit(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const { amount } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Montant invalide'
+        });
+      }
+
+      const result = await WalletService.rechargeDeposit(userId, amount);
+
+      await logActivity(
+        userId,
+        'UPDATE',
+        'DEPOSIT_RECHARGE',
+        '',
+        `Recharged deposit with ${amount} FCFA`,
+        { amount },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: 'Caution rechargée avec succès',
+        data: result
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Charge user for damage (Admin only)
+   */
+  async chargeDamage(req: AuthRequest, res: express.Response) {
+    try {
+      const { userId, amount, description, images } = req.body;
+      const adminId = req.user!.id;
+
+      if (!userId || !amount || !description) {
+        return res.status(400).json({
+          success: false,
+          message: 'Données manquantes'
+        });
+      }
+
+      const result = await WalletService.chargeDamage(userId, amount, description, images, adminId);
+
+      await logActivity(
+        adminId,
+        'CREATE',
+        'DAMAGE_CHARGE',
+        result.transaction.id,
+        `Charged ${amount} FCFA for damage to user ${userId}`,
+        { userId, amount, description },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: 'Frais de dégâts appliqués avec succès',
+        data: result
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/admin/transactions:
+   *   get:
+   *     summary: Get all transactions (Admin only)
+   *     tags: [Wallet, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: type
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: status
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: userId
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: dateFrom
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: dateTo
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Transactions retrieved
+   */
+  async getAllTransactions(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const filters = {
+        type: req.query.type as string,
+        status: req.query.status as string,
+        userId: req.query.userId as string,
+        dateFrom: req.query.dateFrom as string,
+        dateTo: req.query.dateTo as string,
+      };
+
+      const result = await WalletService.getAllTransactionsAdmin(page, limit, filters);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'ADMIN_TRANSACTIONS',
+        '',
+        'Viewed admin transactions list',
+        { page, limit, filters },
+        req
+      );
+
+      res.json({ 
+        success: true, 
+        data: result 
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/admin/cash-deposits/{id}/validate:
+   *   post:
+   *     summary: Validate cash deposit request (Admin only)
+   *     tags: [Wallet, Admin, Cash]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               adminNote:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Cash deposit validated
+   */
+  async validateCashDeposit(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const adminId = req.user!.id;
+      const { id } = req.params;
+      const { adminNote } = req.body;
+
+      const result = await WalletService.validateCashDeposit(id, adminId, adminNote);
+
+      await logActivity(
+        adminId,
+        'UPDATE',
+        'CASH_DEPOSIT_VALIDATION',
+        id,
+        `Validated cash deposit of ${result.amount} FCFA`,
+        { 
+          transactionId: id, 
+          userId: result.wallet.userId, 
+          amount: result.amount 
+        },
+        req
+      );
+
+      res.json({ 
+        success: true, 
+        message: 'Demande de recharge validée avec succès', 
+        data: result 
+      });
+    } catch (error: any) {
+      res.status(400).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/admin/cash-deposits/{id}/reject:
+   *   post:
+   *     summary: Reject cash deposit request (Admin only)
+   *     tags: [Wallet, Admin, Cash]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - reason
+   *             properties:
+   *               reason:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Cash deposit rejected
+   */
+  async rejectCashDeposit(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const adminId = req.user!.id;
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason) {
+        res.status(400).json({ 
+          success: false, 
+          message: 'La raison du rejet est obligatoire' 
+        });
+        return;
+      }
+
+      const result = await WalletService.rejectCashDeposit(id, adminId, reason);
+
+      await logActivity(
+        adminId,
+        'UPDATE',
+        'CASH_DEPOSIT_REJECTION',
+        id,
+        `Rejected cash deposit of ${result.amount} FCFA`,
+        { 
+          transactionId: id, 
+          userId: result.wallet.userId, 
+          reason 
+        },
+        req
+      );
+
+      res.json({ 
+        success: true, 
+        message: 'Demande de recharge rejetée', 
+        data: result 
+      });
+    } catch (error: any) {
+      res.status(400).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  }
+  
+  /**
+   * @swagger
+   * /wallet/admin/stats:
+   *   get:
+   *     summary: Get global wallet statistics (Admin only)
+   *     tags: [Wallet, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Global statistics retrieved
+   */
+  async getGlobalWalletStats(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const stats = await WalletService.getGlobalWalletStats();
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'GLOBAL_WALLET_STATS',
+        '',
+        'Viewed global wallet statistics',
+        { 
+          totalBalance: stats.totalBalance,
+          totalTransactions: stats.totalTransactions,
+          pendingCashRequests: stats.pendingCashRequests
+        },
+        req
+      );
+
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/admin/transactions/{id}:
+   *   get:
+   *     summary: Get transaction details (Admin only)
+   *     tags: [Wallet, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Transaction details retrieved
+   */
+  async getAdminTransactionById(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const transaction = await WalletService.getTransactionByIdAdmin(id);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'ADMIN_TRANSACTION_DETAILS',
+        id,
+        'Viewed transaction details',
+        { transactionId: id, userId: transaction.wallet.userId },
+        req
+      );
+
+      res.json({
+        success: true,
+        data: transaction
+      });
+    } catch (error: any) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Get current subscription
+   */
+  async getCurrentSubscription(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const subscription = await WalletService.getCurrentSubscription(userId);
+
+      res.json({
+        success: true,
+        data: subscription
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Get user reports
+   */
+  async getUserReports(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const reports = await WalletService.getUserReports(userId);
+
+      res.json({
+        success: true,
+        data: reports
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
       });
     }
   }

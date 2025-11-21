@@ -1,4 +1,3 @@
-// services/BikeService.ts
 import { prisma } from '../config/prisma';
 import { BikeStatus, Bike } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
@@ -218,7 +217,7 @@ export class BikeService {
     // Trouver les règles applicables
     const rules = await prisma.pricingRule.findMany({
       where: {
-        pricingConfigId: bike.pricingPlan.pricingConfigId,
+        pricingConfigId: bike.pricingPlan.pricingConfigId || '',
         isActive: true,
         OR: [
           { dayOfWeek: null },
@@ -266,7 +265,7 @@ export class BikeService {
       currentPricing: {
         hourlyRate: finalHourlyRate,
         originalHourlyRate: bike.pricingPlan.hourlyRate,
-        unlockFee: bike.pricingPlan.pricingConfig.unlockFee,
+        unlockFee: bike.pricingPlan.pricingConfig?.unlockFee || 0,
         appliedRule: applicableRule,
         appliedPromotions,
         pricingPlan: bike.pricingPlan
@@ -279,6 +278,32 @@ export class BikeService {
    */
   async getAllBikes(filter?: BikeFilter, page: number = 1, limit: number = 20) {
     const where: any = {};
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const reservedBikeIds = await prisma.reservation.findMany({
+      where: {
+        status: 'ACTIVE',
+        OR: [
+          {
+            startDate: { lte: tomorrow },
+            endDate: { gte: new Date() }
+          },
+          {
+            packageType: 'monthly',
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() }
+          }
+        ]
+      },
+      select: { bikeId: true }
+    });
+
+    if (reservedBikeIds.length > 0) {
+      where.id = { notIn: reservedBikeIds.map(r => r.bikeId) };
+    }
 
     if (filter?.status) {
       where.status = filter.status;

@@ -1,5 +1,6 @@
 import express from 'express';
 import AdminController from '../controllers/AdminController';
+import ReservationController from '../controllers/ReservationController';
 import { authenticate, requirePermission } from '../middleware/auth';
 
 const router = express.Router();
@@ -27,6 +28,41 @@ router.get('/dashboard/stats', requirePermission('admin', 'read'), AdminControll
  * @access  Private/Admin
  */
 router.get('/dashboard', requirePermission('admin', 'read'), AdminController.getDashboardStats);
+
+/**
+ * @route   GET /api/v1/admin/reservations
+ * @desc    Get all reservations (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/reservations', authenticate, requirePermission('reservations', 'read'), ReservationController.getAllReservations);
+
+/**
+ * @route   GET /api/v1/admin/unlock-requests
+ * @desc    Get unlock requests (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/unlock-requests', authenticate, requirePermission('bikes', 'manage'), ReservationController.getUnlockRequests);
+
+/**
+ * @route   PUT /api/v1/admin/unlock-requests/:id/validate
+ * @desc    Validate unlock request (Admin only)
+ * @access  Private/Admin
+ */
+router.put('/unlock-requests/:id/validate', authenticate, requirePermission('bikes', 'manage'), ReservationController.validateUnlockRequest);
+
+/**
+ * @route   GET /api/v1/admin/lock-requests
+ * @desc    Get lock requests (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/lock-requests', authenticate, requirePermission('bikes', 'manage'), ReservationController.getLockRequests);
+
+/**
+ * @route   PUT /api/v1/admin/lock-requests/:id/validate
+ * @desc    Validate lock request (Admin only)
+ * @access  Private/Admin
+ */
+router.put('/lock-requests/:id/validate', authenticate, requirePermission('bikes', 'manage'), ReservationController.validateLockRequest);
 
 /**
  * @route   GET /api/v1/admin/settings
