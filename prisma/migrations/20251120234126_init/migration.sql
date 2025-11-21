@@ -13,6 +13,7 @@ CREATE TABLE `users` (
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `emailVerified` BOOLEAN NOT NULL DEFAULT false,
     `language` VARCHAR(191) NOT NULL DEFAULT 'fr',
+    `depositBalance` DOUBLE NOT NULL DEFAULT 0,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `roleId` VARCHAR(191) NULL,
@@ -112,6 +113,8 @@ CREATE TABLE `wallets` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
     `balance` DOUBLE NOT NULL DEFAULT 0,
+    `deposit` DOUBLE NOT NULL DEFAULT 0,
+    `negativeBalance` DOUBLE NOT NULL DEFAULT 0,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -123,7 +126,7 @@ CREATE TABLE `wallets` (
 CREATE TABLE `transactions` (
     `id` VARCHAR(191) NOT NULL,
     `walletId` VARCHAR(191) NOT NULL,
-    `type` ENUM('DEPOSIT', 'WITHDRAWAL', 'RIDE_PAYMENT', 'REFUND') NOT NULL,
+    `type` ENUM('DEPOSIT', 'WITHDRAWAL', 'RIDE_PAYMENT', 'REFUND', 'DEPOSIT_RECHARGE', 'DAMAGE_CHARGE') NOT NULL,
     `amount` DOUBLE NOT NULL,
     `fees` DOUBLE NOT NULL DEFAULT 0,
     `totalAmount` DOUBLE NOT NULL,
@@ -132,6 +135,11 @@ CREATE TABLE `transactions` (
     `paymentProvider` VARCHAR(191) NULL,
     `externalId` VARCHAR(191) NULL,
     `metadata` JSON NULL,
+    `requestedBy` VARCHAR(191) NULL,
+    `validatedBy` VARCHAR(191) NULL,
+    `validatedAt` DATETIME(3) NULL,
+    `rejectionReason` VARCHAR(191) NULL,
+    `canModify` BOOLEAN NOT NULL DEFAULT true,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -166,6 +174,7 @@ CREATE TABLE `rides` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
     `bikeId` VARCHAR(191) NOT NULL,
+    `planId` VARCHAR(191) NULL,
     `startTime` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `endTime` DATETIME(3) NULL,
     `startLatitude` DOUBLE NOT NULL,
@@ -286,8 +295,9 @@ CREATE TABLE `pricing_configs` (
 -- CreateTable
 CREATE TABLE `pricing_plans` (
     `id` VARCHAR(191) NOT NULL,
-    `pricingConfigId` VARCHAR(191) NOT NULL,
+    `pricingConfigId` VARCHAR(191) NULL,
     `name` VARCHAR(191) NOT NULL,
+    `type` ENUM('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY') NOT NULL DEFAULT 'HOURLY',
     `hourlyRate` DOUBLE NOT NULL,
     `dailyRate` DOUBLE NOT NULL,
     `weeklyRate` DOUBLE NOT NULL,
@@ -296,6 +306,18 @@ CREATE TABLE `pricing_plans` (
     `discount` DOUBLE NOT NULL DEFAULT 0,
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `conditions` JSON NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `plan_overrides` (
+    `id` VARCHAR(191) NOT NULL,
+    `planId` VARCHAR(191) NOT NULL,
+    `overTimeType` VARCHAR(191) NOT NULL,
+    `overTimeValue` DOUBLE NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -368,5 +390,75 @@ CREATE TABLE `reviews` (
 
     INDEX `reviews_status_idx`(`status`),
     INDEX `reviews_rating_idx`(`rating`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `reservations` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `bikeId` VARCHAR(191) NOT NULL,
+    `planId` VARCHAR(191) NOT NULL,
+    `packageType` VARCHAR(191) NOT NULL,
+    `startDate` DATETIME(3) NOT NULL,
+    `endDate` DATETIME(3) NOT NULL,
+    `status` VARCHAR(191) NOT NULL DEFAULT 'ACTIVE',
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `unlock_requests` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `bikeId` VARCHAR(191) NOT NULL,
+    `reservationId` VARCHAR(191) NULL,
+    `status` ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    `requestedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `validatedAt` DATETIME(3) NULL,
+    `rejectedAt` DATETIME(3) NULL,
+    `validatedBy` VARCHAR(191) NULL,
+    `adminNote` VARCHAR(191) NULL,
+    `rejectionReason` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `lock_requests` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `bikeId` VARCHAR(191) NOT NULL,
+    `rideId` VARCHAR(191) NULL,
+    `latitude` DOUBLE NULL,
+    `longitude` DOUBLE NULL,
+    `returnLocation` JSON NULL,
+    `status` ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    `requestedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `validatedAt` DATETIME(3) NULL,
+    `rejectedAt` DATETIME(3) NULL,
+    `validatedBy` VARCHAR(191) NULL,
+    `adminNote` VARCHAR(191) NULL,
+    `rejectionReason` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `subscriptions` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `planId` VARCHAR(191) NOT NULL,
+    `type` ENUM('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY') NOT NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `startDate` DATETIME(3) NOT NULL,
+    `endDate` DATETIME(3) NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

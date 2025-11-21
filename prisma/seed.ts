@@ -80,6 +80,13 @@ async function main() {
     { name: 'bikes:update', description: 'Update bikes', resource: 'bikes', action: 'update' },
     { name: 'bikes:delete', description: 'Delete bikes', resource: 'bikes', action: 'delete' },
     { name: 'bikes:manage', description: 'Full bike management', resource: 'bikes', action: 'manage' },
+
+    // Reservations permissions
+    { name: 'reservations:create', description: 'Create reservations', resource: 'reservations', action: 'create' },
+    { name: 'reservations:read', description: 'View reservations', resource: 'reservations', action: 'read' },
+    { name: 'reservations:update', description: 'Update reservations', resource: 'reservations', action: 'update' },
+    { name: 'reservations:delete', description: 'Delete reservations', resource: 'reservations', action: 'delete' },
+    { name: 'reservations:manage', description: 'Full reservation management', resource: 'reservations', action: 'manage' },
     
     // Ride permissions
     { name: 'rides:create', description: 'Create rides', resource: 'rides', action: 'create' },
@@ -166,7 +173,7 @@ async function main() {
 
   // Assigner des permissions spécifiques à l'ADMIN
   const adminPermissions = [
-    'admin:read', 'users:read', 'users:update', 'bikes:manage', 'rides:read', 
+    'admin:read', 'users:read', 'users:update', 'bikes:manage', 'reservations:manage', 'rides:read', 
     'incidents:read', 'incidents:update', 'logs:read', 'maintenance:manage',
     'chat:read', 'chat:create', 'notifications:create', 'wallet:read',
     'reviews:read', 'reviews:update', 'reviews:manage'
@@ -185,7 +192,7 @@ async function main() {
 
   // Assigner des permissions spécifiques à l'EMPLOYEE
   const employeePermissions = [
-    'bikes:read', 'bikes:update', 'rides:read', 'incidents:read', 'incidents:update',
+    'bikes:read', 'bikes:update', 'reservations:read', 'rides:read', 'incidents:read', 'incidents:update',
     'maintenance:create', 'maintenance:read', 'chat:read', 'reviews:read'
   ];
   for (const permName of employeePermissions) {
