@@ -37,21 +37,21 @@ router.get('/lock-requests/user', authenticate, BikeRequestController.getUserLoc
  * @desc    Get all user requests (unlock + lock)
  * @access  Private
  */
-router.get('/bike-requests/user', authenticate, BikeRequestController.getAllUserRequests);
+router.get('/user', authenticate, BikeRequestController.getAllUserRequests);
 
 /**
  * @route   GET /api/v1/bike-requests/user/stats
  * @desc    Get user request statistics
  * @access  Private
  */
-router.get('/bike-requests/user/stats', authenticate, BikeRequestController.getUserRequestStats);
+router.get('/user/stats', authenticate, BikeRequestController.getUserRequestStats);
 
 /**
  * @route   GET /api/v1/bike-requests/:type/:id
  * @desc    Get specific request by ID
  * @access  Private
  */
-router.get('/bike-requests/:type/:id', authenticate, BikeRequestController.getRequestById);
+router.get('/:type/:id', authenticate, BikeRequestController.getRequestById);
 
 /**
  * @route   GET /api/v1/bike-requests/:type/pending
