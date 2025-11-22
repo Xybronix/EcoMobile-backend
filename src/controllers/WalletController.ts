@@ -7,6 +7,58 @@ import { t } from '../locales';
 export class WalletController {
   /**
    * @swagger
+   * /wallet/current-subscription:
+   *   get:
+   *     summary: Get current active subscription
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Current subscription retrieved
+   */
+  async getCurrentSubscription(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const subscription = await WalletService.getCurrentSubscription(userId);
+
+      if (!subscription) {
+        return res.status(404).json({
+          success: false,
+          message: 'Aucun forfait actif trouvé',
+          data: null
+        });
+      }
+
+      await logActivity(
+        userId,
+        'VIEW',
+        'CURRENT_SUBSCRIPTION',
+        subscription.id,
+        'Viewed current subscription',
+        { 
+          planName: subscription.planName,
+          packageType: subscription.packageType,
+          endDate: subscription.endDate 
+        },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: 'Forfait actif récupéré avec succès',
+        data: subscription
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
    * /wallet/balance:
    *   get:
    *     summary: Get wallet balance
@@ -1078,26 +1130,6 @@ export class WalletController {
       });
     } catch (error: any) {
       res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * Get current subscription
-   */
-  async getCurrentSubscription(req: AuthRequest, res: express.Response) {
-    try {
-      const userId = req.user!.id;
-      const subscription = await WalletService.getCurrentSubscription(userId);
-
-      res.json({
-        success: true,
-        data: subscription
-      });
-    } catch (error: any) {
-      res.status(500).json({
         success: false,
         message: error.message
       });

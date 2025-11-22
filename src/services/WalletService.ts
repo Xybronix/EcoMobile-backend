@@ -206,11 +206,48 @@ export class WalletService {
         endDate: { gte: new Date() }
       },
       include: {
-        plan: true
-      }
+        plan: {
+          include: {
+            overrides: true
+          }
+        },
+        bike: {
+          select: {
+            code: true,
+            model: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
-    if (!activeReservation) return null;
+    if (!activeReservation) {
+      const activeSubscription = await prisma.subscription.findFirst({
+        where: {
+          userId,
+          isActive: true,
+          startDate: { lte: new Date() },
+          endDate: { gte: new Date() }
+        },
+        include: {
+          plan: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (!activeSubscription) return null;
+
+      return {
+        id: activeSubscription.id,
+        planName: activeSubscription.plan.name,
+        packageType: activeSubscription.type,
+        startDate: activeSubscription.startDate,
+        endDate: activeSubscription.endDate,
+        status: 'ACTIVE',
+        type: 'SUBSCRIPTION',
+        remainingDays: Math.ceil((activeSubscription.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      };
+    }
 
     return {
       id: activeReservation.id,
@@ -218,7 +255,10 @@ export class WalletService {
       packageType: activeReservation.packageType,
       startDate: activeReservation.startDate,
       endDate: activeReservation.endDate,
-      status: activeReservation.status
+      status: activeReservation.status,
+      type: 'RESERVATION',
+      bikeCode: activeReservation.bike?.code,
+      remainingDays: Math.ceil((activeReservation.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     };
   }
 
