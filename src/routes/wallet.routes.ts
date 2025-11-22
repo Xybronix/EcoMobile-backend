@@ -7,6 +7,13 @@ const walletController = new WalletController();
 
 
 /**
+ * @route   GET /api/v1/wallet/current-subscription
+ * @desc    Get current active subscription
+ * @access  Private
+ */
+router.get('/current-subscription', authenticate, walletController.getCurrentSubscription);
+
+/**
  * @route   GET /api/v1/wallet/balance
  * @desc    Get wallet balance
  * @access  Private
