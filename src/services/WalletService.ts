@@ -516,6 +516,10 @@ export class WalletService {
     description?: string; 
   }) {
     const wallet = await this.getOrCreateWallet(request.userId);
+
+    if (request.amount < 500) {
+      throw new Error('Le montant minimum pour une recharge en espèces est de 500 FCFA');
+    }
     
     const transaction = await prisma.transaction.create({
       data: {
@@ -533,6 +537,20 @@ export class WalletService {
           description: request.description,
           requestedAt: new Date().toISOString(),
           type: 'cash_deposit_request'
+        }
+      },
+      include: {
+        wallet: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
         }
       }
     });
@@ -843,16 +861,18 @@ export class WalletService {
     });
 
     // Create notifications for each admin
-    for (const admin of admins) {
-      await prisma.notification.create({
+    const notificationPromises = admins.map(admin => 
+      prisma.notification.create({
         data: {
           userId: admin.id,
-          title: 'Nouvelle Demande de Recharge',
-          message: `Une nouvelle demande de recharge en espèces de ${transaction.amount} FCFA nécessite votre validation.`,
+          title: 'Nouvelle Demande de Recharge en Espèces',
+          message: `Une nouvelle demande de recharge en espèces de ${transaction.amount} FCFA a été soumise par ${transaction.wallet.user.firstName} ${transaction.wallet.user.lastName}.`,
           type: 'ADMIN_ACTION'
         }
-      });
-    }
+      })
+    );
+
+    await Promise.all(notificationPromises);
   }
 
   /**
