@@ -349,7 +349,7 @@ export class WalletController {
         return;
       }
 
-      if (!paymentMethod || !['ORANGE_MONEY', 'MOMO'].includes(paymentMethod)) {
+      if (!paymentMethod || !['ORANGE_MONEY', 'MOMO', 'CASH'].includes(paymentMethod)) {
         res.status(400).json({
           success: false,
           message: 'Invalid payment method'
@@ -357,10 +357,35 @@ export class WalletController {
         return;
       }
 
-      if (!phoneNumber) {
+      if (paymentMethod !== 'CASH' && !phoneNumber) {
         res.status(400).json({
           success: false,
           message: t('validation.field_required', req.language, { field: 'phoneNumber' })
+        });
+        return;
+      }
+
+      if (paymentMethod === 'CASH') {
+        const result = await WalletService.createCashDepositRequest({
+          userId,
+          amount,
+          description: description || 'Demande de recharge en espèces'
+        });
+
+        await logActivity(
+          userId,
+          'CREATE',
+          'CASH_DEPOSIT_REQUEST',
+          result.id,
+          `Created cash deposit request of ${amount} FCFA`,
+          { amount, description },
+          req
+        );
+
+        res.json({ 
+          success: true, 
+          message: 'Demande de recharge en espèces créée avec succès', 
+          data: result 
         });
         return;
       }
@@ -383,7 +408,7 @@ export class WalletController {
           amount, 
           paymentMethod, 
           transactionId: result.transactionId,
-          phoneNumber: phoneNumber.replace(/(\d{4})\d{4}(\d{2})/, '$1****$2') // Masquer partiellement le numéro
+          phoneNumber: phoneNumber.replace(/(\d{4})\d{4}(\d{2})/, '$1****$2')
         },
         req
       );
