@@ -6,7 +6,6 @@ import { startRideValidator, endRideValidator, idValidator, validate } from '../
 const router = express.Router();
 const rideController = new RideController();
 
-
 /**
  * @route   POST /api/v1/rides/start
  * @desc    Start a ride
