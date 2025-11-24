@@ -12,6 +12,7 @@ import subscriptionRoutes from './subscription.routes';
 import adminRoutes from './admin.routes';
 import chatRoutes from './chat.routes';
 import notificationRoutes from './notification.routes';
+import monitoringRoutes from './monitoring.routes';
 
 const router = express.Router();
 
@@ -50,5 +51,6 @@ router.use('/subscriptions', subscriptionRoutes);
 router.use('/admin', adminRoutes);
 router.use('/chat', chatRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/monitoring', monitoringRoutes);
 
 export default router;

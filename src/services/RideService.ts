@@ -2,6 +2,7 @@
 import { prisma } from '../config/prisma';
 import { RideStatus, Ride } from '@prisma/client';
 import BikeService from './BikeService';
+import WalletService from './WalletService';
 import { AppError } from '../middleware/errorHandler';
 import { t } from '../locales';
 
@@ -100,13 +101,16 @@ export class RideService {
     }
   }
 
-  async endRide(rideId: string, endLocation: any, language: 'fr' | 'en' = 'fr'): Promise<RideWithDetails> {
-    // Find ride
+  /**
+   * Terminer un trajet avec la logique de pricing avancée
+   */
+  async endRide(rideId: string, endLocation: any, language: 'fr' | 'en' = 'fr'): Promise<any> {
     const ride = await prisma.ride.findUnique({
       where: { id: rideId },
       include: {
-        bike: true,
-        user: { include: { wallet: true } }
+        bike: { include: { pricingPlan: { include: { overrides: true } } } },
+        user: { include: { wallet: true } },
+        plan: { include: { overrides: true } }
       }
     });
 
@@ -118,10 +122,10 @@ export class RideService {
       throw new AppError(t('ride.not_in_progress', language), 400);
     }
 
-    // Calculate duration in minutes
+    // Calculer la durée
     const duration = Math.floor((new Date().getTime() - new Date(ride.startTime).getTime()) / 1000 / 60);
     
-    // Calculate distance using BikeService method
+    // Calculer la distance
     let distance = BikeService.calculateDistance(
       ride.startLatitude,
       ride.startLongitude,
@@ -129,49 +133,45 @@ export class RideService {
       endLocation.longitude
     );
 
-    // Get GPS track for the ride period
-    let gpsTrack: any[] = [];
+    // Obtenir la piste GPS pour une distance plus précise
     try {
-      if (ride.bike?.code) {
-        gpsTrack = await BikeService.getBikeTrack(
-          ride.bikeId,
-          ride.startTime,
-          new Date()
-        );
-        
-        // Calculate more accurate distance from GPS track if available
-        if (gpsTrack.length > 1) {
-          let totalDistance = 0;
-          for (let i = 1; i < gpsTrack.length; i++) {
-            totalDistance += BikeService.calculateDistance(
-              gpsTrack[i-1].latitude,
-              gpsTrack[i-1].longitude,
-              gpsTrack[i].latitude,
-              gpsTrack[i].longitude
-            );
-          }
-          // Use GPS distance if it's reasonable (not too different from straight line)
-          if (totalDistance > distance && totalDistance < distance * 3) {
-            distance = totalDistance;
-          }
+      const gpsTrack = await BikeService.getBikeTrack(ride.bikeId, ride.startTime, new Date());
+      if (gpsTrack.length > 1) {
+        let totalDistance = 0;
+        for (let i = 1; i < gpsTrack.length; i++) {
+          totalDistance += BikeService.calculateDistance(
+            gpsTrack[i-1].latitude,
+            gpsTrack[i-1].longitude,
+            gpsTrack[i].latitude,
+            gpsTrack[i].longitude
+          );
+        }
+        if (totalDistance > distance && totalDistance < distance * 3) {
+          distance = totalDistance;
         }
       }
     } catch (error) {
-      console.warn('Failed to get GPS track for ride:', error);
+      console.warn('Failed to get GPS track:', error);
     }
 
-    // Simple pricing: 0.5 per minute + 1 unlock fee
-    const cost = Math.round((0.5 * duration + 1) * 100) / 100;
+    // Vérifier l'abonnement actif
+    const activeSubscription = await this.getActiveSubscriptionForRide(ride.userId);
+    
+    // Calculer le coût avec la logique avancée
+    const costCalculation = await this.calculateAdvancedRideCost(
+      ride.userId,
+      duration,
+      ride.startTime,
+      activeSubscription,
+      ride.plan
+    );
 
-    // Check wallet balance
-    if (!ride.user.wallet || ride.user.wallet.balance < cost) {
-      throw new AppError(t('wallet.insufficient_balance', language), 400);
-    }
+    // Vérifier la capacité de paiement
+    await this.validatePaymentCapacity(ride.user, costCalculation.finalCost);
 
     try {
-      // Complete ride in transaction
       const updatedRide = await prisma.$transaction(async (tx) => {
-        // Update ride
+        // Mettre à jour le trajet
         const completedRide = await tx.ride.update({
           where: { id: rideId },
           data: {
@@ -180,7 +180,7 @@ export class RideService {
             endLongitude: endLocation.longitude,
             distance: Math.round(distance * 100) / 100,
             duration,
-            cost,
+            cost: costCalculation.finalCost,
             status: RideStatus.COMPLETED
           },
           include: {
@@ -189,29 +189,38 @@ export class RideService {
           }
         });
 
-        // Deduct from wallet
-        await tx.wallet.update({
-          where: { id: ride.user.wallet!.id },
-          data: {
-            balance: { decrement: cost }
-          }
-        });
+        // Traiter le paiement avec la logique avancée
+        if (costCalculation.finalCost > 0) {
+          await WalletService.processRidePayment(
+            ride.userId,
+            rideId,
+            costCalculation.finalCost,
+            !!activeSubscription,
+            costCalculation.isOvertime,
+            ride.startTime
+          );
+        }
 
-        // Create transaction
+        // Créer une transaction avec détails
         await tx.transaction.create({
           data: {
             walletId: ride.user.wallet!.id,
             type: 'RIDE_PAYMENT',
-            amount: cost,
+            amount: costCalculation.finalCost,
             fees: 0,
-            totalAmount: cost,
+            totalAmount: costCalculation.finalCost,
             status: 'COMPLETED',
-            paymentMethod: 'wallet',
+            paymentMethod: costCalculation.paymentMethod,
             metadata: {
-              rideId: rideId,
-              bikeCode: ride.bike?.code,
-              duration: duration,
-              distance: distance
+              rideId,
+              originalCost: costCalculation.originalCost,
+              discountApplied: costCalculation.discountApplied,
+              isOvertime: costCalculation.isOvertime,
+              hasActiveSubscription: !!activeSubscription,
+              subscriptionType: activeSubscription?.packageType,
+              appliedRule: costCalculation.appliedRule,
+              duration,
+              distance
             }
           }
         });
@@ -219,35 +228,28 @@ export class RideService {
         return completedRide;
       });
 
-      // Lock bike and update its location via BikeService (handles GPS sync)
-      try {
-        await BikeService.lockBike(ride.bikeId);
-        await BikeService.updateBikeLocation(
-          ride.bikeId, 
-          endLocation.latitude, 
-          endLocation.longitude
-        );
-      } catch (error) {
-        console.error('Failed to lock bike or update location:', error);
-      }
+      // Verrouiller le vélo et mettre à jour sa position
+      await BikeService.lockBike(ride.bikeId);
+      await BikeService.updateBikeLocation(ride.bikeId, endLocation.latitude, endLocation.longitude);
 
-      // Send notification
+      // Notification avec détails du pricing
+      const notificationMessage = costCalculation.finalCost === 0
+        ? `Trajet terminé (${duration} min, ${distance.toFixed(2)} km). Inclus dans votre forfait ${activeSubscription?.planName}!`
+        : costCalculation.discountApplied > 0
+        ? `Trajet terminé (${duration} min, ${distance.toFixed(2)} km). Coût: ${costCalculation.finalCost} XAF (économie: ${costCalculation.discountApplied} XAF)`
+        : `Trajet terminé (${duration} min, ${distance.toFixed(2)} km). Coût: ${costCalculation.finalCost} XAF`;
+
       await prisma.notification.create({
         data: {
           userId: ride.userId,
           type: 'success',
           title: language === 'fr' ? 'Trajet terminé' : 'Ride completed',
-          message: language === 'fr'
-            ? `Trajet terminé. Durée: ${duration} min. Coût: ${cost} XAF`
-            : `Ride completed. Duration: ${duration} min. Cost: ${cost} XAF`,
+          message: notificationMessage,
           isRead: false
         }
       });
 
-      return {
-        ...updatedRide,
-        gpsTrack
-      };
+      return { ...updatedRide, costDetails: costCalculation };
     } catch (error) {
       console.error('Error ending ride:', error);
       throw new AppError('Failed to end ride', 500);
@@ -427,6 +429,171 @@ export class RideService {
       averageDistance: totalRides > 0 ? Math.round((totalDistance / totalRides) * 100) / 100 : 0,
       averageDuration: totalRides > 0 ? Math.round(totalDuration / totalRides) : 0
     };
+  }
+
+  /**
+   * Calculer le coût avec la logique avancée (forfaits, overtime, réductions)
+   */
+  private async calculateAdvancedRideCost(
+    _userId: string,
+    duration: number,
+    startTime: Date,
+    activeSubscription: any,
+    ridePlan: any
+  ) {
+    const hourlyRate = ridePlan?.hourlyRate || 200;
+    const durationHours = duration / 60;
+    const originalCost = Math.ceil(durationHours * hourlyRate);
+
+    let finalCost = originalCost;
+    let discountApplied = 0;
+    let appliedRule = 'Tarif normal';
+    let paymentMethod = 'WALLET';
+    let isOvertime = false;
+
+    if (activeSubscription) {
+      // L'utilisateur a un forfait actif
+      isOvertime = this.checkIfOvertime(startTime, activeSubscription.packageType);
+      
+      if (isOvertime) {
+        // Hors des heures du forfait - appliquer les règles d'override
+        const overrideRule = await this.getOverrideRule(activeSubscription.planId);
+        
+        if (overrideRule) {
+          if (overrideRule.overTimeType === 'FIXED_PRICE') {
+            finalCost = overrideRule.overTimeValue;
+            appliedRule = `Prix fixe overtime forfait: ${overrideRule.overTimeValue} XOF`;
+          } else if (overrideRule.overTimeType === 'PERCENTAGE_REDUCTION') {
+            const reduction = Math.round(originalCost * (overrideRule.overTimeValue / 100));
+            finalCost = Math.max(0, originalCost - reduction);
+            discountApplied = reduction;
+            appliedRule = `Réduction overtime forfait: ${overrideRule.overTimeValue}%`;
+          }
+        } else {
+          // Pas de règle d'override - réduction par défaut de 30%
+          const reduction = Math.round(originalCost * 0.3);
+          finalCost = originalCost - reduction;
+          discountApplied = reduction;
+          appliedRule = 'Réduction forfait overtime par défaut: 30%';
+        }
+        paymentMethod = 'SUBSCRIPTION_OVERTIME';
+      } else {
+        // Dans les heures du forfait - gratuit
+        finalCost = 0;
+        discountApplied = originalCost;
+        appliedRule = `Inclus dans le forfait ${activeSubscription.planName}`;
+        paymentMethod = 'SUBSCRIPTION';
+      }
+    }
+    // Sinon pas de forfait = prix normal
+
+    return {
+      originalCost,
+      finalCost,
+      discountApplied,
+      isOvertime,
+      appliedRule,
+      paymentMethod,
+      hasActiveSubscription: !!activeSubscription
+    };
+  }
+
+  /**
+   * Vérifier si on est en overtime selon le type de forfait
+   */
+  private checkIfOvertime(startTime: Date, packageType: string): boolean {
+    const hour = startTime.getHours();
+    
+    switch (packageType.toLowerCase()) {
+      case 'daily':
+      case 'journalier':
+        return hour < 8 || hour >= 19; // 8h-19h
+      case 'morning':
+      case 'matin':
+        return hour < 6 || hour >= 12; // 6h-12h
+      case 'evening':
+      case 'soirée':
+        return hour < 19 || hour >= 22; // 19h-22h
+      case 'weekly':
+      case 'monthly':
+        return false; // Pas d'overtime pour ces forfaits
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Obtenir l'abonnement actif pour un trajet
+   */
+  private async getActiveSubscriptionForRide(userId: string) {
+    // Vérifier d'abord les réservations (priorité)
+    const activeReservation = await prisma.reservation.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      },
+      include: { plan: { include: { overrides: true } } }
+    });
+
+    if (activeReservation) {
+      return {
+        id: activeReservation.id,
+        planId: activeReservation.planId,
+        planName: activeReservation.plan.name,
+        packageType: activeReservation.packageType,
+        type: 'RESERVATION'
+      };
+    }
+
+    // Sinon vérifier les abonnements généraux
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      },
+      include: { plan: { include: { overrides: true } } }
+    });
+
+    if (activeSubscription) {
+      return {
+        id: activeSubscription.id,
+        planId: activeSubscription.planId,
+        planName: activeSubscription.plan.name,
+        packageType: activeSubscription.type,
+        type: 'SUBSCRIPTION'
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Obtenir la règle d'override pour un plan
+   */
+  private async getOverrideRule(planId: string) {
+    return await prisma.planOverride.findFirst({
+      where: { planId }
+    });
+  }
+
+  /**
+   * Valider la capacité de paiement
+   */
+  private async validatePaymentCapacity(user: any, amount: number) {
+    if (amount === 0) return; // Rien à payer
+
+    const totalAvailable = user.wallet.balance + user.depositBalance;
+    
+    if (totalAvailable < amount) {
+      throw new AppError(
+        `Solde insuffisant. Requis: ${amount} XOF, Disponible: ${totalAvailable} XOF (Wallet: ${user.wallet.balance}, Caution: ${user.depositBalance})`,
+        400
+      );
+    }
   }
 }
 

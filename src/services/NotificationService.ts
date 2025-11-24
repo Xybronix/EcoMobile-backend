@@ -33,7 +33,7 @@ class NotificationService {
       userId: data.userId,
       title: data.title,
       message: data.message,
-      type: data.type,
+      type: data.type
     });
 
     // Send email if requested
