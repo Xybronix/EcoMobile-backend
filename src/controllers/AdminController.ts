@@ -235,7 +235,10 @@ export class AdminController {
         include: {
           plans: {
             where: { isActive: true },
-            orderBy: { name: 'asc' }
+            orderBy: { name: 'asc' },
+            include: {
+              overrides: true
+            }
           },
           rules: {
             where: { isActive: true },
@@ -254,6 +257,20 @@ export class AdminController {
         },
         orderBy: { createdAt: 'desc' }
       });
+
+      if (pricing?.plans) {
+        type TransformedPlan = Omit<typeof pricing.plans[0], 'overrides'> & {
+          override: typeof pricing.plans[0]['overrides'][0] | null;
+        };
+
+        pricing.plans = pricing.plans.map(plan => {
+          const { overrides, ...planData } = plan;
+          return {
+            ...planData,
+            override: overrides && overrides.length > 0 ? overrides[0] : null
+          } as TransformedPlan;
+        }) as any;
+      }
 
       if (pricing?.promotions) {
         pricing.promotions = pricing.promotions.filter(promotion => 
@@ -1048,6 +1065,236 @@ export class AdminController {
         success: true,
         message: `Promotion ${isActive ? 'activée' : 'désactivée'} avec succès`,
         data: promotion
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /admin/plans:
+   *   post:
+   *     summary: Create new pricing plan (Admin only)
+   *     tags: [Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - name
+   *               - hourlyRate
+   *               - dailyRate
+   *               - weeklyRate
+   *               - monthlyRate
+   *             properties:
+   *               name:
+   *                 type: string
+   *               hourlyRate:
+   *                 type: number
+   *               dailyRate:
+   *                 type: number
+   *               weeklyRate:
+   *                 type: number
+   *               monthlyRate:
+   *                 type: number
+   *               minimumHours:
+   *                 type: number
+   *               discount:
+   *                 type: number
+   *               isActive:
+   *                 type: boolean
+   *               conditions:
+   *                 type: array
+   *                 items:
+   *                   type: string
+   *     responses:
+   *       200:
+   *         description: Plan created successfully
+   */
+  async createPlan(req: AuthRequest, res: express.Response) {
+    try {
+      const { 
+        name, 
+        hourlyRate, 
+        dailyRate, 
+        weeklyRate, 
+        monthlyRate, 
+        minimumHours, 
+        discount, 
+        isActive, 
+        conditions 
+      } = req.body;
+
+      if (!name || hourlyRate === undefined || dailyRate === undefined || 
+          weeklyRate === undefined || monthlyRate === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: 'Tous les champs obligatoires doivent être remplis'
+        });
+      }
+
+      const pricingConfig = await prisma.pricingConfig.findFirst({
+        where: { isActive: true }
+      });
+
+      if (!pricingConfig) {
+        return res.status(404).json({
+          success: false,
+          message: 'Aucune configuration de prix active trouvée'
+        });
+      }
+
+      const plan = await prisma.pricingPlan.create({
+        data: {
+          pricingConfigId: pricingConfig.id,
+          name,
+          hourlyRate: parseFloat(hourlyRate),
+          dailyRate: parseFloat(dailyRate),
+          weeklyRate: parseFloat(weeklyRate),
+          monthlyRate: parseFloat(monthlyRate),
+          minimumHours: minimumHours || 1,
+          discount: discount || 0,
+          isActive: isActive !== undefined ? isActive : true,
+          conditions: conditions || {}
+        }
+      });
+
+      await logActivity(
+        req.user?.id || null,
+        'CREATE',
+        'PRICING_PLAN',
+        plan.id,
+        `Created pricing plan: ${name}`,
+        { plan },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: 'Plan créé avec succès',
+        data: plan
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /admin/plans/{id}/override:
+   *   post:
+   *     summary: Create or update plan override (Admin only)
+   *     tags: [Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - overTimeType
+   *               - overTimeValue
+   *             properties:
+   *               overTimeType:
+   *                 type: string
+   *                 enum: [FIXED_PRICE, PERCENTAGE_REDUCTION]
+   *               overTimeValue:
+   *                 type: number
+   *     responses:
+   *       200:
+   *         description: Plan override created/updated successfully
+   */
+  async createOrUpdatePlanOverride(req: AuthRequest, res: express.Response) {
+    try {
+      const { id } = req.params;
+      const { overTimeType, overTimeValue } = req.body;
+
+      if (!overTimeType || overTimeValue === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le type et la valeur de l\'override sont obligatoires'
+        });
+      }
+
+      if (!['FIXED_PRICE', 'PERCENTAGE_REDUCTION'].includes(overTimeType)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Type d\'override invalide. Utilisez "FIXED_PRICE" ou "PERCENTAGE_REDUCTION"'
+        });
+      }
+
+      const plan = await prisma.pricingPlan.findUnique({
+        where: { id },
+        include: {
+          overrides: true
+        }
+      });
+
+      if (!plan) {
+        return res.status(404).json({
+          success: false,
+          message: 'Plan non trouvé'
+        });
+      }
+
+      let planOverride;
+
+      if (plan.overrides && plan.overrides.length > 0) {
+        planOverride = await prisma.planOverride.update({
+          where: { id: plan.overrides[0].id },
+          data: {
+            overTimeType,
+            overTimeValue: parseFloat(overTimeValue)
+          }
+        });
+      } else {
+        planOverride = await prisma.planOverride.create({
+          data: {
+            planId: id,
+            overTimeType,
+            overTimeValue: parseFloat(overTimeValue)
+          }
+        });
+      }
+
+      await logActivity(
+        req.user?.id || null,
+        plan.overrides && plan.overrides.length > 0 ? 'UPDATE' : 'CREATE',
+        'PLAN_OVERRIDE',
+        planOverride.id,
+        `${plan.overrides && plan.overrides.length > 0 ? 'Updated' : 'Created'} override for plan: ${plan.name}`,
+        { 
+          planId: id,
+          planName: plan.name,
+          overTimeType,
+          overTimeValue 
+        },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: `Override ${plan.overrides && plan.overrides.length > 0 ? 'mis à jour' : 'créé'} avec succès`,
+        data: planOverride
       });
     } catch (error: any) {
       return res.status(500).json({

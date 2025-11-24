@@ -18,6 +18,7 @@ export interface NotificationWithEmail {
 class NotificationService {
   
   private emailService: EmailService;
+    static createNotification: any;
 
   constructor() {
     this.emailService = new EmailService();

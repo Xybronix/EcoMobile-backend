@@ -605,6 +605,7 @@ enum TransactionType {
   REFUND
   DEPOSIT_RECHARGE
   DAMAGE_CHARGE
+  SUBSCRIPTION_PAYMENT
 }
 
 enum TransactionStatus {

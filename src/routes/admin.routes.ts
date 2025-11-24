@@ -121,6 +121,20 @@ router.put('/promotions/:id', requirePermission('promotions', 'update'), AdminCo
 router.put('/promotions/:id/status', requirePermission('promotions', 'update'), AdminController.togglePromotionStatus);
 
 /**
+ * @route   POST /api/v1/admin/plans
+ * @desc    Create new pricing plan (Admin only)
+ * @access  Private/Admin
+ */
+router.post('/plans', requirePermission('pricing', 'create'), AdminController.createPlan);
+
+/**
+ * @route   POST /api/v1/admin/plans/:id/override
+ * @desc    Create or update plan override (Admin only)
+ * @access  Private/Admin
+ */
+router.post('/plans/:id/override', requirePermission('pricing', 'update'), AdminController.createOrUpdatePlanOverride);
+
+/**
  * @route   DELETE /api/v1/admin/plans/:id
  * @desc    Delete pricing plan (Admin only)
  * @access  Private/Admin

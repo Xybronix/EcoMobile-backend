@@ -628,6 +628,77 @@ export class BikeService {
   }
 
   /**
+   * Mettre un vélo en mode maintenance
+   */
+  async setMaintenanceMode(bikeId: string, reason: string): Promise<Bike> {
+    const bike = await prisma.bike.update({
+      where: { id: bikeId },
+      data: { 
+        status: BikeStatus.MAINTENANCE,
+        updatedAt: new Date()
+      }
+    });
+
+    // Créer un log de maintenance
+    await prisma.maintenanceLog.create({
+      data: {
+        bikeId,
+        type: 'SECURITY_MAINTENANCE',
+        description: reason,
+        performedBy: 'SYSTEM'
+      }
+    });
+
+    return bike;
+  }
+
+  /**
+   * Sortir un vélo du mode maintenance (admin seulement)
+   */
+  async removeMaintenanceMode(bikeId: string, adminId: string, note?: string): Promise<Bike> {
+    const bike = await prisma.bike.update({
+      where: { id: bikeId },
+      data: { 
+        status: BikeStatus.AVAILABLE,
+        lastMaintenanceAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+
+    // Créer un log de fin de maintenance
+    await prisma.maintenanceLog.create({
+      data: {
+        bikeId,
+        type: 'MAINTENANCE_COMPLETED',
+        description: note || 'Vélo remis en service',
+        performedBy: adminId
+      }
+    });
+
+    return bike;
+  }
+
+  /**
+   * Obtenir le vélo réservé par un utilisateur
+   */
+  async getUserReservedBike(userId: string): Promise<any | null> {
+    const activeReservation = await prisma.reservation.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      },
+      include: {
+        bike: true,
+        plan: true
+      }
+    });
+
+    return activeReservation?.bike || null;
+  }
+
+  /**
    * Calculate distance between two coordinates (Haversine formula)
    */
   public calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

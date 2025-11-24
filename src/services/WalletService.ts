@@ -355,50 +355,49 @@ export class WalletService {
             }
             discountApplied = amount - finalAmount;
           } else {
-            // Appliquer la réduction normale du plan (dans les heures du forfait)
-            const discountPercentage = activeReservation.plan.discount || 0;
-            if (discountPercentage > 0) {
-              finalAmount = Math.round(amount * (1 - discountPercentage / 100));
-              discountApplied = amount - finalAmount;
-              appliedRule = `Réduction plan: ${discountPercentage}%`;
-            }
+            // Dans les heures du forfait = gratuit ou très réduit
+            finalAmount = 0; // Déjà payé avec l'abonnement
+            discountApplied = amount;
+            appliedRule = 'Inclus dans le forfait';
           }
         }
       }
 
-      // Procéder au paiement selon la logique existante
-      if (wallet.balance >= finalAmount) {
-        // Paiement normal depuis le wallet
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: { decrement: finalAmount } }
-        });
-      } else {
-        // Déduire ce qui reste du solde puis de la caution
-        const remaining = finalAmount - wallet.balance;
-        const maxFromDeposit = Math.min(remaining, wallet.deposit);
-        const addToNegative = Math.max(0, remaining - wallet.deposit);
+      // Procéder au paiement seulement si finalAmount > 0
+      if (finalAmount > 0) {
+        if (wallet.balance >= finalAmount) {
+          // Paiement normal depuis le wallet
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { decrement: finalAmount } }
+          });
+        } else {
+          // Déduire ce qui reste du solde puis de la caution
+          const remaining = finalAmount - wallet.balance;
+          const maxFromDeposit = Math.min(remaining, wallet.deposit);
+          const addToNegative = Math.max(0, remaining - wallet.deposit);
 
-        await tx.wallet.update({
-          where: { id: wallet.id },
-          data: { 
-            balance: 0,
-            deposit: { decrement: maxFromDeposit },
-            negativeBalance: { increment: addToNegative }
-          }
-        });
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: { 
+              balance: 0,
+              deposit: { decrement: maxFromDeposit },
+              negativeBalance: { increment: addToNegative }
+            }
+          });
+        }
       }
 
       // Créer la transaction
       const transaction = await tx.transaction.create({
         data: {
           walletId: wallet.id,
-          type: TransactionType.RIDE_PAYMENT,
+          type: 'RIDE_PAYMENT',
           amount: finalAmount,
           fees: 0,
           totalAmount: finalAmount,
-          status: TransactionStatus.COMPLETED,
-          paymentMethod: 'MIXED',
+          status: 'COMPLETED',
+          paymentMethod: finalAmount === 0 ? 'SUBSCRIPTION' : 'MIXED',
           metadata: { 
             rideId,
             originalAmount: amount,
