@@ -84,13 +84,13 @@ class SubscriptionController {
         req
       );
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         message: 'Abonnement créé avec succès',
         data: subscription
       });
     } catch (error: any) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: error.message
       });
