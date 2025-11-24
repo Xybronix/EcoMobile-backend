@@ -201,24 +201,67 @@ class IncidentController {
     try {
       const { type, description, bikeId } = req.body;
 
-      const incident = await prisma.incident.create({
-        data: {
-          userId: req.user?.id!,
-          bikeId: bikeId || null,
-          type,
-          description,
-          priority: 'MEDIUM',
-          status: 'OPEN'
-        },
-        include: {
-          bike: {
-            select: {
-              id: true,
-              code: true,
-              model: true
+      const incident = await prisma.$transaction(async (tx) => {
+        // Créer l'incident
+        const newIncident = await tx.incident.create({
+          data: {
+            userId: req.user?.id!,
+            bikeId: bikeId || null,
+            type,
+            description,
+            priority: this.getIncidentPriority(type),
+            status: 'OPEN'
+          },
+          include: {
+            bike: {
+              select: {
+                id: true,
+                code: true,
+                model: true
+              }
             }
           }
+        });
+
+        // Mettre en maintenance si problème critique
+        const criticalTypes = ['brakes', 'theft', 'physical_damage', 'electronics'];
+        if (bikeId && criticalTypes.includes(type)) {
+          await tx.bike.update({
+            where: { id: bikeId },
+            data: { status: 'MAINTENANCE' }
+          });
+
+          // Créer log de maintenance
+          await tx.maintenanceLog.create({
+            data: {
+              bikeId,
+              type: 'SECURITY_MAINTENANCE',
+              description: `Maintenance automatique suite à incident: ${type} - ${description.substring(0, 100)}`,
+              performedBy: 'SYSTEM'
+            }
+          });
+
+          // Notifier les admins
+          const admins = await tx.user.findMany({
+            where: {
+              role: { in: ['ADMIN', 'SUPER_ADMIN'] },
+              isActive: true
+            }
+          });
+
+          for (const admin of admins) {
+            await tx.notification.create({
+              data: {
+                userId: admin.id,
+                title: 'Vélo mis en maintenance',
+                message: `Le vélo ${newIncident.bike?.code} a été automatiquement mis en maintenance suite à un incident critique: ${type}`,
+                type: 'MAINTENANCE_ALERT'
+              }
+            });
+          }
         }
+
+        return newIncident;
       });
 
       await logActivity(
@@ -422,6 +465,15 @@ class IncidentController {
         message: error.message
       });
     }
+  }
+
+  private getIncidentPriority(type: string): string {
+    const criticalTypes = ['brakes', 'theft', 'physical_damage'];
+    const highTypes = ['battery', 'tire', 'lock'];
+    
+    if (criticalTypes.includes(type)) return 'HIGH';
+    if (highTypes.includes(type)) return 'MEDIUM';
+    return 'LOW';
   }
 }
 

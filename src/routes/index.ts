@@ -8,6 +8,7 @@ import reservationtRoutes from './reservation.route';
 import incidentRoutes from './incident.routes';
 import rideRoutes from './ride.routes';
 import walletRoutes from './wallet.routes';
+import subscriptionRoutes from './subscription.routes';
 import adminRoutes from './admin.routes';
 import chatRoutes from './chat.routes';
 import notificationRoutes from './notification.routes';
@@ -45,6 +46,7 @@ router.use('/reservations', reservationtRoutes);
 router.use('/incidents', incidentRoutes)
 router.use('/rides', rideRoutes);
 router.use('/wallet', walletRoutes);
+router.use('/subscriptions', subscriptionRoutes);
 router.use('/admin', adminRoutes);
 router.use('/chat', chatRoutes);
 router.use('/notifications', notificationRoutes);
