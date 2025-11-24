@@ -70,7 +70,7 @@ class SubscriptionController {
       
       const subscription = await SubscriptionService.subscribe(userId, {
         planId,
-        packageType: packageType.toUpperCase() as SubscriptionType,
+        packageType: subscriptionType,
         startDate: new Date(startDate)
       });
 
