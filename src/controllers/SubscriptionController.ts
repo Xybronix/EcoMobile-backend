@@ -50,6 +50,24 @@ class SubscriptionController {
       const userId = req.user!.id;
       const { planId, packageType, startDate } = req.body;
 
+      let subscriptionType: SubscriptionType;
+      switch (packageType?.toLowerCase()) {
+        case 'daily':
+          subscriptionType = SubscriptionType.DAILY;
+          break;
+        case 'weekly':
+          subscriptionType = SubscriptionType.WEEKLY;
+          break;
+        case 'monthly':
+          subscriptionType = SubscriptionType.MONTHLY;
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            message: 'Type d\'abonnement invalide. Doit être: daily, weekly ou monthly'
+          });
+      }
+      
       const subscription = await SubscriptionService.subscribe(userId, {
         planId,
         packageType: packageType.toUpperCase() as SubscriptionType,
