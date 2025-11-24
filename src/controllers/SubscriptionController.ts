@@ -33,12 +33,12 @@ class SubscriptionController {
         });
       }
 
-      res.json({
+      return res.json({
         success: true,
         data: subscription
       });
     } catch (error: any) {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
         message: error.message
       });
