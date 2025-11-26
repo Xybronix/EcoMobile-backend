@@ -455,6 +455,40 @@ export class ReservationController {
       });
     }
   }
+
+  /**
+   * @swagger
+   * /api/v1/reservations/calculate-with-subscription:
+   *   post:
+   *     summary: Calculer le prix avec prise en compte de l'abonnement
+   *     tags: [Reservations]
+   *     security:
+   *       - bearerAuth: []
+   */
+  async calculateReservationWithSubscription(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const { bikeId, planId, packageType, startDate } = req.body;
+
+      const calculation = await ReservationService.calculateReservationWithSubscription(
+        userId,
+        bikeId,
+        planId,
+        packageType,
+        new Date(startDate)
+      );
+
+      return res.json({
+        success: true,
+        data: calculation
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 export default new ReservationController();
