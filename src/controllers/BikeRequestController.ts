@@ -12,6 +12,13 @@ export class BikeRequestController {
       const userId = req.user!.id;
       const { bikeId } = req.body;
 
+      if (!bikeId) {
+        return res.status(400).json({
+          success: false,
+          message: 'bikeId est requis'
+        });
+      }
+
       const request = await BikeRequestService.createUnlockRequest(userId, bikeId);
 
       await logActivity(
@@ -24,13 +31,13 @@ export class BikeRequestController {
         req
       );
 
-      res.json({
+      return res.json({
         success: true,
         message: 'Demande de déverrouillage envoyée',
         data: request
       });
     } catch (error: any) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: error.message
       });
