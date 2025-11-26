@@ -365,6 +365,117 @@ export class ReservationService {
     return setting ? parseFloat(setting.value) : 20000;
   }
 
+  async calculateReservationWithSubscription(
+    userId: string,
+    _bikeId: string,
+    planId: string,
+    packageType: string,
+    startDate: Date
+  ): Promise<any> {
+    // Récupérer l'abonnement actif
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        startDate: { lte: startDate },
+        endDate: { gte: startDate }
+      },
+      include: { plan: true }
+    });
+
+    // Récupérer le plan de pricing
+    const plan = await prisma.pricingPlan.findUnique({
+      where: { id: planId }
+    });
+
+    if (!plan) {
+      throw new Error('Plan non trouvé');
+    }
+
+    // Calculer la durée de la réservation
+    let reservationDays = 1;
+    switch (packageType) {
+      case 'daily':
+        reservationDays = 1;
+        break;
+      case 'weekly':
+        reservationDays = 7;
+        break;
+      case 'monthly':
+        reservationDays = 30;
+        break;
+      default:
+        reservationDays = 1;
+    }
+
+    const reservationEndDate = new Date(startDate);
+    reservationEndDate.setDate(reservationEndDate.getDate() + reservationDays);
+
+    let coveredDays = 0;
+    let finalPrice = 0;
+    let message = '';
+
+    if (!subscription) {
+      // Pas d'abonnement actif
+      finalPrice = this.calculatePackagePrice(plan, packageType);
+      message = 'Aucun abonnement actif';
+    } else {
+      const subscriptionEndDate = new Date(subscription.endDate);
+      
+      // Calculer les jours couverts par l'abonnement
+      const coverageEndDate = new Date(Math.min(reservationEndDate.getTime(), subscriptionEndDate.getTime()));
+      coveredDays = Math.ceil((coverageEndDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (coveredDays >= reservationDays) {
+        // Entièrement couvert
+        finalPrice = 0;
+        message = `Entièrement inclus dans votre abonnement ${subscription.plan.name}`;
+      } else {
+        // Partiellement couvert
+        const remainingDays = reservationDays - coveredDays;
+        const dailyRate = this.calculateDailyRate(plan, packageType);
+        finalPrice = remainingDays * dailyRate;
+        message = `${coveredDays} jour(s) inclus, ${remainingDays} jour(s) à ${finalPrice.toLocaleString()} XOF`;
+      }
+    }
+
+    return {
+      basePrice: this.calculatePackagePrice(plan, packageType),
+      subscriptionCoverage: coveredDays,
+      finalPrice,
+      coveredDays,
+      message
+    };
+  }
+
+  private calculatePackagePrice(plan: any, packageType: string): number {
+    switch (packageType) {
+      case 'hourly':
+        return plan.hourlyRate;
+      case 'daily':
+        return plan.dailyRate;
+      case 'weekly':
+        return plan.weeklyRate;
+      case 'monthly':
+        return plan.monthlyRate;
+      default:
+        return plan.dailyRate;
+    }
+  }
+
+  private calculateDailyRate(plan: any, packageType: string): number {
+    switch (packageType) {
+      case 'daily':
+        return plan.dailyRate;
+      case 'weekly':
+        return plan.weeklyRate / 7;
+      case 'monthly':
+        return plan.monthlyRate / 30;
+      default:
+        return plan.dailyRate;
+    }
+  }
+
   /**
    * Notifier les admins
    */
