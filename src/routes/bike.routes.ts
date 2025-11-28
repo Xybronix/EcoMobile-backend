@@ -116,8 +116,7 @@ router.post('/:id/maintenance', authenticate, requirePermission('maintenance', '
  * @desc    Get maintenance history (Admin only)
  * @access  Private
  */
-router.get(
-  '/:id/maintenance', authenticate, requirePermission('maintenance', 'read'), idValidator, validate, paginationValidator, validate, bikeController.getMaintenanceHistory);
+router.get('/:id/maintenance', authenticate, requirePermission('maintenance', 'read'), idValidator, validate, paginationValidator, validate, bikeController.getMaintenanceHistory);
 
 /**
  * @route   GET /api/v1/bikes/:id/trips
