@@ -7,6 +7,13 @@ const router = express.Router();
 const bikeController = new BikeController();
 
 /**
+ * @route   GET /api/v1/bikes/public
+ * @desc    Get bikes for public
+ * @access  Public
+ */
+router.get('/public', paginationValidator, validate, bikeController.getPublicBikes);
+
+/**
  * @route   POST /api/v1/bikes/reverse-geocode
  * @desc    Reverse geocode coordinates to get address
  * @access  Public

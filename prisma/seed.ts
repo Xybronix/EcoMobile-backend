@@ -538,12 +538,16 @@ async function main() {
     { lat: 4.0711, lng: 9.7579, name: 'Bonaberi' },
   ];
 
+  const gpsDeviceIds = ['9170123060', '9170123061', '9170123063', '9170123064'];
+
   for (let i = 1; i <= 10; i++) {
     const location = locations[i % locations.length];
     let selectedPlanId;
     if (i <= 4) selectedPlanId = standardPlan.id;
     else if (i <= 7) selectedPlanId = premiumPlan.id;
     else selectedPlanId = studentPlan.id;
+
+    const gpsDeviceId = i <= 4 ? gpsDeviceIds[i - 1] : null;
 
     const bike = await prisma.bike.create({
       data: {
@@ -556,6 +560,7 @@ async function main() {
         locationName: location.name,
         equipment: ['headlight', 'taillight', 'basket', 'lock'],
         qrCode: `QR${String(i).padStart(6, '0')}`,
+        gpsDeviceId: gpsDeviceId,
         pricingPlanId: selectedPlanId,
         lastMaintenanceAt: new Date(Date.now() - i * 86400000),
       },

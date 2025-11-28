@@ -68,6 +68,94 @@ export class BikeController {
 
   /**
    * @swagger
+   * /bikes/public:
+   *   get:
+   *     summary: Get bikes for public
+   *     tags: [Bikes]
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: latitude
+   *         schema:
+   *           type: number
+   *       - in: query
+   *         name: longitude
+   *         schema:
+   *           type: number
+   *       - in: query
+   *         name: radius
+   *         schema:
+   *           type: number
+   *       - in: query
+   *         name: minBatteryLevel
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: Public bikes retrieved
+   */
+  async getPublicBikes(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const userLat = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
+      const userLng = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
+      const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
+      const minBatteryLevel = req.query.minBatteryLevel ? parseInt(req.query.minBatteryLevel as string) : undefined;
+
+      const filter: any = {
+        status: BikeStatus.AVAILABLE,
+        isActive: true,
+        hasPricingPlan: true,
+        radiusKm: radius,
+        minBatteryLevel
+      };
+
+      if (userLat !== null && userLng !== null) {
+        filter.latitude = userLat;
+        filter.longitude = userLng;
+      }
+
+      const result = await BikeService.getAllBikes(filter, page, limit);
+
+      await logActivity(
+        null,
+        'VIEW',
+        'BIKES_PUBLIC_AVAILABLE',
+        '',
+        `Public app viewed available bikes (page ${page}, with location: ${!!(userLat && userLng)})`,
+        { 
+          page, 
+          limit, 
+          userLocation: userLat && userLng ? { lat: userLat, lng: userLng } : null,
+          count: result.bikes.length 
+        },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: t('bike.available_retrieved', req.language),
+        data: result.bikes,
+        pagination: result.pagination
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
    * /bikes/available:
    *   get:
    *     summary: Get all available bikes

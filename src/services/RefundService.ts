@@ -1,6 +1,6 @@
 import { RefundRepository } from '../repositories/RefundRepository';
 import { Refund } from '../models/types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import NotificationService from './NotificationService';
 // import EmailService from './EmailService';
 import { WalletService } from './WalletService';
@@ -36,7 +36,7 @@ export class RefundService {
     }
 
     const refund: Refund = {
-      id: uuidv4(),
+      id: randomUUID(),
       userId,
       ...data,
       status: 'pending',

@@ -1,6 +1,6 @@
 import { AuditLogRepository } from '../repositories/AuditLogRepository';
 import { AuditLog } from '../models/types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { Request } from 'express';
 
 export class AuditLogService {
@@ -25,7 +25,7 @@ export class AuditLogService {
     }
   ): Promise<AuditLog> {
     const log: AuditLog = {
-      id: uuidv4(),
+      id: randomUUID(),
       action,
       entity,
       ...data,
