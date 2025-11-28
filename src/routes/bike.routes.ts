@@ -147,4 +147,18 @@ router.post('/sync-gps', authenticate, requirePermission('bikes', 'update'), bik
  */
 router.get('/realtime-positions', authenticate, requirePermission('bikes', 'read'), bikeController.getRealtimePositions);
 
+/**
+ * @route   GET /api/v1/bikes/:id/track
+ * @desc    Get bike GPS track for a time period
+ * @access  Private/Admin
+ */
+router.get('/:id/track', authenticate, requirePermission('bikes', 'read'), idValidator, validate, bikeController.getBikeTrack);
+
+/**
+ * @route   GET /api/v1/bikes/:id/mileage
+ * @desc    Get bike mileage for a time period
+ * @access  Private/Admin
+ */
+router.get('/:id/mileage', authenticate, requirePermission('bikes', 'read'), idValidator, validate, bikeController.getBikeMileage);
+
 export default router;
