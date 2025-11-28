@@ -451,7 +451,7 @@ export class BikeController {
    */
   async syncGpsData(req: AuthRequest, res: express.Response): Promise<void> {
     try {
-      await BikeService.syncAllBikesWithGps();
+      const syncResults = await BikeService.syncAllBikesWithGps();
 
       await logActivity(
         req.user?.id || null,
@@ -459,13 +459,53 @@ export class BikeController {
         'BIKES_GPS',
         '',
         'Synchronized GPS data for all bikes',
-        null,
+        { syncResults },
         req
       );
 
       res.json({
         success: true,
-        message: 'GPS synchronization completed successfully'
+        message: 'GPS synchronization completed successfully',
+        data: syncResults
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /bikes/realtime-positions:
+   *   get:
+   *     summary: Get real-time positions of all bikes with GPS
+   *     tags: [Bikes]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Real-time positions retrieved
+   */
+  async getRealtimePositions(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const positions = await BikeService.getRealtimePositions();
+
+      await logActivity(
+        req.user?.id || null,
+        'VIEW',
+        'BIKES_REALTIME',
+        '',
+        'Viewed real-time bike positions',
+        { bikeCount: positions.length },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: 'Positions en temps réel récupérées',
+        data: positions
       });
     } catch (error: any) {
       res.status(500).json({

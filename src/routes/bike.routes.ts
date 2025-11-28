@@ -133,4 +133,18 @@ router.get('/:id/trips', authenticate, requirePermission('bikes', 'read'), idVal
  */
 router.get('/:id/stats', authenticate, requirePermission('bikes', 'read'), idValidator, validate, bikeController.getBikeStats);
 
+/**
+ * @route   POST /api/v1/bikes/sync-gps
+ * @desc    Sync all bikes with GPS data (Admin only)
+ * @access  Private/Admin
+ */
+router.post('/sync-gps', authenticate, requirePermission('bikes', 'update'), bikeController.syncGpsData);
+
+/**
+ * @route   GET /api/v1/bikes/realtime-positions
+ * @desc    Get real-time positions of all bikes (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/realtime-positions', authenticate, requirePermission('bikes', 'read'), bikeController.getRealtimePositions);
+
 export default router;

@@ -825,17 +825,162 @@ export class BikeService {
   /**
    * Forcer la synchronisation de tous les vélos avec GPS
    */
-  async syncAllBikesWithGps(): Promise<void> {
+  async syncAllBikesWithGps(): Promise<{
+    synced: number;
+    failed: number;
+    bikes: any[];
+  }> {
     try {
       const bikes = await prisma.bike.findMany({
         where: {
-          code: { not: undefined }
+          gpsDeviceId: { not: null }
         }
       });
 
-      await this.syncBikesWithGps(bikes);
+      const results = [];
+      let synced = 0;
+      let failed = 0;
+
+      for (const bike of bikes) {
+        try {
+          const syncedBike = await this.syncBikeWithGps(bike);
+          const isOnline = await this.isDeviceOnline(bike.gpsDeviceId!);
+          
+          results.push({
+            ...syncedBike,
+            isOnline,
+            syncStatus: 'success'
+          });
+          synced++;
+        } catch (error) {
+          results.push({
+            ...bike,
+            isOnline: false,
+            syncStatus: 'failed',
+            syncError: error instanceof Error ? error.message : 'Unknown error'
+          });
+          failed++;
+        }
+      }
+
+      return {
+        synced,
+        failed,
+        bikes: results
+      };
     } catch (error) {
       console.error('Failed to sync all bikes with GPS:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtenir les positions en temps réel de tous les vélos GPS
+   */
+  async getRealtimePositions(): Promise<any[]> {
+    try {
+      const bikes = await prisma.bike.findMany({
+        where: {
+          gpsDeviceId: { not: null }
+        },
+        include: {
+          pricingPlan: true
+        }
+      });
+
+      const positions = await Promise.all(
+        bikes.map(async (bike) => {
+          try {
+            const lastPosition = await this.gpsService.getLastPosition(bike.gpsDeviceId!);
+            const isOnline = await this.isDeviceOnline(bike.gpsDeviceId!);
+            
+            if (lastPosition) {
+              await prisma.bike.update({
+                where: { id: bike.id },
+                data: {
+                  latitude: lastPosition.dbLat,
+                  longitude: lastPosition.dbLon,
+                  batteryLevel: this.gpsService.parseBatteryLevel(lastPosition.nFuel),
+                  updatedAt: new Date()
+                }
+              });
+
+              return {
+                id: bike.id,
+                code: bike.code,
+                model: bike.model,
+                status: bike.status,
+                isActive: bike.isActive || true,
+                gpsDeviceId: bike.gpsDeviceId,
+                latitude: lastPosition.dbLat,
+                longitude: lastPosition.dbLon,
+                batteryLevel: this.gpsService.parseBatteryLevel(lastPosition.nFuel),
+                gpsSignal: this.gpsService.parseGpsSignal(lastPosition.nGPSSignal),
+                gsmSignal: this.gpsService.parseGsmSignal(lastPosition.nGSMSignal),
+                speed: lastPosition.nSpeed,
+                direction: lastPosition.nDirection,
+                isOnline,
+                lastGpsUpdate: this.gpsService.convertUtcToLocalTime(lastPosition.nTime),
+                locationName: bike.locationName,
+                equipment: bike.equipment,
+                pricingPlan: bike.pricingPlan,
+                deviceStatus: this.gpsService.parseDeviceStatus(lastPosition.nTEState),
+                carState: this.gpsService.parseCarState(lastPosition.nCarState),
+                alarmState: lastPosition.nAlarmState,
+                mileage: lastPosition.nMileage,
+                temperature: lastPosition.nTemp
+              };
+            } else {
+              return {
+                id: bike.id,
+                code: bike.code,
+                model: bike.model,
+                status: bike.status,
+                isActive: bike.isActive || true,
+                gpsDeviceId: bike.gpsDeviceId,
+                latitude: bike.latitude,
+                longitude: bike.longitude,
+                batteryLevel: bike.batteryLevel,
+                gpsSignal: 0,
+                gsmSignal: 0,
+                speed: 0,
+                direction: 0,
+                isOnline: false,
+                lastGpsUpdate: null,
+                locationName: bike.locationName,
+                equipment: bike.equipment,
+                pricingPlan: bike.pricingPlan,
+                deviceStatus: 'offline',
+                syncError: 'No GPS data available'
+              };
+            }
+          } catch (error) {
+            console.error(`Failed to get position for bike ${bike.id}:`, error);
+            return {
+              id: bike.id,
+              code: bike.code,
+              model: bike.model,
+              status: bike.status,
+              isActive: bike.isActive || true,
+              gpsDeviceId: bike.gpsDeviceId,
+              latitude: bike.latitude,
+              longitude: bike.longitude,
+              batteryLevel: bike.batteryLevel,
+              isOnline: false,
+              lastGpsUpdate: null,
+              locationName: bike.locationName,
+              equipment: bike.equipment,
+              pricingPlan: bike.pricingPlan,
+              deviceStatus: 'error',
+              syncError: error instanceof Error ? error.message : 'GPS sync failed'
+            };
+          }
+        })
+      );
+
+      return positions;
+    } catch (error) {
+      console.error('Failed to get realtime positions:', error);
       throw error;
     }
   }
