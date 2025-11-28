@@ -1,6 +1,6 @@
 import { BaseRepository } from './BaseRepository';
 import { Session } from '../models/types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export class SessionRepository extends BaseRepository<Session> {
   constructor() {
@@ -27,7 +27,7 @@ export class SessionRepository extends BaseRepository<Session> {
     userAgent?: string;
     expiresAt: Date;
   }): Promise<Session> {
-    const sessionToken = uuidv4();
+    const sessionToken = randomUUID();
     
     await this.deactivateExistingSessions(data.userId, data.ipAddress, data.userAgent);
     

@@ -152,6 +152,7 @@ CREATE TABLE `bikes` (
     `code` VARCHAR(191) NOT NULL,
     `model` VARCHAR(191) NOT NULL,
     `status` ENUM('AVAILABLE', 'IN_USE', 'MAINTENANCE', 'UNAVAILABLE') NOT NULL DEFAULT 'AVAILABLE',
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
     `batteryLevel` INTEGER NOT NULL DEFAULT 100,
     `latitude` DOUBLE NULL,
     `longitude` DOUBLE NULL,
@@ -166,6 +167,7 @@ CREATE TABLE `bikes` (
 
     UNIQUE INDEX `bikes_code_key`(`code`),
     UNIQUE INDEX `bikes_qrCode_key`(`qrCode`),
+    UNIQUE INDEX `bikes_gpsDeviceId_key`(`gpsDeviceId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

@@ -1,6 +1,6 @@
 import { ReviewRepository } from '../repositories/ReviewRepository';
 import { Review } from '../models/types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import NotificationService from './NotificationService';
 // import EmailService from './EmailService';
 
@@ -30,7 +30,7 @@ export class ReviewService {
     }
 
     const review: Review = {
-      id: uuidv4(),
+      id: randomUUID(),
       userId,
       ...data,
       status: 'pending',

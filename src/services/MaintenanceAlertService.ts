@@ -1,7 +1,7 @@
 import { MaintenanceAlertRepository } from '../repositories/MaintenanceAlertRepository';
 import { BikeRepository } from '../repositories/BikeRepository';
-import { MaintenanceAlert/*, Bike*/ } from '../models/types';
-import { v4 as uuidv4 } from 'uuid';
+import { MaintenanceAlert } from '../models/types';
+import { randomUUID } from 'crypto';
 import NotificationService from './NotificationService';
 
 export class MaintenanceAlertService {
@@ -26,7 +26,7 @@ export class MaintenanceAlertService {
     }
   ): Promise<MaintenanceAlert> {
     const alert: MaintenanceAlert = {
-      id: uuidv4(),
+      id: randomUUID(),
       bikeId,
       ...data,
       status: 'active',

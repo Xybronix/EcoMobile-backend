@@ -193,6 +193,7 @@ model Bike {
   code              String     @unique
   model             String
   status            BikeStatus @default(AVAILABLE)
+  isActive          Boolean    @default(true)
   batteryLevel      Int        @default(100)
   latitude          Float?
   longitude         Float?
@@ -200,7 +201,7 @@ model Bike {
   equipment         Json?
   lastMaintenanceAt DateTime?
   qrCode            String     @unique
-  gpsDeviceId       String?
+  gpsDeviceId       String?    @unique
   pricingPlanId     String?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt

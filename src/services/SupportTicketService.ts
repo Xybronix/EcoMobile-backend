@@ -1,6 +1,6 @@
 import { SupportTicketRepository, TicketMessageRepository } from '../repositories/SupportTicketRepository';
 import { SupportTicket, TicketMessage } from '../models/types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import NotificationService from './NotificationService';
 // import EmailService from './EmailService';
 
@@ -35,7 +35,7 @@ export class SupportTicketService {
     }
 
     const ticket: SupportTicket = {
-      id: uuidv4(),
+      id: randomUUID(),
       userId,
       ...data,
       priority,
@@ -69,7 +69,7 @@ export class SupportTicketService {
     }
 
     const ticketMessage: TicketMessage = {
-      id: uuidv4(),
+      id: randomUUID(),
       ticketId,
       senderId,
       senderType,

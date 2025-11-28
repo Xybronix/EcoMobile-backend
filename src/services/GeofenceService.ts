@@ -1,6 +1,6 @@
 import { GeofenceRepository } from '../repositories/GeofenceRepository';
 import { GeofenceZone } from '../models/types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export class GeofenceService {
   private geofenceRepo: GeofenceRepository;
@@ -14,7 +14,7 @@ export class GeofenceService {
   ): Promise<GeofenceZone> {
     const zone: GeofenceZone = {
       ...data,
-      id: uuidv4(),
+      id: randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date()
     };

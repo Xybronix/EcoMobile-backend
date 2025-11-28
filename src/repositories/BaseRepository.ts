@@ -1,5 +1,5 @@
 import { getDb, DatabaseConnection } from '../config/database';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export interface QueryOptions {
   page?: number;
@@ -19,7 +19,7 @@ export abstract class BaseRepository<T> {
   }
 
   protected generateId(): string {
-    return uuidv4();
+    return randomUUID();
   }
 
   protected buildWhereClause(where: Record<string, any>): { clause: string; params: any[] } {

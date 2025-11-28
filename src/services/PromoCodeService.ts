@@ -1,6 +1,6 @@
 import { PromoCodeRepository, PromoCodeUsageRepository } from '../repositories';
 import { PromoCode, PromoCodeUsage } from '../models/types';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 export class PromoCodeService {
   private promoCodeRepo: PromoCodeRepository;
@@ -14,7 +14,7 @@ export class PromoCodeService {
   async createPromoCode(data: Omit<PromoCode, 'id' | 'usageCount' | 'createdAt' | 'updatedAt'>): Promise<PromoCode> {
     const promoCode: PromoCode = {
       ...data,
-      id: uuidv4(),
+      id: randomUUID(),
       code: data.code.toUpperCase(),
       usageCount: 0,
       createdAt: new Date(),
@@ -114,7 +114,7 @@ export class PromoCodeService {
     rideId?: string
   ): Promise<void> {
     const usage: PromoCodeUsage = {
-      id: uuidv4(),
+      id: randomUUID(),
       promoCodeId,
       userId,
       rideId,
