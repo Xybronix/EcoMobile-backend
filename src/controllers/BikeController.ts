@@ -318,6 +318,7 @@ export class BikeController {
           success: false,
           message: 'Latitude and longitude are required'
         });
+        return;
       }
 
       const bikes = await BikeService.getNearbyBikes(latitude, longitude, radius);
@@ -687,6 +688,7 @@ export class BikeController {
           success: false,
           message: t('bike.not_found', req.language)
         });
+        return;
       }
 
       await logActivity(
@@ -739,6 +741,7 @@ export class BikeController {
           success: false,
           message: t('bike.not_found', req.language)
         });
+        return;
       }
 
       await logActivity(
