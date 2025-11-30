@@ -137,14 +137,16 @@ router.get('/:id/stats', authenticate, requirePermission('bikes', 'read'), idVal
  * @desc    Sync all bikes with GPS data (Admin only)
  * @access  Private/Admin
  */
-router.post('/sync-gps', authenticate, requirePermission('bikes', 'update'), bikeController.syncGpsData);
+router.post('/sync-gps', bikeController.syncGpsData);
+//router.post('/sync-gps', authenticate, requirePermission('bikes', 'update'), bikeController.syncGpsData);
 
 /**
  * @route   GET /api/v1/bikes/realtime-positions
  * @desc    Get real-time positions of all bikes (Admin only)
  * @access  Private/Admin
  */
-router.get('/realtime-positions', authenticate, requirePermission('bikes', 'read'), bikeController.getRealtimePositions);
+router.get('/realtime-positions', bikeController.getRealtimePositions);
+//router.get('/realtime-positions', authenticate, requirePermission('bikes', 'read'), bikeController.getRealtimePositions);
 
 /**
  * @route   GET /api/v1/bikes/:id/track

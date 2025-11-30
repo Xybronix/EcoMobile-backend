@@ -24,7 +24,7 @@ async function main() {
   await prisma.settings.deleteMany();
   await prisma.pricingConfig.deleteMany();
 
-  console.log('🗑️  Cleared existing data');
+  console.log('🗑️ Cleared existing data');
 
   // Créer les rôles d'abord
   const superAdminRole = await prisma.role.create({
