@@ -298,15 +298,22 @@ export class BikeService {
       where: {
         status: 'ACTIVE',
         OR: [
+          // Bloquer le vélo 15 minutes avant
           {
-            startDate: { lte: tomorrow },
+            startDate: { lte: new Date(Date.now() + 15 * 60 * 1000) },
             endDate: { gte: new Date() }
           },
-          {
+          // Bloquer le vélo un jourb avant
+          /*{
+            startDate: { lte: tomorrow },
+            endDate: { gte: new Date() }
+          },*/
+          // Bloquer le vélo pendant un mois
+          /*{
             packageType: 'monthly',
             startDate: { lte: new Date() },
             endDate: { gte: new Date() }
-          }
+          }*/
         ]
       },
       select: { bikeId: true }
