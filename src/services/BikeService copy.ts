@@ -2,8 +2,7 @@ import { prisma } from '../config/prisma';
 import { BikeStatus, Bike } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import GpsService from './GpsService';
-//import GooglePlacesService from './GooglePlacesService';
-import OpenStreetMapService from './OpenStreetMapService';
+import GooglePlacesService from './GooglePlacesService';
 
 export interface CreateBikeDto {
   code: string;
@@ -56,8 +55,7 @@ export interface BikeWithDistance extends Bike {
 
 export class BikeService {
   private gpsService: GpsService;
-  //private placesService: GooglePlacesService;
-  private osmService = OpenStreetMapService;
+  private placesService: GooglePlacesService;
 
   constructor() {
     // Configuration GPS à récupérer depuis les variables d'environnement
@@ -67,9 +65,9 @@ export class BikeService {
       password: process.env.GPS_PASSWORD || ''
     });
 
-    /*this.placesService = new GooglePlacesService(
+    this.placesService = new GooglePlacesService(
       process.env.GOOGLE_PLACES_API_KEY || ''
-    );*/
+    );
   }
 
   /**
@@ -436,7 +434,6 @@ export class BikeService {
         }
       };
     } catch (error) {
-      console.error('BikeService.getAllBikes error:', error);
       throw error;
     }
   }
@@ -761,8 +758,8 @@ export class BikeService {
   }
 
   /**
- * Synchroniser un vélo avec les données GPS
- */
+   * Synchroniser un vélo avec les données GPS
+   */
   private async syncBikeWithGps(bike: Bike): Promise<Bike> {
     if (!bike.gpsDeviceId) return bike;
 
@@ -859,7 +856,8 @@ export class BikeService {
           let locationName = bike.locationName;
           try {
             if (lastPosition.dbLat && lastPosition.dbLon) {
-              locationName = await this.osmService.reverseGeocode(lastPosition.dbLat, lastPosition.dbLon);
+              locationName = await this.reverseGeocode(lastPosition.dbLat, lastPosition.dbLon);
+              if (!locationName) locationName = `${lastPosition.dbLat.toFixed(4)}, ${lastPosition.dbLon.toFixed(4)}`;
             }
           } catch (geoError) {
             locationName = `${lastPosition.dbLat.toFixed(4)}, ${lastPosition.dbLon.toFixed(4)}`;
@@ -943,7 +941,8 @@ export class BikeService {
           if (lastPosition) {
             let locationName = bike.locationName;
             try {
-              locationName = await this.osmService.reverseGeocode(lastPosition.dbLat, lastPosition.dbLon);
+              locationName = await this.reverseGeocode(lastPosition.dbLat, lastPosition.dbLon);
+              if (!locationName) locationName = `${lastPosition.dbLat.toFixed(4)}, ${lastPosition.dbLon.toFixed(4)}`;
             } catch (geoError) {
               locationName = `${lastPosition.dbLat.toFixed(4)}, ${lastPosition.dbLon.toFixed(4)}`;
             }
@@ -1011,6 +1010,7 @@ export class BikeService {
             });
           }
         } catch (error) {
+          console.error(`Error processing bike ${bike.code}:`, error);
           positions.push({
             id: bike.id,
             code: bike.code,
@@ -1046,9 +1046,9 @@ export class BikeService {
   /**
    * Rechercher des zones/quartiers via Google Places
    */
-  async searchAreas(query: string, _country: string = 'CM'): Promise<Area[]> {
+  async searchAreas(query: string, country: string = 'CM'): Promise<Area[]> {
     try {
-      const areas = await this.osmService.searchPlaces(query);
+      const areas = await this.placesService.searchPlaces(query, country);
       return areas.map(area => ({
         key: area.key,
         name: area.name,
@@ -1065,7 +1065,7 @@ export class BikeService {
    * Obtenir les zones par défaut (Cameroun)
    */
   async getDefaultAreas(): Promise<Area[]> {
-    const areas = this.osmService.getDefaultCameroonAreas();
+    const areas = this.placesService.getDefaultCameroonAreas();
     return areas.map(area => ({
       key: area.key,
       name: area.name,
@@ -1080,9 +1080,9 @@ export class BikeService {
    */
   async reverseGeocode(latitude: number, longitude: number): Promise<string> {
     try {
-      return await this.osmService.reverseGeocode(latitude, longitude);
+      return await this.placesService.reverseGeocode(latitude, longitude);
     } catch (error) {
-      return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+      return '';
     }
   }
 
@@ -1152,7 +1152,6 @@ export class BikeService {
    */
   private async calculateCurrentPricing(bike: any): Promise<any | null> {
     if (!bike.pricingPlan) {
-      // Récupérer un plan par défaut si le vélo n'en a pas
       const defaultPlan = await prisma.pricingPlan.findFirst({
         where: { 
           isActive: true,
