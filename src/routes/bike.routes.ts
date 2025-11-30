@@ -56,11 +56,18 @@ router.get('/areas/default', bikeController.getDefaultAreas);
 router.post('/areas/search', bikeController.searchAreas);
 
 /**
- * @route   GET /api/v1/bikes/:id
- * @desc    Get bike by ID
- * @access  Public/Private
+ * @route   POST /api/v1/bikes/sync-gps
+ * @desc    Sync all bikes with GPS data (Admin only)
+ * @access  Private/Admin
  */
-router.get('/:id', optionalAuth, idValidator, validate, bikeController.getBikeById);
+router.post('/sync-gps', authenticate, requirePermission('bikes', 'update'), bikeController.syncGpsData);
+
+/**
+ * @route   GET /api/v1/bikes/realtime-positions
+ * @desc    Get real-time positions of all bikes (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/realtime-positions', authenticate, requirePermission('bikes', 'read'), bikeController.getRealtimePositions);
 
 /**
  * @route   GET /api/v1/bikes/code/:code
@@ -75,6 +82,13 @@ router.get('/code/:code', authenticate, bikeController.getBikeByCode);
  * @access  Private/Admin
  */
 router.post('/', authenticate, requirePermission('bikes', 'create'), createBikeValidator, validate, bikeController.createBike);
+
+/**
+ * @route   GET /api/v1/bikes/:id
+ * @desc    Get bike by ID
+ * @access  Public/Private
+ */
+router.get('/:id', optionalAuth, idValidator, validate, bikeController.getBikeById);
 
 /**
  * @route   PUT /api/v1/bikes/:id
@@ -131,22 +145,6 @@ router.get('/:id/trips', authenticate, requirePermission('bikes', 'read'), idVal
  * @access  Private/Admin
  */
 router.get('/:id/stats', authenticate, requirePermission('bikes', 'read'), idValidator, validate, bikeController.getBikeStats);
-
-/**
- * @route   POST /api/v1/bikes/sync-gps
- * @desc    Sync all bikes with GPS data (Admin only)
- * @access  Private/Admin
- */
-router.post('/sync-gps', bikeController.syncGpsData);
-//router.post('/sync-gps', authenticate, requirePermission('bikes', 'update'), bikeController.syncGpsData);
-
-/**
- * @route   GET /api/v1/bikes/realtime-positions
- * @desc    Get real-time positions of all bikes (Admin only)
- * @access  Private/Admin
- */
-router.get('/realtime-positions', bikeController.getRealtimePositions);
-//router.get('/realtime-positions', authenticate, requirePermission('bikes', 'read'), bikeController.getRealtimePositions);
 
 /**
  * @route   GET /api/v1/bikes/:id/track
