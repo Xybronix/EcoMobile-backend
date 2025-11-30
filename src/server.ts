@@ -70,14 +70,16 @@ app.get('/health', (_req: express.Request, res: express.Response) => {
   });
 });
 
-app.get('/api/v1/health', (_req: express.Request, res: express.Response) => {
+app.get('/', (_req: express.Request, res: express.Response) => {
   res.json({
     success: true,
-    message: 'EcoMobile API Health Check',
-    timestamp: new Date().toISOString(),
+    message: '🚲 EcoMobile API - Welcome!',
+    version: config.apiVersion,
     environment: config.env,
-    database: process.env.DATABASE_TYPE || 'unknown',
-    version: config.apiVersion
+    timestamp: new Date().toISOString(),
+    documentation: '/api-docs',
+    health: '/health',
+    api: `/api/${config.apiVersion}`
   });
 });
 
