@@ -197,6 +197,8 @@ export class BikeController {
       const limit = parseInt(req.query.limit as string) || 20;
       const userLat = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
       const userLng = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
+      const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
+      const minBatteryLevel = req.query.minBatteryLevel ? parseInt(req.query.minBatteryLevel as string) : undefined;
 
       // Validation des paramètres
       if (page < 1 || limit < 1 || limit > 100) {
@@ -207,48 +209,20 @@ export class BikeController {
         return;
       }
 
-      const result = await BikeService.getAllBikes({ status: BikeStatus.AVAILABLE }, page, limit);
-
-      type BikeWithDistance = {
-        id: string;
-        status: BikeStatus;
-        createdAt: Date;
-        updatedAt: Date;
-        model: string;
-        code: string;
-        batteryLevel: number;
-        latitude: number | null;
-        longitude: number | null;
-        lastMaintenanceAt: Date | null;
-        qrCode: string;
-        distance: number | null;
+      const filter: any = {
+        status: BikeStatus.AVAILABLE,
+        isActive: true,
+        hasPricingPlan: true,
+        minBatteryLevel
       };
 
-      let bikesWithDistance: BikeWithDistance[] = result.bikes.map(bike => ({
-        ...bike,
-        distance: null
-      }));
-
-      // Si les coordonnées utilisateur sont fournies, calculer les distances
-      if (userLat && userLng) {
-        bikesWithDistance = result.bikes.map((bike) => {
-          if (bike.latitude !== null && bike.longitude !== null) {
-            const distance = BikeService.calculateDistance(userLat, userLng, bike.latitude, bike.longitude);
-            return { 
-              ...bike, 
-              distance: Math.round(distance * 100) / 100 // Arrondir à 2 décimales
-            };
-          }
-          return { ...bike, distance: null };
-        });
-
-        // Trier par distance si disponible
-        bikesWithDistance.sort((a, b) => {
-          if (a.distance === null) return 1;
-          if (b.distance === null) return -1;
-          return a.distance - b.distance;
-        });
+      if (userLat !== null && userLng !== null) {
+        filter.latitude = userLat;
+        filter.longitude = userLng;
+        filter.radiusKm = radius;
       }
+
+      const result = await BikeService.getAvailableBikes(filter, page, limit);
 
       await logActivity(
         req.user?.id || null,
@@ -260,7 +234,7 @@ export class BikeController {
           page, 
           limit, 
           userLocation: userLat && userLng ? { lat: userLat, lng: userLng } : null,
-          count: bikesWithDistance.length 
+          count: result.bikes.length 
         },
         req
       );
@@ -268,7 +242,7 @@ export class BikeController {
       res.json({
         success: true,
         message: t('bike.available_retrieved', req.language),
-        data: bikesWithDistance,
+        data: result.bikes,
         pagination: result.pagination
       });
     } catch (error: any) {

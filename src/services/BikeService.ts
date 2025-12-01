@@ -35,6 +35,7 @@ export interface BikeFilter {
   radiusKm?: number;
   isActive?: boolean;
   hasPricingPlan?: boolean;
+  syncGps?: boolean;
 }
 
 // Interface pour les zones/quartiers
@@ -62,7 +63,7 @@ export class BikeService {
   constructor() {
     // Configuration GPS à récupérer depuis les variables d'environnement
     this.gpsService = new GpsService({
-      baseUrl: process.env.GPS_API_URL || 'http://www.gpspos.net/',
+      baseUrl: process.env.GPS_API_URL || 'http://www.gpspos.net',
       username: process.env.GPS_USERNAME || '',
       password: process.env.GPS_PASSWORD || ''
     });
@@ -278,6 +279,123 @@ export class BikeService {
   }
 
   /**
+   * Get avaible bikes
+   */
+  async getAvailableBikes(filter?: BikeFilter, page: number = 1, limit: number = 20) {
+    const where: any = {
+      status: BikeStatus.AVAILABLE,
+      isActive: true,
+      pricingPlanId: { not: null }
+    };
+
+    // Exclure les vélos réservés
+    const reservedBikeIds = await prisma.reservation.findMany({
+      where: {
+        status: 'ACTIVE',
+        startDate: { lte: new Date(Date.now() + 15 * 60 * 1000) },
+        endDate: { gte: new Date() }
+      },
+      select: { bikeId: true }
+    });
+
+    if (reservedBikeIds.length > 0) {
+      where.id = { notIn: reservedBikeIds.map(r => r.bikeId) };
+    }
+
+    if (filter?.minBatteryLevel !== undefined) {
+      where.batteryLevel = { gte: filter.minBatteryLevel };
+    }
+    
+    const skip = (page - 1) * limit;
+
+    try {
+      const [bikes, total] = await Promise.all([
+        prisma.bike.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            pricingPlan: {
+              include: {
+                pricingConfig: true,
+                promotions: {
+                  where: {
+                    promotion: {
+                      isActive: true,
+                      startDate: { lte: new Date() },
+                      endDate: { gte: new Date() }
+                    }
+                  },
+                  include: {
+                    promotion: true
+                  }
+                }
+              }
+            }
+          }
+        }),
+        prisma.bike.count({ where })
+      ]);
+
+      const bikesWithPricing = await Promise.all(
+        bikes.map(async (bike) => {
+          const currentPricing = await this.calculateCurrentPricing(bike);
+          return {
+            ...bike,
+            currentPricing,
+            isGpsEnabled: !!bike.gpsDeviceId,
+            isOnline: false
+          };
+        })
+      );
+
+      // Calculer les distances si coordonnées de référence fournies
+      let finalBikes = bikesWithPricing.map(bike => {
+        let distance: number | null = null;
+        
+        if (filter?.latitude && filter?.longitude && bike.latitude && bike.longitude) {
+          distance = this.calculateDistance(filter.latitude, filter.longitude, bike.latitude, bike.longitude);
+        }
+        
+        return {
+          ...bike,
+          distance
+        };
+      });
+
+      // Filtrer par rayon si spécifié
+      if (filter?.radiusKm && filter?.latitude && filter?.longitude) {
+        finalBikes = finalBikes.filter(bike => 
+          typeof bike.distance === 'number' && bike.distance <= filter.radiusKm!
+        );
+      }
+
+      // Trier par distance si disponible
+      if (filter?.latitude && filter?.longitude) {
+        finalBikes.sort((a, b) => {
+          const distanceA = a.distance ?? Number.POSITIVE_INFINITY;
+          const distanceB = b.distance ?? Number.POSITIVE_INFINITY;
+          return distanceA - distanceB;
+        });
+      }
+
+      return {
+        bikes: finalBikes,
+        pagination: {
+          page: page,
+          limit: limit,
+          total: filter?.radiusKm ? finalBikes.length : total,
+          totalPages: Math.ceil((filter?.radiusKm ? finalBikes.length : total) / limit)
+        }
+      };
+    } catch (error) {
+      console.error('BikeService.getAvailableBikesLight error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all bikes with filters
    */
   async getAllBikes(filter?: BikeFilter & { isActive?: boolean; hasPricingPlan?: boolean }, page: number = 1, limit: number = 20) {
@@ -445,47 +563,13 @@ export class BikeService {
    * Get nearby bikes (within radius)
    */
   async getNearbyBikes(latitude: number, longitude: number, radiusKm: number = 2) {
-    // Get all available bikes with coordinates
-    const bikes = await prisma.bike.findMany({
-      where: {
-        status: BikeStatus.AVAILABLE,
-        latitude: { not: undefined },
-        longitude: { not: undefined }
-      }
-    });
+    const result = await this.getAvailableBikes({
+      latitude,
+      longitude,
+      radiusKm
+    }, 1, 50);
 
-    // Synchroniser avec les données GPS
-    const syncedBikes = await this.syncBikesWithGps(bikes);
-
-    // Définir un type pour les vélos avec des coordonnées non nulles
-    type BikeWithCoordinates = Bike & {
-      latitude: number;
-      longitude: number;
-    };
-
-    // Filter bikes within radius using Haversine formula
-    const nearbyBikes = syncedBikes.filter((bike): bike is BikeWithCoordinates => {
-      return bike.latitude !== null && 
-            bike.longitude !== null &&
-            this.calculateDistance(latitude, longitude, bike.latitude, bike.longitude) <= radiusKm;
-    });
-
-    // Sort by distance
-    nearbyBikes.sort((a, b) => {
-      const distA = this.calculateDistance(latitude, longitude, a.latitude, a.longitude);
-      const distB = this.calculateDistance(latitude, longitude, b.latitude, b.longitude);
-      return distA - distB;
-    });
-
-    // Définir le type de retour avec distance
-    type BikeWithDistanceResult = BikeWithCoordinates & {
-      distance: number;
-    };
-
-    return nearbyBikes.map((bike): BikeWithDistanceResult => ({
-      ...bike,
-      distance: this.calculateDistance(latitude, longitude, bike.latitude, bike.longitude)
-    }));
+    return result.bikes.filter(bike => bike.distance !== null && bike.distance <= radiusKm);
   }
 
   /**
@@ -548,9 +632,9 @@ export class BikeService {
     }
 
     // Mettre à jour la position finale via GPS si le vélo a un code GPS
-    if (bike.code) {
+    if (bike.gpsDeviceId) {
       try {
-        const lastPosition = await this.gpsService.getLastPosition(bike.code);
+        const lastPosition = await this.gpsService.getLastPosition(bike.gpsDeviceId);
         if (lastPosition) {
           await this.updateBikeLocation(id, lastPosition.dbLat, lastPosition.dbLon);
           await this.updateBikeBattery(id, this.gpsService.parseBatteryLevel(lastPosition.nFuel));
@@ -578,9 +662,9 @@ export class BikeService {
     }
 
     // Synchroniser avec GPS avant de déverrouiller
-    if (bike.code) {
+    if (bike.gpsDeviceId) {
       try {
-        const lastPosition = await this.gpsService.getLastPosition(bike.code);
+        const lastPosition = await this.gpsService.getLastPosition(bike.gpsDeviceId);
         if (lastPosition) {
           await this.updateBikeLocation(id, lastPosition.dbLat, lastPosition.dbLon);
           await this.updateBikeBattery(id, this.gpsService.parseBatteryLevel(lastPosition.nFuel));
@@ -809,24 +893,10 @@ export class BikeService {
         } as Bike;
       }
     } catch (error) {
-      console.warn(`Failed to sync GPS data for bike ${bike.id}:`, error);
+      console.warn(`Failed to sync GPS data for bike ${bike.id} (device ${bike.gpsDeviceId}):`, error);
     }
 
     return bike;
-  }
-
-  /**
-   * Synchroniser plusieurs vélos avec les données GPS
-   */
-  private async syncBikesWithGps(bikes: Bike[]): Promise<Bike[]> {
-    const syncedBikes: Bike[] = [];
-
-    for (const bike of bikes) {
-      const syncedBike = await this.syncBikeWithGps(bike);
-      syncedBikes.push(syncedBike);
-    }
-
-    return syncedBikes;
   }
 
   /**
@@ -1247,7 +1317,6 @@ export class BikeService {
       const lastPosition = await this.gpsService.getLastPosition(gpsDeviceId);
       if (!lastPosition) return false;
 
-      // Considérer comme en ligne si la dernière position date de moins de 30 minutes
       const lastUpdate = this.gpsService.convertUtcToLocalTime(lastPosition.nTime);
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
       
