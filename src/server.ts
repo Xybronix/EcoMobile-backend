@@ -32,7 +32,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Accept-Language', 'Origin', 'X-Requested-With']
 }));
 
-app.use((req, res, next) => {
+/*app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://xybronix.github.io');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
@@ -43,7 +43,7 @@ app.use((req, res, next) => {
   } else {
     next();
   }
-});
+});*/
 
 // Body Parser
 app.use(express.json({ limit: '10mb' }));
