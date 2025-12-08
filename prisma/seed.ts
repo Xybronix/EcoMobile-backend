@@ -232,10 +232,10 @@ async function main() {
 
   const admin = await prisma.user.create({
     data: {
-      email: 'admin@ecomobile.cm',
+      email: 'admin@freebike.cm',
       password: hashedPassword,
       firstName: 'Admin',
-      lastName: 'EcoMobile',
+      lastName: 'FreeBike',
       phone: '+237600000001',
       role: 'SUPER_ADMIN',
       roleId: superAdminRole.id,
@@ -247,7 +247,7 @@ async function main() {
 
   await prisma.user.create({
     data: {
-      email: 'manager@ecomobile.cm',
+      email: 'manager@freebike.cm',
       password: hashedPassword,
       firstName: 'Manager',
       lastName: 'System',
@@ -262,7 +262,7 @@ async function main() {
 
   const user1 = await prisma.user.create({
     data: {
-      email: 'user@ecomobile.cm',
+      email: 'user@freebike.cm',
       password: userPassword,
       firstName: 'Jean',
       lastName: 'Dupont',
@@ -277,7 +277,7 @@ async function main() {
 
   const user2 = await prisma.user.create({
     data: {
-      email: 'marie@ecomobile.cm',
+      email: 'marie@freebike.cm',
       password: userPassword,
       firstName: 'Marie',
       lastName: 'Martin',
@@ -292,7 +292,7 @@ async function main() {
 
   await prisma.user.create({
     data: {
-      email: 'support@ecomobile.cm',
+      email: 'support@freebike.cm',
       password: hashedPassword,
       firstName: 'Support',
       lastName: 'Team',
@@ -309,18 +309,18 @@ async function main() {
 
   // Créer des paramètres par défaut
   const defaultSettings = [
-    { key: 'companyName', value: 'EcoMobile' },
+    { key: 'companyName', value: 'FreeBike' },
     { key: 'description', value: 'Service de location de vélos électriques écologique et moderne' },
-    { key: 'email', value: 'contact@ecomobile.cm' },
+    { key: 'email', value: 'contact@freebike.cm' },
     { key: 'phone', value: '+237 699 123 456' },
     { key: 'address', value: 'Boulevard de la Liberté' },
     { key: 'city', value: 'Douala' },
     { key: 'country', value: 'Cameroun' },
     { key: 'orangeMoneyNumber', value: '+237 699 123 456' },
     { key: 'mobileMoneyNumber', value: '+237 677 123 456' },
-    { key: 'facebook', value: 'https://facebook.com/ecomobile' },
-    { key: 'instagram', value: 'https://instagram.com/ecomobile' },
-    { key: 'website', value: 'https://ecomobile.cm' },
+    { key: 'facebook', value: 'https://facebook.com/freebike' },
+    { key: 'instagram', value: 'https://instagram.com/freebike' },
+    { key: 'website', value: 'https://freebike.cm' },
   ];
 
   for (const setting of defaultSettings) {
@@ -718,7 +718,7 @@ async function main() {
   await prisma.notification.create({
     data: {
       userId: user1.id,
-      title: 'Bienvenue sur EcoMobile',
+      title: 'Bienvenue sur FreeBike',
       message: 'Merci de vous être inscrit ! Profitez de 10% de réduction sur votre premier trajet.',
       type: 'welcome',
     },
@@ -815,14 +815,14 @@ async function main() {
   await prisma.settings.create({
     data: {
       key: 'company_name',
-      value: 'EcoMobile Cameroun',
+      value: 'FreeBike Cameroun',
     },
   });
 
   await prisma.settings.create({
     data: {
       key: 'support_email',
-      value: 'support@ecomobile.cm',
+      value: 'support@freebike.cm',
     },
   });
 
@@ -841,23 +841,23 @@ async function main() {
   console.log('📝 Test Accounts:');
   console.log('');
   console.log('👑 Super Admin:');
-  console.log('   Email: admin@ecomobile.cm');
+  console.log('   Email: admin@freebike.cm');
   console.log('   Password: admin123');
   console.log('   Permissions: Full access');
   console.log('');
   console.log('👨‍💼 Manager:');
-  console.log('   Email: manager@ecomobile.cm');
+  console.log('   Email: manager@freebike.cm');
   console.log('   Password: admin123');
   console.log('   Permissions: Limited admin access');
   console.log('');
   console.log('👤 User:');
-  console.log('   Email: user@ecomobile.cm');
+  console.log('   Email: user@freebike.cm');
   console.log('   Password: user123');
   console.log('   Balance: 5000 FCFA');
   console.log('   Permissions: Basic user access');
   console.log('');
   console.log('👩‍💼 Support:');
-  console.log('   Email: support@ecomobile.cm');
+  console.log('   Email: support@freebike.cm');
   console.log('   Password: admin123');
   console.log('   Permissions: Employee access');
   console.log('');

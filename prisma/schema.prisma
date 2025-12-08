@@ -512,6 +512,7 @@ model UnlockRequest {
   validatedBy     String?
   adminNote       String?
   rejectionReason String?
+  metadata        Json?
   createdAt       DateTime      @default(now())
 
   // Relations
@@ -523,21 +524,22 @@ model UnlockRequest {
 }
 
 model LockRequest {
-  id             String        @id @default(uuid())
-  userId         String
-  bikeId         String
-  rideId         String?
-  latitude       Float?
-  longitude      Float?
-  returnLocation Json?
-  status         RequestStatus @default(PENDING)
-  requestedAt    DateTime      @default(now())
-  validatedAt    DateTime?
-  rejectedAt     DateTime?
-  validatedBy    String?
-  adminNote      String?
+  id              String        @id @default(uuid())
+  userId          String
+  bikeId          String
+  rideId          String?
+  latitude        Float?
+  longitude       Float?
+  returnLocation  Json?
+  status          RequestStatus @default(PENDING)
+  requestedAt     DateTime      @default(now())
+  validatedAt     DateTime?
+  rejectedAt      DateTime?
+  validatedBy     String?
+  adminNote       String?
   rejectionReason String?
-  createdAt      DateTime      @default(now())
+  metadata        Json?
+  createdAt       DateTime      @default(now())
 
   // Relations
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -10,7 +10,7 @@ export class BikeRequestController {
   async createUnlockRequest(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
-      const { bikeId } = req.body;
+      const { bikeId, metadata } = req.body;
 
       if (!bikeId) {
         return res.status(400).json({
@@ -19,7 +19,7 @@ export class BikeRequestController {
         });
       }
 
-      const request = await BikeRequestService.createUnlockRequest(userId, bikeId);
+      const request = await BikeRequestService.createUnlockRequest(userId, bikeId, metadata);
 
       await logActivity(
         userId,
@@ -27,7 +27,7 @@ export class BikeRequestController {
         'UNLOCK_REQUEST',
         request.id,
         `Requested unlock for bike ${bikeId}`,
-        { bikeId },
+        { bikeId, hasInspectionData: !!metadata },
         req
       );
 
@@ -50,9 +50,9 @@ export class BikeRequestController {
   async createLockRequest(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
-      const { bikeId, rideId, location } = req.body;
+      const { bikeId, rideId, location, metadata } = req.body;
 
-      const request = await BikeRequestService.createLockRequest(userId, bikeId, rideId, location);
+      const request = await BikeRequestService.createLockRequest(userId, bikeId, rideId, location, metadata);
 
       await logActivity(
         userId,

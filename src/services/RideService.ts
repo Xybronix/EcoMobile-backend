@@ -443,7 +443,8 @@ export class RideService {
   ) {
     const hourlyRate = ridePlan?.hourlyRate || 200;
     const durationHours = duration / 60;
-    const originalCost = Math.ceil(durationHours * hourlyRate);
+    const roundedHours = Math.ceil(durationHours);
+    const originalCost = roundedHours * hourlyRate;
 
     let finalCost = originalCost;
     let discountApplied = 0;
@@ -494,7 +495,9 @@ export class RideService {
       isOvertime,
       appliedRule,
       paymentMethod,
-      hasActiveSubscription: !!activeSubscription
+      hasActiveSubscription: !!activeSubscription,
+      roundedHours,
+      extraHours: activeSubscription ? Math.max(0, roundedHours - 1) : roundedHours
     };
   }
 
