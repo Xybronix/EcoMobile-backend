@@ -12,7 +12,7 @@ export class BikeRequestService {
   /**
    * Créer une demande de déverrouillage
    */
-  async createUnlockRequest(userId: string, bikeId: string): Promise<any> {
+  async createUnlockRequest(userId: string, bikeId: string, metadata?: any): Promise<any> {
     // Vérifier la caution
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -40,7 +40,8 @@ export class BikeRequestService {
       data: {
         userId,
         bikeId,
-        status: RequestStatus.PENDING
+        status: RequestStatus.PENDING,
+        metadata: metadata || {}
       },
       include: {
         user: { select: { firstName: true, lastName: true } },
@@ -57,7 +58,7 @@ export class BikeRequestService {
   /**
    * Créer une demande de verrouillage
    */
-  async createLockRequest(userId: string, bikeId: string, rideId?: string, location?: { lat: number; lng: number }): Promise<any> {
+  async createLockRequest(userId: string, bikeId: string, rideId?: string, location?: { lat: number; lng: number }, metadata?: any): Promise<any> {
     const request = await prisma.lockRequest.create({
       data: {
         userId,
@@ -65,7 +66,8 @@ export class BikeRequestService {
         rideId,
         latitude: location?.lat,
         longitude: location?.lng,
-        status: RequestStatus.PENDING
+        status: RequestStatus.PENDING,
+        metadata: metadata || {}
       },
       include: {
         user: { select: { firstName: true, lastName: true } },
