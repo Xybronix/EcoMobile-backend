@@ -19,6 +19,20 @@ router.post('/unlock', authenticate, BikeRequestController.createUnlockRequest);
 router.post('/lock', authenticate, BikeRequestController.createLockRequest);
 
 /**
+ * @route   DELETE /api/v1/bike-requests/unlock/:id
+ * @desc    Delete user's unlock request
+ * @access  Private
+ */
+router.delete('/unlock/:id', authenticate, BikeRequestController.deleteUnlockRequest);
+
+/**
+ * @route   DELETE /api/v1/bike-requests/lock/:id
+ * @desc    Delete user's lock request 
+ * @access  Private
+ */
+router.delete('/lock/:id', authenticate, BikeRequestController.deleteLockRequest);
+
+/**
  * @route   GET /api/v1/unlock-requests/user
  * @desc    Get user's unlock requests
  * @access  Private

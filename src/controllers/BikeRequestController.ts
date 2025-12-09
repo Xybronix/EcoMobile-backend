@@ -78,6 +78,104 @@ export class BikeRequestController {
   }
 
   /**
+   * Supprimer une demande de déverrouillage
+   */
+  async deleteUnlockRequest(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+
+      const request = await prisma.unlockRequest.findFirst({
+        where: {
+          id,
+          userId,
+          status: 'PENDING'
+        }
+      });
+
+      if (!request) {
+        return res.status(404).json({
+          success: false,
+          message: 'Demande non trouvée ou ne peut être supprimée'
+        });
+      }
+
+      await prisma.unlockRequest.delete({
+        where: { id }
+      });
+
+      await logActivity(
+        userId,
+        'DELETE',
+        'UNLOCK_REQUEST',
+        id,
+        'User deleted their unlock request',
+        { requestId: id },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: 'Demande de déverrouillage supprimée'
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Supprimer une demande de verrouillage
+   */
+  async deleteLockRequest(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+
+      const request = await prisma.lockRequest.findFirst({
+        where: {
+          id,
+          userId,
+          status: 'PENDING'
+        }
+      });
+
+      if (!request) {
+        return res.status(404).json({
+          success: false,
+          message: 'Demande non trouvée ou ne peut être supprimée'
+        });
+      }
+
+      await prisma.lockRequest.delete({
+        where: { id }
+      });
+
+      await logActivity(
+        userId,
+        'DELETE',
+        'LOCK_REQUEST',
+        id,
+        'User deleted their lock request',
+        { requestId: id },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: 'Demande de verrouillage supprimée'
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
    * Obtenir les demandes de déverrouillage de l'utilisateur
    */
   async getUserUnlockRequests(req: AuthRequest, res: express.Response) {
