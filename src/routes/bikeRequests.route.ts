@@ -75,6 +75,20 @@ router.get('/:type/:id', authenticate, BikeRequestController.getRequestById);
 router.get('/:type/pending', authenticate, requirePermission('bike_requests', 'read'), BikeRequestController.getPendingRequests);
 
 /**
+ * @route   GET /api/v1/bike-requests/unlock/pending
+ * @desc    Get pending unlock requests (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/unlock/pending', authenticate, requirePermission('bike_requests', 'read'), BikeRequestController.getPendingUnlockRequests);
+
+/**
+ * @route   GET /api/v1/bike-requests/lock/pending
+ * @desc    Get pending lock requests (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/lock/pending', authenticate, requirePermission('bike_requests', 'read'), BikeRequestController.getPendingLockRequests);
+
+/**
  * @route   POST /api/v1/bike-requests/:type/:id/approve
  * @desc    Approve request (Admin only)
  * @access  Private/Admin

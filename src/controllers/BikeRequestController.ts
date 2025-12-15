@@ -587,6 +587,52 @@ export class BikeRequestController {
   }
 
   /**
+   * Obtenir demandes en attente (admin)
+   */
+  async getPendingUnlockRequests(req: AuthRequest, res: express.Response) {
+    try {
+      const type = 'unlock';
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const result = await BikeRequestService.getPendingRequests(type, page, limit);
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * Obtenir demandes en attente (admin)
+   */
+  async getPendingLockRequests(req: AuthRequest, res: express.Response) {
+    try {
+      const type = 'lock';
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const result = await BikeRequestService.getPendingRequests(type, page, limit);
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
    * Approuver une demande
    */
   async approveRequest(req: AuthRequest, res: express.Response) {
