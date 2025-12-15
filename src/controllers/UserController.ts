@@ -1193,6 +1193,347 @@ export class UserController {
       });
     }
   }
+
+  /**
+   * @swagger
+   * /users/{id}/stats:
+   *   get:
+   *     summary: Get detailed user statistics (Admin only)
+   *     tags: [Users, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: User ID
+   *     responses:
+   *       200:
+   *         description: Detailed statistics retrieved successfully
+   */
+  async getUserStats(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      
+      const stats = await UserService.getUserDetailedStats(id);
+      
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * @swagger
+   * /users/{id}/subscription/active:
+   *   get:
+   *     summary: Get user's active subscription (Admin only)
+   *     tags: [Users, Admin, Subscriptions]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: User ID
+   *     responses:
+   *       200:
+   *         description: Active subscription retrieved successfully
+   */
+  async getUserActiveSubscription(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      
+      const subscription = await UserService.getUserActiveSubscription(id);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'USER_SUBSCRIPTION',
+        id,
+        `Viewed active subscription for user ID: ${id}`,
+        { userId: id, subscriptionId: subscription ? subscription.planName : null },
+        req
+      );
+      
+      res.json({
+        success: true,
+        data: subscription
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * @swagger
+   * /users/{id}/incidents:
+   *   get:
+   *     summary: Get user incidents (Admin only)
+   *     tags: [Users, Admin, Incidents]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: User ID
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 1
+   *         description: Page number
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 100
+   *           default: 20
+   *         description: Number of items per page
+   *     responses:
+   *       200:
+   *         description: Incidents retrieved successfully
+   */
+  async getUserIncidents(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const result = await UserService.getUserIncidents(id, page, limit);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'USER_INCIDENTS',
+        id,
+        `Viewed incidents for user ID: ${id}`,
+        { userId: id, page, limit, totalIncidents: result.incidents.length },
+        req
+      );
+      
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * @swagger
+   * /users/{id}/rides:
+   *   get:
+   *     summary: Get user rides (Admin only)
+   *     tags: [Users, Admin, Rides]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: User ID
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 1
+   *         description: Page number
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 100
+   *           default: 20
+   *         description: Number of items per page
+   *     responses:
+   *       200:
+   *         description: Rides retrieved successfully
+   */
+  async getUserRides(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const result = await UserService.getUserRides(id, page, limit);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'USER_RIDES',
+        id,
+        `Viewed rides for user ID: ${id}`,
+        { userId: id, page, limit, totalRides: result.rides.length },
+        req
+      );
+      
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * @swagger
+   * /users/{id}/transactions:
+   *   get:
+   *     summary: Get user transactions (Admin only)
+   *     tags: [Users, Admin, Transactions]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: User ID
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           default: 1
+   *         description: Page number
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 100
+   *           default: 20
+   *         description: Number of items per page
+   *       - in: query
+   *         name: type
+   *         schema:
+   *           type: string
+   *         description: Filter by transaction type
+   *       - in: query
+   *         name: status
+   *         schema:
+   *           type: string
+   *         description: Filter by transaction status
+   *     responses:
+   *       200:
+   *         description: Transactions retrieved successfully
+   */
+  async getUserTransactions(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const type = req.query.type as string;
+      const status = req.query.status as string;
+      
+      const result = await UserService.getUserTransactions(id, page, limit, { type, status });
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'USER_TRANSACTIONS',
+        id,
+        `Viewed transactions for user ID: ${id}`,
+        { userId: id, page, limit, type, status, totalTransactions: result.transactions.length },
+        req
+      );
+      
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
+
+  /**
+   * @swagger
+   * /users/{id}/requests:
+   *   get:
+   *     summary: Get user requests (Admin only)
+   *     tags: [Users, Admin, Requests]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: User ID
+   *       - in: query
+   *         name: type
+   *         schema:
+   *           type: string
+   *         description: Filter by request type
+   *     responses:
+   *       200:
+   *         description: Requests retrieved successfully
+   */
+  async getUserRequests(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const type = req.query.type as string;
+      
+      const result = await UserService.getUserRequests(id, type);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'USER_REQUESTS',
+        id,
+        `Viewed requests for user ID: ${id}`,
+        { userId: id, type, totalRequests: result.length },
+        req
+      );
+      
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
 }
 
 export default new UserController();

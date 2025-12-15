@@ -81,7 +81,8 @@ export class UserService {
           roleRelation: true,
           _count: {
             select: {
-              rides: true
+              rides: true,
+              incidents: true
             }
           }
         }
@@ -89,15 +90,50 @@ export class UserService {
       prisma.user.count({ where })
     ]);
 
-    return {
-      users: users.map(user => {
+    const enrichedUsers = await Promise.all(
+      users.map(async (user) => {
         const { password, ...userWithoutPassword } = user;
+        
+        // Récupérer les statistiques réelles
+        const [totalSpentResult, totalTripsResult, lastRide] = await Promise.all([
+          prisma.transaction.aggregate({
+            where: {
+              wallet: { userId: user.id },
+              type: 'RIDE_PAYMENT',
+              status: 'COMPLETED'
+            },
+            _sum: { amount: true }
+          }),
+          prisma.ride.aggregate({
+            where: { userId: user.id, status: 'COMPLETED' },
+            _count: true
+          }),
+          prisma.ride.findFirst({
+            where: { userId: user.id },
+            orderBy: { startTime: 'desc' },
+            select: { startTime: true }
+          })
+        ]);
+
+        const totalSpent = totalSpentResult._sum.amount || 0;
+        const totalTrips = totalTripsResult._count || 0;
+
         return {
           ...userWithoutPassword,
-          role: user.roleRelation?.name || user.role,
-          roleId: user.roleId
+          role: user.role,
+          roleId: user.roleId,
+          accountBalance: user.wallet?.balance || 0,
+          depositBalance: user.depositBalance || 0,
+          totalSpent,
+          totalTrips,
+          reliabilityScore: this.calculateReliabilityScore(user.id, totalTrips),
+          lastActivity: lastRide?.startTime || user.createdAt
         };
-      }),
+      })
+    );
+
+    return {
+      users: enrichedUsers,
       pagination: {
         page,
         limit,
@@ -459,6 +495,488 @@ export class UserService {
       where: { userId },
       data: { isActive: false }
     });
+  }
+
+  /**
+   * Get user incidents (Admin only)
+   */
+  async getUserIncidents(userId: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+
+    const [incidents, total] = await Promise.all([
+      prisma.incident.findMany({
+        where: { userId },
+        include: {
+          bike: {
+            select: {
+              id: true,
+              code: true,
+              model: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.incident.count({ where: { userId } })
+    ]);
+
+    return {
+      incidents: incidents.map(incident => ({
+        ...incident,
+        bikeName: incident.bike ? `${incident.bike.code} - ${incident.bike.model}` : 'N/A'
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  /**
+   * Get user rides (Admin only)
+   */
+  async getUserRides(userId: string, page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+
+    const [rides, total] = await Promise.all([
+      prisma.ride.findMany({
+        where: { userId },
+        include: {
+          bike: {
+            select: {
+              id: true,
+              code: true,
+              model: true
+            }
+          },
+          plan: {
+            select: {
+              name: true,
+              type: true
+            }
+          }
+        },
+        orderBy: { startTime: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.ride.count({ where: { userId } })
+    ]);
+
+    return {
+      rides: rides.map(ride => ({
+        ...ride,
+        bikeName: ride.bike ? `${ride.bike.code} - ${ride.bike.model}` : 'N/A',
+        planName: ride.plan?.name || 'Standard'
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  /**
+   * Get user transactions (Admin only)
+   */
+  async getUserTransactions(userId: string, page: number = 1, limit: number = 20, filters?: { type?: string; status?: string }) {
+    const skip = (page - 1) * limit;
+    
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId }
+    });
+
+    if (!wallet) {
+      return {
+        transactions: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0
+        }
+      };
+    }
+
+    const where: any = { walletId: wallet.id };
+    
+    if (filters?.type) {
+      where.type = filters.type;
+    }
+    
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        include: {
+          wallet: {
+            include: {
+              user: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  email: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.transaction.count({ where })
+    ]);
+
+    return {
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  /**
+   * Get user unlock/lock requests (Admin only)
+   */
+  async getUserRequests(userId: string, type?: string) {
+    let requests: any[] = [];
+    
+    if (!type || type === 'unlock') {
+      const unlockRequests = await prisma.unlockRequest.findMany({
+        where: { userId },
+        include: {
+          bike: {
+            select: {
+              code: true,
+              model: true
+            }
+          },
+          reservation: {
+            include: {
+              plan: {
+                select: {
+                  name: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      requests = [
+        ...requests,
+        ...unlockRequests.map(req => ({
+          ...req,
+          type: 'unlock',
+          bikeName: req.bike ? `${req.bike.code} - ${req.bike.model}` : 'N/A'
+        }))
+      ];
+    }
+    
+    if (!type || type === 'lock') {
+      const lockRequests = await prisma.lockRequest.findMany({
+        where: { userId },
+        include: {
+          bike: {
+            select: {
+              code: true,
+              model: true
+            }
+          },
+          ride: {
+            include: {
+              bike: true,
+              plan: {
+                select: {
+                  name: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      
+      requests = [
+        ...requests,
+        ...lockRequests.map(req => ({
+          ...req,
+          type: 'lock',
+          bikeName: req.bike ? `${req.bike.code} - ${req.bike.model}` : 'N/A'
+        }))
+      ];
+    }
+    
+    // Trier par date
+    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    return requests;
+  }
+
+  /**
+   * Get user detailed statistics (Admin only)
+   */
+  async getUserDetailedStats(userId: string) {
+    const [
+      user,
+      ridesStats,
+      walletStats,
+      incidentsStats,
+      requestsStats,
+      subscription,
+      depositInfo
+    ] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          wallet: true,
+          roleRelation: true
+        }
+      }),
+      prisma.ride.aggregate({
+        where: { userId },
+        _count: true,
+        _sum: {
+          distance: true,
+          cost: true,
+          duration: true
+        }
+      }),
+      prisma.transaction.aggregate({
+        where: {
+          wallet: { userId }
+        },
+        _count: true,
+        _sum: {
+          amount: true
+        }
+      }),
+      prisma.incident.aggregate({
+        where: { userId },
+        _count: true,
+        _sum: {
+          refundAmount: true
+        }
+      }),
+      prisma.$transaction([
+        prisma.unlockRequest.count({ where: { userId } }),
+        prisma.lockRequest.count({ where: { userId } }),
+        prisma.unlockRequest.count({ where: { userId, status: 'PENDING' } }),
+        prisma.lockRequest.count({ where: { userId, status: 'PENDING' } })
+      ]),
+      prisma.subscription.findFirst({
+        where: {
+          userId,
+          isActive: true,
+          startDate: { lte: new Date() },
+          endDate: { gte: new Date() }
+        },
+        include: {
+          plan: true
+        }
+      }),
+      prisma.reservation.findFirst({
+        where: {
+          userId,
+          status: 'ACTIVE',
+          startDate: { lte: new Date() },
+          endDate: { gte: new Date() }
+        },
+        include: {
+          plan: true,
+          bike: {
+            select: {
+              code: true
+            }
+          }
+        }
+      })
+    ]);
+
+    const [totalUnlockRequests, totalLockRequests, pendingUnlockRequests, pendingLockRequests] = requestsStats;
+
+    return {
+      user: user ? {
+        ...user,
+        password: undefined
+      } : null,
+      rides: {
+        total: ridesStats._count || 0,
+        totalDistance: ridesStats._sum.distance || 0,
+        totalCost: ridesStats._sum.cost || 0,
+        totalDuration: ridesStats._sum.duration || 0,
+        averageCost: ridesStats._count > 0 ? (ridesStats._sum.cost || 0) / ridesStats._count : 0,
+        averageDuration: ridesStats._count > 0 ? (ridesStats._sum.duration || 0) / ridesStats._count : 0
+      },
+      wallet: {
+        balance: user?.wallet?.balance || 0,
+        deposit: user?.depositBalance || 0,
+        negativeBalance: user?.wallet?.negativeBalance || 0,
+        totalTransactions: walletStats._count || 0,
+        totalTransacted: walletStats._sum.amount || 0
+      },
+      incidents: {
+        total: incidentsStats._count || 0,
+        totalRefunded: incidentsStats._sum.refundAmount || 0,
+        averageRefund: incidentsStats._count > 0 ? (incidentsStats._sum.refundAmount || 0) / incidentsStats._count : 0
+      },
+      requests: {
+        totalUnlock: totalUnlockRequests,
+        totalLock: totalLockRequests,
+        pendingUnlock: pendingUnlockRequests,
+        pendingLock: pendingLockRequests,
+        total: totalUnlockRequests + totalLockRequests,
+        pending: pendingUnlockRequests + pendingLockRequests
+      },
+      subscription: subscription ? {
+        planName: subscription.plan.name,
+        type: subscription.type,
+        startDate: subscription.startDate,
+        endDate: subscription.endDate,
+        remainingDays: Math.ceil((subscription.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      } : null,
+      activeReservation: depositInfo ? {
+        planName: depositInfo.plan.name,
+        packageType: depositInfo.packageType,
+        bikeCode: depositInfo.bike?.code,
+        startDate: depositInfo.startDate,
+        endDate: depositInfo.endDate
+      } : null
+    };
+  }
+
+  /**
+   * Get user active subscription (Admin only)
+   */
+  async getUserActiveSubscription(userId: string) {
+    const activeReservation = await prisma.reservation.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      },
+      include: {
+        plan: true,
+        bike: {
+          select: {
+            code: true
+          }
+        }
+      }
+    });
+
+    if (activeReservation) {
+      return {
+        type: 'RESERVATION',
+        planName: activeReservation.plan.name,
+        packageType: activeReservation.packageType,
+        bikeCode: activeReservation.bike?.code,
+        startDate: activeReservation.startDate,
+        endDate: activeReservation.endDate,
+        remainingDays: Math.ceil((activeReservation.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      };
+    }
+
+    // Check subscription
+    const subscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      },
+      include: {
+        plan: true
+      }
+    });
+
+    if (!subscription) return null;
+
+    return {
+      type: 'SUBSCRIPTION',
+      planName: subscription.plan.name,
+      packageType: subscription.type,
+      startDate: subscription.startDate,
+      endDate: subscription.endDate,
+      remainingDays: Math.ceil((subscription.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    };
+  }
+
+  /**
+   * Calculate user reliability score
+   */
+  private async calculateReliabilityScore(userId: string, totalTrips: number): Promise<number> {
+    if (totalTrips === 0) return 3.0; // Score par défaut
+
+    const [completedRides, cancelledRides, incidentsCount, lateReturns] = await Promise.all([
+      prisma.ride.count({
+        where: {
+          userId,
+          status: 'COMPLETED'
+        }
+      }),
+      prisma.ride.count({
+        where: {
+          userId,
+          status: 'CANCELLED'
+        }
+      }),
+      prisma.incident.count({
+        where: {
+          userId,
+          status: { in: ['OPEN', 'IN_PROGRESS'] }
+        }
+      }),
+      prisma.lockRequest.count({
+        where: {
+          userId,
+          status: 'REJECTED',
+          rejectionReason: { contains: 'retard' }
+        }
+      })
+    ]);
+
+    let score = 5.0; // Score de départ
+    
+    // Pénalités
+    if (cancelledRides > 0) {
+      score -= (cancelledRides / totalTrips) * 2;
+    }
+    
+    if (incidentsCount > 0) {
+      score -= incidentsCount * 0.3;
+    }
+    
+    if (lateReturns > 0) {
+      score -= lateReturns * 0.5;
+    }
+    
+    // Bonus pour les utilisateurs actifs
+    if (completedRides > 10) {
+      score += 0.5;
+    }
+    
+    if (completedRides > 50) {
+      score += 0.5;
+    }
+
+    // Limiter entre 1 et 5
+    return Math.max(1.0, Math.min(5.0, score));
   }
 
   /**
