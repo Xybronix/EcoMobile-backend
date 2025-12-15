@@ -1,4 +1,3 @@
-// services/GooglePlacesService.ts
 import { Client, PlaceData, AddressComponent } from '@googlemaps/google-maps-services-js';
 
 interface CameroonArea {

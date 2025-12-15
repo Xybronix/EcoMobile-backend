@@ -8,7 +8,7 @@ export interface User {
   lastName: string;
   phone?: string;
   avatar?: string;
-  role: 'user' | 'employee' | 'admin' | 'super_admin';
+  role: 'USER' | 'EMPLOYEE' | 'ADMIN' | 'SUPER_ADMIN';
   roleId?: string;
   status: 'active' | 'inactive' | 'suspended';
   emailVerified: boolean;

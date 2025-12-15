@@ -1,4 +1,3 @@
-// services/BikeMonitoringService.ts
 import { prisma } from '../config/prisma';
 import { BikeStatus } from '@prisma/client';
 import BikeService from './BikeService';

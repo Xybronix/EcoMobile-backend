@@ -1,4 +1,3 @@
-// services/RideService.ts
 import { prisma } from '../config/prisma';
 import { RideStatus, Ride } from '@prisma/client';
 import BikeService from './BikeService';

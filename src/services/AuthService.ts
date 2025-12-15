@@ -34,7 +34,7 @@ export class AuthService {
       firstName: data.firstName,
       lastName: data.lastName,
       phone: data.phone,
-      role: 'user',
+      role: 'USER',
       status: 'active',
       emailVerified: false,
       language: data.language || language
