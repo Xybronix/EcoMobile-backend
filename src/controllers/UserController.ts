@@ -1,5 +1,6 @@
 import express from 'express';
 import UserService from '../services/UserService';
+import WalletService from '../services/WalletService';
 import { AuthRequest, logActivity } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 import { t } from '../locales';
@@ -679,6 +680,28 @@ export class UserController {
 
       const result = await UserService.getAllUsers(page, limit, role);
 
+      const enrichedUsers = await Promise.all(
+        result.users.map(async (user) => {
+          try {
+            const walletData = await WalletService.getDepositInfo(user.id);
+            const walletBalance = await WalletService.getBalance(user.id);
+            
+            return {
+              ...user,
+              depositBalance: walletData.currentDeposit,
+              accountBalance: walletBalance.balance
+            };
+          } catch (error) {
+            console.error(`Erreur pour l'utilisateur ${user.id}:`, error);
+            return {
+              ...user,
+              depositBalance: 0,
+              accountBalance: 0
+            };
+          }
+        })
+      );
+
       await logActivity(
         req.user!.id,
         'VIEW',
@@ -692,7 +715,10 @@ export class UserController {
       res.json({
         success: true,
         message: t('admin.users_retrieved', req.language),
-        data: result
+        data: {
+          ...result,
+          users: enrichedUsers
+        }
       });
     } catch (error: any) {
       res.status(500).json({

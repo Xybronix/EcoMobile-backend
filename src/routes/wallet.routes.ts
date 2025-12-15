@@ -153,4 +153,18 @@ router.post('/deposit/recharge', authenticate, walletController.rechargeDeposit)
  */
 router.post('/admin/charge-damage', authenticate, requirePermission('wallet', 'manage'), walletController.chargeDamage);
 
+/**
+ * @route   GET /api/v1/wallet/admin/user/:userId/balance
+ * @desc    Get user wallet balance (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/admin/user/:userId/balance', authenticate, requirePermission('wallet', 'read'), walletController.getUserWalletBalance);
+
+/**
+ * @route   GET /api/v1/wallet/admin/user/:userId/deposit-info
+ * @desc    Get user deposit info (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/admin/user/:userId/deposit-info', authenticate, requirePermission('wallet', 'read'), walletController.getUserDepositInfo);
+
 export default router;
