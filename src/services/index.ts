@@ -1,4 +1,3 @@
-// Service Exports
 export { AuthService } from './AuthService';
 export { RideService } from './RideService';
 export { PromoCodeService } from './PromoCodeService';
@@ -17,14 +16,12 @@ import {
   WalletRepository, 
   TransactionRepository,
   IncidentRepository,
-  //MaintenanceRepository,
   ChatMessageRepository,
   ConversationRepository,
   NotificationRepository
 } from '../repositories';
 import { AppError } from '../middleware/errorHandler';
 import { t } from '../locales';
-//import { User, Bike, Wallet, Incident, Maintenance, ChatMessage, Conversation } from '../models/types';
 import { User, Bike, Incident } from '../models/types';
 
 export class UserService {
