@@ -131,6 +131,48 @@ router.get('/search', authenticate, requirePermission('users', 'read'), UserCont
 router.get('/:id', authenticate, requirePermission('users', 'read'), UserController.getUserById);
 
 /**
+ * @route   GET /api/v1/admin/users/:id/incidents
+ * @desc    Get user incidents (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/:id/incidents', authenticate, requirePermission('users', 'read'), UserController.getUserIncidents);
+
+/**
+ * @route   GET /api/v1/admin/users/:id/rides
+ * @desc    Get user rides (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/:id/rides', authenticate, requirePermission('users', 'read'), UserController.getUserRides);
+
+/**
+ * @route   GET /api/v1/admin/users/:id/transactions
+ * @desc    Get user transactions (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/:id/transactions', authenticate, requirePermission('wallet', 'read'), UserController.getUserTransactions);
+
+/**
+ * @route   GET /api/v1/admin/users/:id/requests
+ * @desc    Get user unlock/lock requests (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/:id/requests', authenticate, requirePermission('users', 'read'), UserController.getUserRequests);
+
+/**
+ * @route   GET /api/v1/admin/users/:id/stats
+ * @desc    Get user statistics (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/:id/stats', authenticate, requirePermission('users', 'read'), UserController.getUserStats);
+
+/**
+ * @route   GET /api/v1/admin/users/:id/subscription
+ * @desc    Get user active subscription (Admin only)
+ * @access  Private/Admin
+ */
+router.get('/:id/subscription', authenticate, requirePermission('users', 'read'), UserController.getUserActiveSubscription);
+
+/**
  * @route   PUT /api/v1/users/:id/role
  * @desc    Update user role (Admin only)
  * @access  Private/Admin
