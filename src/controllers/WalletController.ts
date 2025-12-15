@@ -1,6 +1,7 @@
 import express from 'express';
 import WalletService from '../services/WalletService';
 import PaymentService from '../services/PaymentService';
+import UserService from '../services/UserService';
 import { AuthRequest, logActivity } from '../middleware/auth';
 import { t } from '../locales';
 
@@ -1172,6 +1173,118 @@ export class WalletController {
       res.json({
         success: true,
         data: reports
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/admin/user/{userId}/balance:
+   *   get:
+   *     summary: Get user wallet balance (Admin only)
+   *     tags: [Wallet, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: userId
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: User wallet balance retrieved
+   */
+  async getUserWalletBalance(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const adminId = req.user!.id;
+      
+      const adminUser = await UserService.getUserById(adminId);
+      if (!adminUser || (adminUser.role !== 'ADMIN' && adminUser.role !== 'SUPER_ADMIN')) {
+        res.status(403).json({
+          success: false,
+          message: 'Permission denied'
+        });
+        return;
+      }
+
+      const balance = await WalletService.getBalance(userId);
+
+      await logActivity(
+        adminId,
+        'VIEW',
+        'USER_WALLET_BALANCE',
+        userId,
+        `Viewed wallet balance for user ${userId}`,
+        { viewedUserId: userId, balance: balance.balance },
+        req
+      );
+
+      res.json({
+        success: true,
+        data: balance
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/admin/user/{userId}/deposit-info:
+   *   get:
+   *     summary: Get user deposit info (Admin only)
+   *     tags: [Wallet, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: userId
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: User deposit info retrieved
+   */
+  async getUserDepositInfo(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { userId } = req.params;
+      const adminId = req.user!.id;
+      
+      const adminUser = await UserService.getUserById(adminId);
+      if (!adminUser || (adminUser.role !== 'ADMIN' && adminUser.role !== 'SUPER_ADMIN')) {
+        res.status(403).json({
+          success: false,
+          message: 'Permission denied'
+        });
+        return;
+      }
+
+      const depositInfo = await WalletService.getDepositInfo(userId);
+
+      await logActivity(
+        adminId,
+        'VIEW',
+        'USER_DEPOSIT_INFO',
+        userId,
+        `Viewed deposit info for user ${userId}`,
+        { viewedUserId: userId, currentDeposit: depositInfo.currentDeposit },
+        req
+      );
+
+      res.json({
+        success: true,
+        data: depositInfo
       });
     } catch (error: any) {
       res.status(500).json({
