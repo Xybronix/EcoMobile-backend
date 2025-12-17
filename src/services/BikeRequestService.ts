@@ -20,8 +20,13 @@ export class BikeRequestService {
     });
 
     const requiredDeposit = await this.getRequiredDeposit();
-    if (!user || user.depositBalance < requiredDeposit) {
-      throw new Error(`Caution insuffisante. Minimum requis: ${requiredDeposit} FCFA`);
+    
+    if (!user || !user.wallet) {
+      throw new Error('Portefeuille non trouvé');
+    }
+
+    if (user.wallet.deposit < requiredDeposit) {
+      throw new Error(`Caution insuffisante. Minimum requis : ${requiredDeposit} FCFA. Votre caution actuelle est de : ${user.wallet.deposit} FCFA`);
     }
 
     // Vérifier qu'il n'y a pas déjà une demande en attente

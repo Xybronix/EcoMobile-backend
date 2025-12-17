@@ -51,12 +51,14 @@ export class ReservationService {
     
     if (data.packageType === 'hourly') {
       endDateTime.setHours(endDateTime.getHours() + 1);
-    } else if (data.packageType === 'monthly') {
-      endDateTime.setMonth(endDateTime.getMonth() + 1);
+    } else if (data.packageType === 'daily') {
+      endDateTime.setDate(endDateTime.getDate() + 1);
     } else if (data.packageType === 'weekly') {
       endDateTime.setDate(endDateTime.getDate() + 7);
+    } else if (data.packageType === 'monthly') {
+      endDateTime.setMonth(endDateTime.getMonth() + 1);
     } else {
-      endDateTime.setDate(endDateTime.getDate() + 1);
+      endDateTime.setHours(endDateTime.getHours() + 1);
     }
 
     // Vérifier les collisions de réservation
@@ -82,8 +84,13 @@ export class ReservationService {
     });
 
     const requiredDeposit = await this.getRequiredDeposit();
-    if (!user || user.depositBalance < requiredDeposit) {
-      throw new Error(`Caution insuffisante. Minimum requis: ${requiredDeposit} FCFA`);
+    
+    if (!user || !user.wallet) {
+      throw new Error('Portefeuille non trouvé');
+    }
+
+    if (user.wallet.deposit < requiredDeposit) {
+      throw new Error(`Caution insuffisante. Minimum requis : ${requiredDeposit} FCFA. Votre caution actuelle est de : ${user.wallet.deposit} FCFA`);
     }
 
     const reservation = await prisma.reservation.create({

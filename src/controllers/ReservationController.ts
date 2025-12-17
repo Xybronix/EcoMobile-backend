@@ -53,6 +53,7 @@ export class ReservationController {
         data: reservation
       });
     } catch (error: any) {
+      console.error('Reservation error:', error);
       return res.status(500).json({
         success: false,
         message: error.message
