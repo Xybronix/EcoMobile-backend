@@ -22,12 +22,18 @@ export class ReservationController {
       const userId = req.user!.id;
       const { bikeId, planId, packageType, startDate, startTime } = req.body;
 
+      const startDateTime = new Date(`${startDate}T${startTime}:00`);
+
+      if (isNaN(startDateTime.getTime())) {
+        throw new Error('Date ou heure invalide');
+      }
+
       const reservation = await ReservationService.createReservation({
         userId,
         bikeId,
         planId,
         packageType,
-        startDate: new Date(startDate),
+        startDate: startDateTime,
         startTime
       });
 

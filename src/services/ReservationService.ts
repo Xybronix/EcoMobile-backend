@@ -40,10 +40,18 @@ export class ReservationService {
     }
 
     // Calculer endDate basé sur packageType
-    const startDateTime = new Date(`${data.startDate.toISOString().split('T')[0]}T${data.startTime}:00`);
+    const startDateTime = data.startDate;
+
+    if (data.startTime) {
+      const [hours, minutes] = data.startTime.split(':').map(Number);
+      startDateTime.setHours(hours, minutes, 0, 0);
+    }
+
     let endDateTime = new Date(startDateTime);
     
-    if (data.packageType === 'monthly') {
+    if (data.packageType === 'hourly') {
+      endDateTime.setHours(endDateTime.getHours() + 1);
+    } else if (data.packageType === 'monthly') {
       endDateTime.setMonth(endDateTime.getMonth() + 1);
     } else if (data.packageType === 'weekly') {
       endDateTime.setDate(endDateTime.getDate() + 7);
@@ -56,6 +64,15 @@ export class ReservationService {
 
     if (conflict) {
       throw new Error('Une réservation existe déjà pour cette période');
+    }
+
+    // Vérifier que le plan existe
+    const plan = await prisma.pricingPlan.findUnique({
+      where: { id: data.planId }
+    });
+
+    if (!plan) {
+      throw new Error(`Plan "${data.planId}" non trouvé`);
     }
 
     // Vérifier la caution de l'utilisateur
