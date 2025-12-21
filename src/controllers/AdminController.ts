@@ -221,7 +221,7 @@ export class AdminController {
    * /admin/pricing:
    *   get:
    *     summary: Get pricing configuration (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -311,7 +311,7 @@ export class AdminController {
    * /admin/pricing:
    *   put:
    *     summary: Update pricing configuration (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -493,7 +493,7 @@ export class AdminController {
    * /admin/pricing/current:
    *   get:
    *     summary: Get current pricing with applied rules and promotions
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -675,7 +675,7 @@ export class AdminController {
    * /admin/promotions:
    *   get:
    *     summary: Get all promotions (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -722,7 +722,7 @@ export class AdminController {
    * /admin/promotions:
    *   post:
    *     summary: Create new promotion (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -844,7 +844,7 @@ export class AdminController {
    * /admin/promotions/{id}:
    *   put:
    *     summary: Update promotion (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -999,7 +999,7 @@ export class AdminController {
    * /admin/promotions/{id}/status:
    *   patch:
    *     summary: Toggle promotion status (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1079,7 +1079,7 @@ export class AdminController {
    * /admin/plans:
    *   post:
    *     summary: Create new pricing plan (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -1195,7 +1195,7 @@ export class AdminController {
    * /admin/plans/{id}/override:
    *   post:
    *     summary: Create or update plan override (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1309,7 +1309,7 @@ export class AdminController {
    * /admin/plans/{id}:
    *   delete:
    *     summary: Delete pricing plan (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1369,7 +1369,7 @@ export class AdminController {
    * /admin/rules/{id}:
    *   delete:
    *     summary: Delete pricing rule (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1443,7 +1443,7 @@ export class AdminController {
    * /admin/promotions/{id}:
    *   delete:
    *     summary: Delete promotion (Admin only)
-   *     tags: [Admin]
+   *     tags: [Pricing]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1901,7 +1901,7 @@ export class AdminController {
    * /admin/incidents:
    *   get:
    *     summary: Get all incidents (Admin only)
-   *     tags: [Admin]
+   *     tags: [Incidents]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1994,7 +1994,7 @@ export class AdminController {
    * /admin/incidents/{id}:
    *   put:
    *     summary: Update incident (Admin only)
-   *     tags: [Admin]
+   *     tags: [Incidents]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -2128,7 +2128,7 @@ export class AdminController {
    * /public/reviews:
    *   get:
    *     summary: Get approved reviews (public)
-   *     tags: [Public]
+   *     tags: [Reviews, Public]
    *     responses:
    *       200:
    *         description: Approved reviews retrieved successfully
@@ -2158,7 +2158,7 @@ export class AdminController {
    * /public/reviews:
    *   post:
    *     summary: Submit a review (public)
-   *     tags: [Public]
+   *     tags: [Reviews, Public]
    *     requestBody:
    *       required: true
    *       content:
@@ -2248,7 +2248,7 @@ export class AdminController {
    * /admin/reviews:
    *   get:
    *     summary: Get all reviews (Admin only)
-   *     tags: [Admin]
+   *     tags: [Reviews]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -2324,7 +2324,7 @@ export class AdminController {
    * /admin/reviews:
    *   post:
    *     summary: Create new review (Admin only)
-   *     tags: [Admin]
+   *     tags: [Reviews]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -2417,7 +2417,7 @@ export class AdminController {
    * /admin/reviews/{id}:
    *   put:
    *     summary: Update review (Admin only)
-   *     tags: [Admin]
+   *     tags: [Reviews]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -2513,7 +2513,7 @@ export class AdminController {
    * /admin/reviews/{id}/moderate:
    *   put:
    *     summary: Moderate review (Admin only)
-   *     tags: [Admin]
+   *     tags: [Reviews]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -2606,7 +2606,7 @@ export class AdminController {
    * /admin/reviews/{id}:
    *   delete:
    *     summary: Delete review (Admin only)
-   *     tags: [Admin]
+   *     tags: [Reviews]
    *     security:
    *       - bearerAuth: []
    *     parameters:

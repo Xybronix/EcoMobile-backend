@@ -710,7 +710,7 @@ export class BikeRequestController {
 
   /**
    * @swagger
-   * /bike-requests/pending/{type}:
+   * /bike-requests/{type}/pending:
    *   get:
    *     summary: Obtenir demandes en attente (admin)
    *     tags: [BikeRequests]
@@ -757,7 +757,7 @@ export class BikeRequestController {
 
   /**
    * @swagger
-   * /bike-requests/pending/unlock:
+   * /bike-requests/unlock/pending:
    *   get:
    *     summary: Obtenir demandes de déverrouillage en attente (admin)
    *     tags: [BikeRequests]
@@ -798,7 +798,7 @@ export class BikeRequestController {
 
   /**
    * @swagger
-   * /bike-requests/pending/lock:
+   * /bike-requests/lock/pending:
    *   get:
    *     summary: Obtenir demandes de verrouillage en attente (admin)
    *     tags: [BikeRequests]
@@ -901,7 +901,7 @@ export class BikeRequestController {
    * /bike-requests/reject/{type}/{id}:
    *   post:
    *     summary: Rejeter une demande (admin)
-   *     tags: [BikeRequests, Admin]
+   *     tags: [BikeRequests]
    *     security:
    *       - bearerAuth: []
    *     parameters:
