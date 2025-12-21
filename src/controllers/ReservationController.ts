@@ -7,7 +7,7 @@ export class ReservationController {
   
   /**
    * @swagger
-   * /api/v1/reservations:
+   * /reservations:
    *   post:
    *     summary: Créer une nouvelle réservation
    *     tags: [Reservations]
@@ -53,7 +53,6 @@ export class ReservationController {
         data: reservation
       });
     } catch (error: any) {
-      console.error('Reservation error:', error);
       return res.status(500).json({
         success: false,
         message: error.message
@@ -63,7 +62,7 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/user:
+   * /reservations/user:
    *   get:
    *     summary: Obtenir les réservations de l'utilisateur
    *     tags: [Reservations]
@@ -101,7 +100,7 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/{id}:
+   * /reservations/{id}:
    *   put:
    *     summary: Modifier une réservation
    *     tags: [Reservations]
@@ -146,7 +145,7 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/{id}:
+   * /reservations/{id}:
    *   delete:
    *     summary: Annuler une réservation
    *     tags: [Reservations]
@@ -184,10 +183,10 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations:
+   * /reservations:
    *   get:
    *     summary: Obtenir toutes les réservations (Admin)
-   *     tags: [Reservations, Admin]
+   *     tags: [Reservations]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -229,7 +228,7 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/unlock:
+   * /reservations/unlock:
    *   post:
    *     summary: Demander le déverrouillage d'un vélo
    *     tags: [Reservations]
@@ -271,7 +270,7 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/lock:
+   * /reservations/lock:
    *   post:
    *     summary: Demander le verrouillage d'un vélo
    *     tags: [Reservations]
@@ -313,10 +312,10 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/unlock-requests:
+   * /reservations/unlock-requests:
    *   get:
    *     summary: Obtenir les demandes de déverrouillage (Admin)
-   *     tags: [Reservations, Admin]
+   *     tags: [Reservations]
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -341,10 +340,10 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/unlock-requests/{id}/validate:
+   * /reservations/unlock-requests/{id}/validate:
    *   post:
    *     summary: Valider une demande de déverrouillage (Admin)
-   *     tags: [Reservations, Admin]
+   *     tags: [Reservations]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -389,10 +388,10 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/lock-requests:
+   * /reservations/lock-requests:
    *   get:
    *     summary: Obtenir les demandes de verrouillage (Admin)
-   *     tags: [Reservations, Admin]
+   *     tags: [Reservations]
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -417,10 +416,10 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/lock-requests/{id}/validate:
+   * /reservations/lock-requests/{id}/validate:
    *   post:
    *     summary: Valider une demande de verrouillage (Admin)
-   *     tags: [Reservations, Admin]
+   *     tags: [Reservations]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -465,7 +464,7 @@ export class ReservationController {
 
   /**
    * @swagger
-   * /api/v1/reservations/calculate-with-subscription:
+   * /reservations/calculate-with-subscription:
    *   post:
    *     summary: Calculer le prix avec prise en compte de l'abonnement
    *     tags: [Reservations]

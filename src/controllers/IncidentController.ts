@@ -202,7 +202,6 @@ class IncidentController {
       const { type, description, bikeId } = req.body;
 
       const incident = await prisma.$transaction(async (tx) => {
-        // Créer l'incident
         const newIncident = await tx.incident.create({
           data: {
             userId: req.user?.id!,
@@ -223,7 +222,6 @@ class IncidentController {
           }
         });
 
-        // Mettre en maintenance si problème critique
         const criticalTypes = ['brakes', 'theft', 'physical_damage', 'electronics'];
         if (bikeId && criticalTypes.includes(type)) {
           await tx.bike.update({
@@ -231,7 +229,6 @@ class IncidentController {
             data: { status: 'MAINTENANCE' }
           });
 
-          // Créer log de maintenance
           await tx.maintenanceLog.create({
             data: {
               bikeId,
@@ -241,7 +238,6 @@ class IncidentController {
             }
           });
 
-          // Notifier les admins
           const admins = await tx.user.findMany({
             where: {
               role: { in: ['ADMIN', 'SUPER_ADMIN'] },

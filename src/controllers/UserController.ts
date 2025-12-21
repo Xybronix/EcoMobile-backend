@@ -224,7 +224,7 @@ export class UserController {
    * /users/notifications:
    *   get:
    *     summary: Get user notifications
-   *     tags: [Users, Notifications]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -276,7 +276,7 @@ export class UserController {
    * /users/notifications/{id}/read:
    *   post:
    *     summary: Mark notification as read
-   *     tags: [Users, Notifications]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -323,7 +323,7 @@ export class UserController {
    * /users/notifications/read-all:
    *   post:
    *     summary: Mark all notifications as read
-   *     tags: [Users, Notifications]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -362,7 +362,7 @@ export class UserController {
    * /users/notifications/unread-count:
    *   get:
    *     summary: Get unread notifications count
-   *     tags: [Users, Notifications]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -431,7 +431,7 @@ export class UserController {
    * /users/preferences:
    *   get:
    *     summary: Get user notification preferences
-   *     tags: [Users, Notifications]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -471,7 +471,7 @@ export class UserController {
    * /users/preferences:
    *   put:
    *     summary: Update user notification preferences
-   *     tags: [Users, Notifications]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -530,7 +530,7 @@ export class UserController {
    * /users/push-token:
    *   post:
    *     summary: Register push notification token
-   *     tags: [Users, Notifications]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -600,7 +600,7 @@ export class UserController {
    * /users/push-token:
    *   delete:
    *     summary: Unregister push notification token
-   *     tags: [Users, Notifications]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -645,14 +645,12 @@ export class UserController {
     }
   }
 
-  // ==================== ADMIN ENDPOINTS ====================
-
   /**
    * @swagger
    * /users:
    *   get:
    *     summary: Get all users (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -733,7 +731,7 @@ export class UserController {
    * /users:
    *   post:
    *     summary: Create new user/employee (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -768,7 +766,6 @@ export class UserController {
     try {
       const userData = req.body;
       
-      // Validate required fields
       if (!userData.email || !userData.password || !userData.firstName || !userData.lastName) {
         res.status(400).json({
           success: false,
@@ -812,7 +809,7 @@ export class UserController {
    * /users/{id}:
    *   put:
    *     summary: Update user (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -848,7 +845,6 @@ export class UserController {
       const { id } = req.params;
       const updateData = req.body;
 
-      // Check if user exists
       const existingUser = await UserService.getUserById(id);
       if (!existingUser) {
         res.status(404).json({
@@ -911,7 +907,7 @@ export class UserController {
    * /users/search:
    *   get:
    *     summary: Search users (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -975,7 +971,7 @@ export class UserController {
    * /users/{id}:
    *   get:
    *     summary: Get user by ID (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1031,7 +1027,7 @@ export class UserController {
    * /users/{id}/role:
    *   put:
    *     summary: Update user role (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1108,7 +1104,7 @@ export class UserController {
    * /users/{id}/status:
    *   put:
    *     summary: Toggle user status (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1174,7 +1170,7 @@ export class UserController {
    * /users/{id}:
    *   delete:
    *     summary: Delete user (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1225,7 +1221,7 @@ export class UserController {
    * /users/{id}/stats:
    *   get:
    *     summary: Get detailed user statistics (Admin only)
-   *     tags: [Users, Admin]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1262,7 +1258,7 @@ export class UserController {
    * /users/{id}/subscription/active:
    *   get:
    *     summary: Get user's active subscription (Admin only)
-   *     tags: [Users, Admin, Subscriptions]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1309,7 +1305,7 @@ export class UserController {
    * /users/{id}/incidents:
    *   get:
    *     summary: Get user incidents (Admin only)
-   *     tags: [Users, Admin, Incidents]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1373,7 +1369,7 @@ export class UserController {
    * /users/{id}/rides:
    *   get:
    *     summary: Get user rides (Admin only)
-   *     tags: [Users, Admin, Rides]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1437,7 +1433,7 @@ export class UserController {
    * /users/{id}/transactions:
    *   get:
    *     summary: Get user transactions (Admin only)
-   *     tags: [Users, Admin, Transactions]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1513,7 +1509,7 @@ export class UserController {
    * /users/{id}/requests:
    *   get:
    *     summary: Get user requests (Admin only)
-   *     tags: [Users, Admin, Requests]
+   *     tags: [Users]
    *     security:
    *       - bearerAuth: []
    *     parameters:

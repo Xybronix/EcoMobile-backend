@@ -973,10 +973,6 @@ const options = {
         description: 'Gestion du portefeuille et des transactions'
       },
       {
-        name: 'Payments',
-        description: 'Intégration My-CoolPay pour les paiements'
-      },
-      {
         name: 'Admin',
         description: 'Endpoints d\'administration'
       },
