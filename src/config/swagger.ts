@@ -105,6 +105,14 @@ const options = {
               type: 'number',
               format: 'float'
             },
+            deposit: {
+              type: 'number',
+              format: 'float'
+            },
+            negativeBalance: {
+              type: 'number',
+              format: 'float'
+            },
             createdAt: {
               type: 'string',
               format: 'date-time'
@@ -128,7 +136,7 @@ const options = {
             },
             type: {
               type: 'string',
-              enum: ['DEPOSIT', 'WITHDRAWAL', 'RIDE_PAYMENT', 'REFUND']
+              enum: ['DEPOSIT', 'WITHDRAWAL', 'RIDE_PAYMENT', 'REFUND', 'DEPOSIT_RECHARGE', 'DAMAGE_CHARGE', 'SUBSCRIPTION_PAYMENT']
             },
             amount: {
               type: 'number',
@@ -150,7 +158,39 @@ const options = {
               type: 'string',
               nullable: true
             },
+            paymentProvider: {
+              type: 'string',
+              nullable: true
+            },
+            externalId: {
+              type: 'string',
+              nullable: true
+            },
+            requestedBy: {
+              type: 'string',
+              nullable: true
+            },
+            validatedBy: {
+              type: 'string',
+              nullable: true
+            },
+            validatedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            rejectionReason: {
+              type: 'string',
+              nullable: true
+            },
+            canModify: {
+              type: 'boolean'
+            },
             createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
               type: 'string',
               format: 'date-time'
             }
@@ -186,10 +226,34 @@ const options = {
               format: 'float',
               nullable: true
             },
+            locationName: {
+              type: 'string',
+              nullable: true
+            },
+            equipment: {
+              type: 'object',
+              nullable: true
+            },
+            lastMaintenanceAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
             qrCode: {
               type: 'string'
             },
+            gpsDeviceId: {
+              type: 'string',
+              nullable: true
+            },
+            isActive: {
+              type: 'boolean'
+            },
             createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
               type: 'string',
               format: 'date-time'
             }
@@ -210,6 +274,11 @@ const options = {
               type: 'string',
               format: 'uuid'
             },
+            planId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true
+            },
             startTime: {
               type: 'string',
               format: 'date-time'
@@ -217,6 +286,24 @@ const options = {
             endTime: {
               type: 'string',
               format: 'date-time',
+              nullable: true
+            },
+            startLatitude: {
+              type: 'number',
+              format: 'float'
+            },
+            startLongitude: {
+              type: 'number',
+              format: 'float'
+            },
+            endLatitude: {
+              type: 'number',
+              format: 'float',
+              nullable: true
+            },
+            endLongitude: {
+              type: 'number',
+              format: 'float',
               nullable: true
             },
             distance: {
@@ -236,6 +323,14 @@ const options = {
             status: {
               type: 'string',
               enum: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED']
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
             }
           }
         },
@@ -257,7 +352,7 @@ const options = {
             },
             type: {
               type: 'string',
-              enum: ['brakes', 'battery', 'tire', 'chain', 'lights', 'lock', 'electronics', 'physical_damage', 'other'],
+              enum: ['brakes', 'battery', 'tire', 'chain', 'lights', 'lock', 'electronics', 'physical_damage', 'other']
             },
             description: {
               type: 'string'
@@ -295,7 +390,7 @@ const options = {
             updatedAt: {
               type: 'string',
               format: 'date-time'
-            }, 
+            },
             bike: {
               type: 'object',
               properties: {
@@ -310,6 +405,522 @@ const options = {
                   type: 'string'
                 }
               }
+            }
+          }
+        },
+        ChatMessage: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            message: {
+              type: 'string'
+            },
+            isAdmin: {
+              type: 'boolean'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        Notification: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            title: {
+              type: 'string'
+            },
+            message: {
+              type: 'string'
+            },
+            type: {
+              type: 'string'
+            },
+            isRead: {
+              type: 'boolean'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        Reservation: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            bikeId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            planId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            packageType: {
+              type: 'string'
+            },
+            startDate: {
+              type: 'string',
+              format: 'date-time'
+            },
+            endDate: {
+              type: 'string',
+              format: 'date-time'
+            },
+            status: {
+              type: 'string'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        UnlockRequest: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            bikeId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            reservationId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true
+            },
+            status: {
+              type: 'string',
+              enum: ['PENDING', 'APPROVED', 'REJECTED']
+            },
+            requestedAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            validatedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            rejectedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            validatedBy: {
+              type: 'string',
+              nullable: true
+            },
+            adminNote: {
+              type: 'string',
+              nullable: true
+            },
+            rejectionReason: {
+              type: 'string',
+              nullable: true
+            },
+            metadata: {
+              type: 'object',
+              nullable: true
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            bike: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  format: 'uuid'
+                },
+                code: {
+                  type: 'string'
+                },
+                model: {
+                  type: 'string'
+                }
+              }
+            }
+          }
+        },
+        LockRequest: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            bikeId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            rideId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true
+            },
+            latitude: {
+              type: 'number',
+              format: 'float',
+              nullable: true
+            },
+            longitude: {
+              type: 'number',
+              format: 'float',
+              nullable: true
+            },
+            returnLocation: {
+              type: 'object',
+              nullable: true
+            },
+            status: {
+              type: 'string',
+              enum: ['PENDING', 'APPROVED', 'REJECTED']
+            },
+            requestedAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            validatedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            rejectedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            validatedBy: {
+              type: 'string',
+              nullable: true
+            },
+            adminNote: {
+              type: 'string',
+              nullable: true
+            },
+            rejectionReason: {
+              type: 'string',
+              nullable: true
+            },
+            metadata: {
+              type: 'object',
+              nullable: true
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            bike: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  format: 'uuid'
+                },
+                code: {
+                  type: 'string'
+                },
+                model: {
+                  type: 'string'
+                }
+              }
+            },
+            ride: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  format: 'uuid'
+                },
+                startTime: {
+                  type: 'string',
+                  format: 'date-time'
+                },
+                endTime: {
+                  type: 'string',
+                  format: 'date-time',
+                  nullable: true
+                },
+                cost: {
+                  type: 'number',
+                  format: 'float',
+                  nullable: true
+                }
+              }
+            }
+          }
+        },
+        PricingPlan: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            name: {
+              type: 'string'
+            },
+            type: {
+              type: 'string',
+              enum: ['HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY']
+            },
+            hourlyRate: {
+              type: 'number',
+              format: 'float'
+            },
+            dailyRate: {
+              type: 'number',
+              format: 'float'
+            },
+            weeklyRate: {
+              type: 'number',
+              format: 'float'
+            },
+            monthlyRate: {
+              type: 'number',
+              format: 'float'
+            },
+            minimumHours: {
+              type: 'integer'
+            },
+            discount: {
+              type: 'number',
+              format: 'float'
+            },
+            isActive: {
+              type: 'boolean'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        Review: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid',
+              nullable: true
+            },
+            firstName: {
+              type: 'string'
+            },
+            lastName: {
+              type: 'string'
+            },
+            socialStatus: {
+              type: 'string'
+            },
+            photo: {
+              type: 'string',
+              nullable: true
+            },
+            rating: {
+              type: 'integer'
+            },
+            comment: {
+              type: 'string'
+            },
+            status: {
+              type: 'string',
+              enum: ['PENDING', 'APPROVED', 'REJECTED']
+            },
+            reviewedBy: {
+              type: 'string',
+              nullable: true
+            },
+            reviewedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            moderatorComment: {
+              type: 'string',
+              nullable: true
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        Subscription: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            planId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            type: {
+              type: 'string',
+              enum: ['HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY']
+            },
+            isActive: {
+              type: 'boolean'
+            },
+            startDate: {
+              type: 'string',
+              format: 'date-time'
+            },
+            endDate: {
+              type: 'string',
+              format: 'date-time'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        Session: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            token: {
+              type: 'string'
+            },
+            device: {
+              type: 'string',
+              nullable: true
+            },
+            location: {
+              type: 'string',
+              nullable: true
+            },
+            ipAddress: {
+              type: 'string',
+              nullable: true
+            },
+            userAgent: {
+              type: 'string',
+              nullable: true
+            },
+            isActive: {
+              type: 'boolean'
+            },
+            expiresAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        UserPreferences: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            rideNotifications: {
+              type: 'boolean'
+            },
+            promotionalNotifications: {
+              type: 'boolean'
+            },
+            securityNotifications: {
+              type: 'boolean'
+            },
+            systemNotifications: {
+              type: 'boolean'
+            },
+            emailNotifications: {
+              type: 'boolean'
+            },
+            pushNotifications: {
+              type: 'boolean'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
             }
           }
         }
@@ -330,12 +941,32 @@ const options = {
         description: 'Gestion des utilisateurs'
       },
       {
+        name: 'Reservations',
+        description: 'Gestion des réservations de vélos'
+      },
+      {
         name: 'Bikes',
         description: 'Gestion des vélos'
       },
       {
+        name: 'BikeRequests',
+        description: 'Gestion des demandes de déverrouillage et verrouillage de vélos'
+      },
+      {
         name: 'Rides',
         description: 'Gestion des trajets'
+      },
+      {
+        name: 'Incidents',
+        description: 'Gestion des incidents et réclamations'
+      },
+      {
+        name: 'Maintenance',
+        description: 'Gestion de la maintenance des vélos'
+      },
+      {
+        name: 'Pricing',
+        description: 'Gestion des tarifs et abonnements'
       },
       {
         name: 'Wallet',
@@ -348,6 +979,10 @@ const options = {
       {
         name: 'Admin',
         description: 'Endpoints d\'administration'
+      },
+      {
+        name: 'Reviews',
+        description: 'Gestion des avis et évaluations'
       },
       {
         name: 'Chat',
