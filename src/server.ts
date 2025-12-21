@@ -70,6 +70,7 @@ app.get('/health', (_req: express.Request, res: express.Response) => {
   });
 });
 
+// Root Endpoint
 app.get('/', (_req: express.Request, res: express.Response) => {
   res.json({
     success: true,
@@ -125,6 +126,38 @@ app.post('/api/seed', async (_req: express.Request, res: express.Response): Prom
   }
 });
 
+// Function to create a formatted line with label and value
+const createFormattedLine = (label: string, value: string, totalWidth: number = 61): string => {
+  const prefix = '║   ';
+  const middle = ': ';
+  const labelWithMiddle = `${label}${middle}${value}`;
+  
+  const spacesNeeded = totalWidth - prefix.length - labelWithMiddle.length - 1;
+  
+  return `${prefix}${label}${middle}${value}${' '.repeat(Math.max(0, spacesNeeded))}║`;
+};
+
+// Function to create a title line
+const createTitleLine = (title: string, totalWidth: number = 61): string => {
+  const prefix = '║   ';
+  const spacesNeeded = totalWidth - prefix.length - title.length - 1;
+  
+  return `${prefix}${title}${' '.repeat(Math.max(0, spacesNeeded))}║`;
+};
+
+// Function to create a URL line
+const createUrlLine = (url: string, totalWidth: number = 61): string => {
+  const prefix = '║      ';
+  const spacesNeeded = totalWidth - prefix.length - url.length - 1;
+  
+  return `${prefix}${url}${' '.repeat(Math.max(0, spacesNeeded))}║`;
+};
+
+// Function to create an empty line
+const createEmptyLine = (totalWidth: number = 61): string => {
+  return `║${' '.repeat(totalWidth - 2)}║`;
+};
+
 // Start Server
 const PORT = Number(process.env.PORT || config.port);
 const HOST = '0.0.0.0';
@@ -143,7 +176,7 @@ const startServer = async () => {
       console.log('✅ DatabaseManager connected successfully');
     }
 
-    // 3. IMPORTANT: Charger les routes APRÈS la connexion à la base de données
+    // 3. Load Routes
     const routes = await import('./routes');
     app.use(`/api/${config.apiVersion}`, routes.default);
     console.log('✅ Routes loaded successfully');
@@ -160,22 +193,29 @@ const startServer = async () => {
     app.use(errorHandler);
 
     app.listen(PORT, HOST, () => {
+      const environment = process.env.NODE_ENV || 'development';
+      const portStr = PORT.toString();
+      const hostStr = HOST;
+      const apiVersion = config.apiVersion;
+      const docsUrl = `http://${HOST}:${PORT}/api-docs`;
+      const baseUrl = `http://${HOST}:${PORT}/api/${apiVersion}`;
+
       console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
+${createEmptyLine()}
 ║   🚲 EcoMobile API Server                                 ║
-║                                                           ║
-║   Environment: ${(process.env.NODE_ENV || 'development').padEnd(24)} ║
-║   Port:        ${PORT.toString().padEnd(29)}              ║
-║   Host:        ${HOST.padEnd(29)}                         ║
-║   API Version: ${config.apiVersion.padEnd(31)}            ║
-║                                                           ║
-║   📖 API Documentation:                                   ║
-║      http://${HOST}:${PORT}/api-docs                      ║
-║                                                           ║
-║   🌐 Base URL:                                            ║
-║      http://${HOST}:${PORT}/api/${config.apiVersion.padEnd(23)} ║
-║                                                           ║
+${createEmptyLine()}
+${createFormattedLine('Environment', environment)}
+${createFormattedLine('Port', portStr)}
+${createFormattedLine('Host', hostStr)}
+${createFormattedLine('API Version', apiVersion)}
+${createEmptyLine()}
+${createTitleLine('📖 API Documentation')}
+${createUrlLine(docsUrl)}
+${createEmptyLine()}
+${createTitleLine('🌐 Base URL')}
+${createUrlLine(baseUrl)}
+${createEmptyLine()}
 ╚═══════════════════════════════════════════════════════════╝
       `);
     });
