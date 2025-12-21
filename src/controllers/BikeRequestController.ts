@@ -710,10 +710,10 @@ export class BikeRequestController {
 
   /**
    * @swagger
-   * /bike-requests/admin/pending/{type}:
+   * /bike-requests/pending/{type}:
    *   get:
    *     summary: Obtenir demandes en attente (admin)
-   *     tags: [BikeRequests, Admin]
+   *     tags: [BikeRequests]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -757,10 +757,10 @@ export class BikeRequestController {
 
   /**
    * @swagger
-   * /bike-requests/admin/pending/unlock:
+   * /bike-requests/pending/unlock:
    *   get:
    *     summary: Obtenir demandes de déverrouillage en attente (admin)
-   *     tags: [BikeRequests, Admin]
+   *     tags: [BikeRequests]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -798,10 +798,10 @@ export class BikeRequestController {
 
   /**
    * @swagger
-   * /bike-requests/admin/pending/lock:
+   * /bike-requests/pending/lock:
    *   get:
    *     summary: Obtenir demandes de verrouillage en attente (admin)
-   *     tags: [BikeRequests, Admin]
+   *     tags: [BikeRequests]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -839,10 +839,10 @@ export class BikeRequestController {
 
   /**
    * @swagger
-   * /bike-requests/admin/approve/{type}/{id}:
+   * /bike-requests/approve/{type}/{id}:
    *   post:
    *     summary: Approuver une demande (admin)
-   *     tags: [BikeRequests, Admin]
+   *     tags: [BikeRequests]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -898,7 +898,7 @@ export class BikeRequestController {
 
   /**
    * @swagger
-   * /bike-requests/admin/reject/{type}/{id}:
+   * /bike-requests/reject/{type}/{id}:
    *   post:
    *     summary: Rejeter une demande (admin)
    *     tags: [BikeRequests, Admin]

@@ -8,6 +8,46 @@ import { t } from '../locales';
 export class WalletController {
   /**
    * @swagger
+   * /wallet/balance:
+   *   get:
+   *     summary: Get wallet balance
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Balance retrieved successfully
+   */
+  async getBalance(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const balance = await WalletService.getBalance(userId);
+
+      await logActivity(
+        userId,
+        'VIEW',
+        'WALLET_BALANCE',
+        '',
+        'Viewed wallet balance',
+        { balance: balance.balance },
+        req
+      );
+      
+      res.json({
+        success: true,
+        message: t('wallet.balance_retrieved', req.language),
+        data: balance
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
    * /wallet/current-subscription:
    *   get:
    *     summary: Get current active subscription
@@ -60,35 +100,38 @@ export class WalletController {
 
   /**
    * @swagger
-   * /wallet/balance:
+   * /wallet/stats:
    *   get:
-   *     summary: Get wallet balance
+   *     summary: Get wallet statistics
    *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     responses:
    *       200:
-   *         description: Balance retrieved successfully
+   *         description: Statistics retrieved
    */
-  async getBalance(req: AuthRequest, res: express.Response) {
+  async getStats(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
-      const balance = await WalletService.getBalance(userId);
+      const stats = await WalletService.getWalletStats(userId);
 
       await logActivity(
         userId,
         'VIEW',
-        'WALLET_BALANCE',
+        'WALLET_STATS',
         '',
-        'Viewed wallet balance',
-        { balance: balance.balance },
+        'Viewed wallet statistics',
+        { 
+          totalDeposits: stats.totalDeposited, 
+          totalSpent: stats.totalSpent,
+          currentBalance: stats.currentBalance
+        },
         req
       );
-      
+
       res.json({
         success: true,
-        message: t('wallet.balance_retrieved', req.language),
-        data: balance
+        data: stats
       });
     } catch (error: any) {
       res.status(500).json({
@@ -111,11 +154,13 @@ export class WalletController {
    *         name: page
    *         schema:
    *           type: integer
+   *           default: 1
    *         description: Page number
    *       - in: query
    *         name: limit
    *         schema:
    *           type: integer
+   *           default: 20
    *         description: Items per page
    *     responses:
    *       200:
@@ -166,6 +211,7 @@ export class WalletController {
    *         required: true
    *         schema:
    *           type: string
+   *         description: Transaction ID
    *     responses:
    *       200:
    *         description: Transaction retrieved
@@ -201,49 +247,6 @@ export class WalletController {
 
   /**
    * @swagger
-   * /wallet/stats:
-   *   get:
-   *     summary: Get wallet statistics
-   *     tags: [Wallet]
-   *     security:
-   *       - bearerAuth: []
-   *     responses:
-   *       200:
-   *         description: Statistics retrieved
-   */
-  async getStats(req: AuthRequest, res: express.Response) {
-    try {
-      const userId = req.user!.id;
-      const stats = await WalletService.getWalletStats(userId);
-
-      await logActivity(
-        userId,
-        'VIEW',
-        'WALLET_STATS',
-        '',
-        'Viewed wallet statistics',
-        { 
-          totalDeposits: stats.totalDeposited, 
-          totalSpent: stats.totalSpent,
-          currentBalance: stats.currentBalance
-        },
-        req
-      );
-
-      res.json({
-        success: true,
-        data: stats
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * @swagger
    * /wallet/deposit/calculate-fees:
    *   post:
    *     summary: Calculate deposit fees
@@ -256,9 +259,13 @@ export class WalletController {
    *         application/json:
    *           schema:
    *             type: object
+   *             required:
+   *               - amount
    *             properties:
    *               amount:
    *                 type: number
+   *                 description: Deposit amount in FCFA
+   *                 example: 5000
    *     responses:
    *       200:
    *         description: Fees calculated
@@ -308,7 +315,7 @@ export class WalletController {
    * /wallet/deposit:
    *   post:
    *     summary: Initiate wallet deposit
-   *     tags: [Wallet, Payments]
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -320,19 +327,21 @@ export class WalletController {
    *             required:
    *               - amount
    *               - paymentMethod
-   *               - phoneNumber
    *             properties:
    *               amount:
    *                 type: number
    *                 example: 5000
    *               paymentMethod:
    *                 type: string
-   *                 enum: [ORANGE_MONEY, MOMO]
+   *                 enum: [ORANGE_MONEY, MOMO, CASH]
+   *                 description: Payment method to use
    *               phoneNumber:
    *                 type: string
    *                 example: '+237600000000'
+   *                 description: Required for mobile money payments
    *               description:
    *                 type: string
+   *                 description: Optional description for the deposit
    *     responses:
    *       200:
    *         description: Deposit initiated
@@ -429,155 +438,10 @@ export class WalletController {
 
   /**
    * @swagger
-   * /wallet/payment/callback:
-   *   post:
-   *     summary: Handle payment callback from My-CoolPay
-   *     tags: [Payments]
-   *     requestBody:
-   *       required: true
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *     responses:
-   *       200:
-   *         description: Callback processed
-   */
-  async handlePaymentCallback(req: AuthRequest, res: express.Response) {
-    try {
-      const callbackData = req.body;
-      await PaymentService.handlePaymentCallback(callbackData);
-
-      await logActivity(
-        null,
-        'UPDATE',
-        'PAYMENT_CALLBACK',
-        callbackData.transactionId || '',
-        'Processed payment callback',
-        { 
-          transactionId: callbackData.transactionId,
-          status: callbackData.status,
-          amount: callbackData.amount
-        },
-        req
-      );
-
-      res.json({
-        success: true,
-        message: 'Callback processed'
-      });
-    } catch (error: any) {
-      console.error('Callback error:', error);
-      
-      await logActivity(
-        null,
-        'ERROR',
-        'PAYMENT_CALLBACK',
-        req.body.transactionId || '',
-        'Payment callback processing failed',
-        { error: error.message, callbackData: req.body },
-        req
-      );
-
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * @swagger
-   * /wallet/payment/verify/{transactionId}:
-   *   get:
-   *     summary: Verify payment status
-   *     tags: [Payments]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: transactionId
-   *         required: true
-   *         schema:
-   *           type: string
-   *     responses:
-   *       200:
-   *         description: Payment status retrieved
-   */
-  async verifyPayment(req: AuthRequest, res: express.Response) {
-    try {
-      const { transactionId } = req.params;
-      const status = await PaymentService.verifyPayment(transactionId);
-
-      await logActivity(
-        req.user!.id,
-        'VIEW',
-        'PAYMENT_STATUS',
-        transactionId,
-        'Verified payment status',
-        { transactionId, status: status.status },
-        req
-      );
-
-      res.json({
-        success: true,
-        data: status
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * @swagger
-   * /wallet/payment-methods:
-   *   get:
-   *     summary: Get available payment methods
-   *     description: Retrieve list of supported payment methods for wallet deposits
-   *     tags: [Wallet, Payments]
-   *     security:
-   *       - bearerAuth: []
-   *     responses:
-   *       200:
-   *         description: Payment methods retrieved successfully
-   */
-  async getPaymentMethods(req: AuthRequest, res: express.Response) {
-    try {
-      const paymentMethods = await WalletService.getPaymentMethods(req.language);
-
-      await logActivity(
-        req.user!.id,
-        'VIEW',
-        'PAYMENT_METHODS',
-        '',
-        'Viewed available payment methods',
-        { methodsCount: paymentMethods.length },
-        req
-      );
-      
-      res.json({
-        success: true,
-        message: t('payment.methods_retrieved', req.language),
-        data: paymentMethods
-      });
-    } catch (error: any) {
-      console.error('Error getting payment methods:', error);
-      res.status(500).json({
-        success: false,
-        message: t('common.server_error', req.language)
-      });
-    }
-  }
-
-  /**
-   * @swagger
    * /wallet/deposit/cash:
    *   post:
    *     summary: Request cash deposit
-   *     tags: [Wallet, Cash]
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     requestBody:
@@ -591,7 +455,9 @@ export class WalletController {
    *             properties:
    *               amount:
    *                 type: number
+   *                 minimum: 500
    *                 example: 5000
+   *                 description: Minimum amount is 500 FCFA
    *               description:
    *                 type: string
    *     responses:
@@ -653,7 +519,7 @@ export class WalletController {
    * /wallet/deposit/cash/{id}:
    *   put:
    *     summary: Update cash deposit request amount
-   *     tags: [Wallet, Cash]
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -662,6 +528,7 @@ export class WalletController {
    *         required: true
    *         schema:
    *           type: string
+   *         description: Cash deposit request ID
    *     requestBody:
    *       required: true
    *       content:
@@ -673,6 +540,7 @@ export class WalletController {
    *             properties:
    *               amount:
    *                 type: number
+   *                 minimum: 500
    *     responses:
    *       200:
    *         description: Cash deposit request updated
@@ -713,7 +581,7 @@ export class WalletController {
    * /wallet/deposit/cash/{id}:
    *   delete:
    *     summary: Cancel cash deposit request
-   *     tags: [Wallet, Cash]
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -722,6 +590,7 @@ export class WalletController {
    *         required: true
    *         schema:
    *           type: string
+   *         description: Cash deposit request ID
    *     responses:
    *       200:
    *         description: Cash deposit request cancelled
@@ -756,7 +625,16 @@ export class WalletController {
   }
 
   /**
-   * Get deposit information
+   * @swagger
+   * /wallet/deposit-info:
+   *   get:
+   *     summary: Get deposit information
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Deposit information retrieved
    */
   async getDepositInfo(req: AuthRequest, res: express.Response) {
     try {
@@ -786,7 +664,29 @@ export class WalletController {
   }
 
   /**
-   * Recharge deposit
+   * @swagger
+   * /wallet/recharge-deposit:
+   *   post:
+   *     summary: Recharge deposit
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - amount
+   *             properties:
+   *               amount:
+   *                 type: number
+   *                 description: Amount to add to deposit
+   *                 example: 10000
+   *     responses:
+   *       200:
+   *         description: Deposit recharged successfully
    */
   async rechargeDeposit(req: AuthRequest, res: express.Response) {
     try {
@@ -826,39 +726,183 @@ export class WalletController {
   }
 
   /**
-   * Charge user for damage (Admin only)
+   * @swagger
+   * /wallet/payment-methods:
+   *   get:
+   *     summary: Get available payment methods
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Payment methods retrieved successfully
    */
-  async chargeDamage(req: AuthRequest, res: express.Response) {
+  async getPaymentMethods(req: AuthRequest, res: express.Response) {
     try {
-      const { userId, amount, description, images } = req.body;
-      const adminId = req.user!.id;
-
-      if (!userId || !amount || !description) {
-        return res.status(400).json({
-          success: false,
-          message: 'Données manquantes'
-        });
-      }
-
-      const result = await WalletService.chargeDamage(userId, amount, description, images, adminId);
+      const paymentMethods = await WalletService.getPaymentMethods(req.language);
 
       await logActivity(
-        adminId,
-        'CREATE',
-        'DAMAGE_CHARGE',
-        result.transaction.id,
-        `Charged ${amount} FCFA for damage to user ${userId}`,
-        { userId, amount, description },
+        req.user!.id,
+        'VIEW',
+        'PAYMENT_METHODS',
+        '',
+        'Viewed available payment methods',
+        { methodsCount: paymentMethods.length },
+        req
+      );
+      
+      res.json({
+        success: true,
+        message: t('payment.methods_retrieved', req.language),
+        data: paymentMethods
+      });
+    } catch (error: any) {
+      console.error('Error getting payment methods:', error);
+      res.status(500).json({
+        success: false,
+        message: t('common.server_error', req.language)
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/payment/callback:
+   *   post:
+   *     summary: Handle payment callback from My-CoolPay
+   *     tags: [Wallet]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               transactionId:
+   *                 type: string
+   *               status:
+   *                 type: string
+   *                 enum: [SUCCESS, FAILED, PENDING]
+   *               amount:
+   *                 type: number
+   *               reference:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Callback processed
+   */
+  async handlePaymentCallback(req: AuthRequest, res: express.Response) {
+    try {
+      const callbackData = req.body;
+      await PaymentService.handlePaymentCallback(callbackData);
+
+      await logActivity(
+        null,
+        'UPDATE',
+        'PAYMENT_CALLBACK',
+        callbackData.transactionId || '',
+        'Processed payment callback',
+        { 
+          transactionId: callbackData.transactionId,
+          status: callbackData.status,
+          amount: callbackData.amount
+        },
         req
       );
 
-      return res.json({
+      res.json({
         success: true,
-        message: 'Frais de dégâts appliqués avec succès',
-        data: result
+        message: 'Callback processed'
       });
     } catch (error: any) {
-      return res.status(400).json({
+      console.error('Callback error:', error);
+      
+      await logActivity(
+        null,
+        'ERROR',
+        'PAYMENT_CALLBACK',
+        req.body.transactionId || '',
+        'Payment callback processing failed',
+        { error: error.message, callbackData: req.body },
+        req
+      );
+
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/payment/verify/{transactionId}:
+   *   get:
+   *     summary: Verify payment status
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: transactionId
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Payment transaction ID
+   *     responses:
+   *       200:
+   *         description: Payment status retrieved
+   */
+  async verifyPayment(req: AuthRequest, res: express.Response) {
+    try {
+      const { transactionId } = req.params;
+      const status = await PaymentService.verifyPayment(transactionId);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'PAYMENT_STATUS',
+        transactionId,
+        'Verified payment status',
+        { transactionId, status: status.status },
+        req
+      );
+
+      res.json({
+        success: true,
+        data: status
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/reports:
+   *   get:
+   *     summary: Get user reports
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: User reports retrieved
+   */
+  async getUserReports(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const reports = await WalletService.getUserReports(userId);
+
+      res.json({
+        success: true,
+        data: reports
+      });
+    } catch (error: any) {
+      res.status(500).json({
         success: false,
         message: error.message
       });
@@ -870,7 +914,8 @@ export class WalletController {
    * /wallet/admin/transactions:
    *   get:
    *     summary: Get all transactions (Admin only)
-   *     tags: [Wallet, Admin]
+   *     description: Retrieve all transactions with filtering options for administrators
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -878,30 +923,43 @@ export class WalletController {
    *         name: page
    *         schema:
    *           type: integer
+   *           default: 1
+   *         description: Page number
    *       - in: query
    *         name: limit
    *         schema:
    *           type: integer
+   *           default: 20
+   *         description: Items per page
    *       - in: query
    *         name: type
    *         schema:
    *           type: string
+   *           enum: [DEPOSIT, WITHDRAWAL, SUBSCRIPTION, DAMAGE_CHARGE, REFUND]
+   *         description: Filter by transaction type
    *       - in: query
    *         name: status
    *         schema:
    *           type: string
+   *           enum: [PENDING, SUCCESS, FAILED, CANCELLED]
+   *         description: Filter by transaction status
    *       - in: query
    *         name: userId
    *         schema:
    *           type: string
+   *         description: Filter by user ID
    *       - in: query
    *         name: dateFrom
    *         schema:
    *           type: string
+   *           format: date
+   *         description: Filter from date (YYYY-MM-DD)
    *       - in: query
    *         name: dateTo
    *         schema:
    *           type: string
+   *           format: date
+   *         description: Filter to date (YYYY-MM-DD)
    *     responses:
    *       200:
    *         description: Transactions retrieved
@@ -944,10 +1002,11 @@ export class WalletController {
 
   /**
    * @swagger
-   * /wallet/admin/cash-deposits/{id}/validate:
-   *   post:
-   *     summary: Validate cash deposit request (Admin only)
-   *     tags: [Wallet, Admin, Cash]
+   * /wallet/admin/transactions/{id}:
+   *   get:
+   *     summary: Get transaction details (Admin only)
+   *     description: Retrieve detailed information about a specific transaction
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -956,6 +1015,53 @@ export class WalletController {
    *         required: true
    *         schema:
    *           type: string
+   *         description: Transaction ID
+   *     responses:
+   *       200:
+   *         description: Transaction details retrieved
+   */
+  async getAdminTransactionById(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const transaction = await WalletService.getTransactionByIdAdmin(id);
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'ADMIN_TRANSACTION_DETAILS',
+        id,
+        'Viewed transaction details',
+        { transactionId: id, userId: transaction.wallet.userId },
+        req
+      );
+
+      res.json({
+        success: true,
+        data: transaction
+      });
+    } catch (error: any) {
+      res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/admin/cash-deposits/{id}/validate:
+   *   post:
+   *     summary: Validate cash deposit request (Admin only)
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Cash deposit request ID
    *     requestBody:
    *       content:
    *         application/json:
@@ -964,6 +1070,7 @@ export class WalletController {
    *             properties:
    *               adminNote:
    *                 type: string
+   *                 description: Optional note from admin
    *     responses:
    *       200:
    *         description: Cash deposit validated
@@ -1008,7 +1115,7 @@ export class WalletController {
    * /wallet/admin/cash-deposits/{id}/reject:
    *   post:
    *     summary: Reject cash deposit request (Admin only)
-   *     tags: [Wallet, Admin, Cash]
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1017,6 +1124,7 @@ export class WalletController {
    *         required: true
    *         schema:
    *           type: string
+   *         description: Cash deposit request ID
    *     requestBody:
    *       required: true
    *       content:
@@ -1028,6 +1136,7 @@ export class WalletController {
    *             properties:
    *               reason:
    *                 type: string
+   *                 description: Reason for rejection
    *     responses:
    *       200:
    *         description: Cash deposit rejected
@@ -1074,13 +1183,13 @@ export class WalletController {
       });
     }
   }
-  
+
   /**
    * @swagger
    * /wallet/admin/stats:
    *   get:
    *     summary: Get global wallet statistics (Admin only)
-   *     tags: [Wallet, Admin]
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -1119,75 +1228,10 @@ export class WalletController {
 
   /**
    * @swagger
-   * /wallet/admin/transactions/{id}:
-   *   get:
-   *     summary: Get transaction details (Admin only)
-   *     tags: [Wallet, Admin]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         schema:
-   *           type: string
-   *     responses:
-   *       200:
-   *         description: Transaction details retrieved
-   */
-  async getAdminTransactionById(req: AuthRequest, res: express.Response): Promise<void> {
-    try {
-      const { id } = req.params;
-      const transaction = await WalletService.getTransactionByIdAdmin(id);
-
-      await logActivity(
-        req.user!.id,
-        'VIEW',
-        'ADMIN_TRANSACTION_DETAILS',
-        id,
-        'Viewed transaction details',
-        { transactionId: id, userId: transaction.wallet.userId },
-        req
-      );
-
-      res.json({
-        success: true,
-        data: transaction
-      });
-    } catch (error: any) {
-      res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * Get user reports
-   */
-  async getUserReports(req: AuthRequest, res: express.Response) {
-    try {
-      const userId = req.user!.id;
-      const reports = await WalletService.getUserReports(userId);
-
-      res.json({
-        success: true,
-        data: reports
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * @swagger
    * /wallet/admin/user/{userId}/balance:
    *   get:
    *     summary: Get user wallet balance (Admin only)
-   *     tags: [Wallet, Admin]
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1196,6 +1240,7 @@ export class WalletController {
    *         required: true
    *         schema:
    *           type: string
+   *         description: User ID
    *     responses:
    *       200:
    *         description: User wallet balance retrieved
@@ -1243,7 +1288,7 @@ export class WalletController {
    * /wallet/admin/user/{userId}/deposit-info:
    *   get:
    *     summary: Get user deposit info (Admin only)
-   *     tags: [Wallet, Admin]
+   *     tags: [Wallet]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -1252,6 +1297,7 @@ export class WalletController {
    *         required: true
    *         schema:
    *           type: string
+   *         description: User ID
    *     responses:
    *       200:
    *         description: User deposit info retrieved
@@ -1288,6 +1334,80 @@ export class WalletController {
       });
     } catch (error: any) {
       res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /wallet/admin/charge-damage:
+   *   post:
+   *     summary: Charge user for damage (Admin only)
+   *     tags: [Wallet]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - userId
+   *               - amount
+   *               - description
+   *             properties:
+   *               userId:
+   *                 type: string
+   *                 description: ID of the user to charge
+   *               amount:
+   *                 type: number
+   *                 description: Damage charge amount
+   *               description:
+   *                 type: string
+   *                 description: Description of the damage
+   *               images:
+   *                 type: array
+   *                 items:
+   *                   type: string
+   *                 description: Optional image URLs as evidence
+   *     responses:
+   *       200:
+   *         description: Damage charges applied successfully
+   */
+  async chargeDamage(req: AuthRequest, res: express.Response) {
+    try {
+      const { userId, amount, description, images } = req.body;
+      const adminId = req.user!.id;
+
+      if (!userId || !amount || !description) {
+        return res.status(400).json({
+          success: false,
+          message: 'Données manquantes'
+        });
+      }
+
+      const result = await WalletService.chargeDamage(userId, amount, description, images, adminId);
+
+      await logActivity(
+        adminId,
+        'CREATE',
+        'DAMAGE_CHARGE',
+        result.transaction.id,
+        `Charged ${amount} FCFA for damage to user ${userId}`,
+        { userId, amount, description },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: 'Frais de dégâts appliqués avec succès',
+        data: result
+      });
+    } catch (error: any) {
+      return res.status(400).json({
         success: false,
         message: error.message
       });

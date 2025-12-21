@@ -169,7 +169,7 @@ export class ChatController {
    * /chat/conversations:
    *   get:
    *     summary: Get all chat conversations (Admin only)
-   *     tags: [Chat, Admin]
+   *     tags: [Chat]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -208,7 +208,6 @@ export class ChatController {
         data: result
       });
     } catch (error: any) {
-      console.error('Error in getAllConversations:', error);
       res.status(500).json({
         success: false,
         message: error.message
@@ -221,7 +220,7 @@ export class ChatController {
    * /chat/users/{userId}/messages:
    *   get:
    *     summary: Get messages for a specific user (Admin only)
-   *     tags: [Chat, Admin]
+   *     tags: [Chat]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -266,7 +265,6 @@ export class ChatController {
         data: result
       });
     } catch (error: any) {
-      console.error('Error in getUserMessagesAsAdmin:', error);
       res.status(500).json({
         success: false,
         message: error.message
@@ -279,7 +277,7 @@ export class ChatController {
    * /chat/users/{userId}/messages:
    *   post:
    *     summary: Send message as admin to user
-   *     tags: [Chat, Admin]
+   *     tags: [Chat]
    *     security:
    *       - bearerAuth: []
    *     parameters:
@@ -334,7 +332,6 @@ export class ChatController {
         data: chatMessage
       });
     } catch (error: any) {
-      console.error('Error in sendMessageAsAdmin:', error);
       res.status(500).json({
         success: false,
         message: error.message

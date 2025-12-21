@@ -4,6 +4,18 @@ import SubscriptionService from '../services/SubscriptionService';
 import { SubscriptionType } from '@prisma/client';
 
 class SubscriptionController {
+  /**
+   * @swagger
+   * /subscriptions/plans:
+   *   get:
+   *     summary: Get available subscription plans
+   *     tags: [Subscriptions]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: List of available subscription plans
+   */
   async getAvailablePlans(_req: AuthRequest, res: express.Response) {
     try {
       const plans = await SubscriptionService.getAvailablePlans();
@@ -20,6 +32,18 @@ class SubscriptionController {
     }
   }
 
+  /**
+   * @swagger
+   * /subscriptions/current:
+   *   get:
+   *     summary: Get current active subscription
+   *     tags: [Subscriptions]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Current subscription details
+   */
   async getCurrentSubscription(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
@@ -45,6 +69,42 @@ class SubscriptionController {
     }
   }
 
+  /**
+   * @swagger
+   * /subscriptions/subscribe:
+   *   post:
+   *     summary: Subscribe to a plan
+   *     tags: [Subscriptions]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - planId
+   *               - packageType
+   *             properties:
+   *               planId:
+   *                 type: string
+   *                 description: ID of the plan to subscribe to
+   *                 example: "plan_123456789"
+   *               packageType:
+   *                 type: string
+   *                 enum: [daily, weekly, monthly]
+   *                 description: Subscription frequency
+   *                 example: "monthly"
+   *               startDate:
+   *                 type: string
+   *                 format: date-time
+   *                 description: Optional start date (defaults to now)
+   *                 example: "2024-01-01T00:00:00.000Z"
+   *     responses:
+   *       201:
+   *         description: Subscription created successfully
+   */
   async subscribe(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
@@ -97,6 +157,25 @@ class SubscriptionController {
     }
   }
 
+  /**
+   * @swagger
+   * /subscriptions/{id}/cancel:
+   *   post:
+   *     summary: Cancel a subscription
+   *     tags: [Subscriptions]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *         description: Subscription ID to cancel
+   *     responses:
+   *       200:
+   *         description: Subscription cancelled successfully
+   */
   async cancelSubscription(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;

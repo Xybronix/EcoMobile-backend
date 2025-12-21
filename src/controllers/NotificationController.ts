@@ -73,7 +73,6 @@ class NotificationController {
         },
       });
     } catch (error) {
-      console.error('Error getting notifications:', error);
       res.status(500).json({
         success: false,
         message: t('error.internal_server', req.language || 'fr'),
@@ -104,7 +103,6 @@ class NotificationController {
         data: { unreadCount },
       });
     } catch (error) {
-      console.error('Error getting unread count:', error);
       res.json({
         success: true,
         data: { unreadCount: 0 },
@@ -159,7 +157,6 @@ class NotificationController {
         data: notification,
       });
     } catch (error) {
-      console.error('Error marking notification as read:', error);
       res.status(500).json({
         success: false,
         message: t('error.internal_server', req.language || 'fr'),
@@ -201,7 +198,6 @@ class NotificationController {
         data: { count },
       });
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
       res.status(500).json({
         success: false,
         message: t('error.internal_server', req.language || 'fr'),
@@ -256,7 +252,6 @@ class NotificationController {
         message: t('notification.deleted', req.language || 'fr'),
       });
     } catch (error) {
-      console.error('Error deleting notification:', error);
       res.status(500).json({
         success: false,
         message: t('error.internal_server', req.language || 'fr'),
@@ -319,7 +314,6 @@ class NotificationController {
         message: `${notificationIds.length} notifications supprimées`,
       });
     } catch (error) {
-      console.error('Error bulk deleting notifications:', error);
       res.status(500).json({
         success: false,
         message: t('error.internal_server', req.language || 'fr'),
@@ -332,7 +326,7 @@ class NotificationController {
    * @swagger
    * /admin/notifications/send-promotion:
    *   post:
-   *     tags: [Admin, Notifications]
+   *     tags: [Notifications]
    *     summary: Send promotional notification and email to users
    *     security:
    *       - bearerAuth: []
@@ -381,8 +375,6 @@ class NotificationController {
         return;
       }
 
-      // If userIds is empty, we need to fetch all user IDs
-      // For now, we'll require userIds to be provided
       if (!userIds || userIds.length === 0) {
         res.status(400).json({
           success: false,
@@ -398,10 +390,8 @@ class NotificationController {
         ctaUrl,
       };
 
-      // If sendEmail is true, we need user email data
       let userEmails;
       if (sendEmail) {
-        // Fetch user emails from database
         const { prisma } = await import('../config/prisma');
         const users = await prisma.user.findMany({
           where: {
@@ -419,7 +409,7 @@ class NotificationController {
           userId: user.id,
           email: user.email,
           firstName: user.firstName,
-          lang: 'fr' as 'en' | 'fr', // Default to French, could be extended
+          lang: 'fr' as 'en' | 'fr',
         }));
       }
 
@@ -453,7 +443,6 @@ class NotificationController {
         data: result,
       });
     } catch (error) {
-      console.error('Error sending promotion:', error);
       res.status(500).json({
         success: false,
         message: t('error.internal_server', req.language || 'fr'),
@@ -466,7 +455,7 @@ class NotificationController {
    * @swagger
    * /admin/notifications/send-bulk-email:
    *   post:
-   *     tags: [Admin, Notifications]
+   *     tags: [Notifications]
    *     summary: Send bulk email to multiple users
    *     security:
    *       - bearerAuth: []
@@ -504,7 +493,6 @@ class NotificationController {
     try {
       const { emails, subject, title, message, ctaUrl, ctaText } = req.body;
 
-      // Validate input
       if (!emails || emails.length === 0 || !subject || !title || !message) {
         res.status(400).json({
           success: false,
@@ -516,7 +504,6 @@ class NotificationController {
       const EmailService = (await import('../services/EmailService')).default;
       const emailService = new EmailService();
 
-      // Generate HTML for each email
       const html = `
 <!DOCTYPE html>
 <html>
@@ -590,7 +577,6 @@ class NotificationController {
         },
       });
     } catch (error) {
-      console.error('Error sending bulk email:', error);
       res.status(500).json({
         success: false,
         message: t('error.internal_server', req.language || 'fr'),
