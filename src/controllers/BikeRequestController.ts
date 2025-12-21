@@ -589,6 +589,53 @@ export class BikeRequestController {
 
   /**
    * @swagger
+   * /bike-requests/{type}/pending:
+   *   get:
+   *     summary: Obtenir demandes en attente (admin)
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: type
+   *         required: true
+   *         schema:
+   *           type: string
+   *           enum: [unlock, lock]
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: Liste des demandes en attente
+   */
+  async getPendingRequests(req: AuthRequest, res: express.Response) {
+    try {
+      const type = req.params.type as 'unlock' | 'lock';
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const result = await BikeRequestService.getPendingRequests(type, page, limit);
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
    * /bike-requests/{type}/{id}:
    *   get:
    *     summary: Obtenir une demande spécifique par ID
@@ -702,135 +749,6 @@ export class BikeRequestController {
       });
     } catch (error: any) {
       return res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * @swagger
-   * /bike-requests/{type}/pending:
-   *   get:
-   *     summary: Obtenir demandes en attente (admin)
-   *     tags: [BikeRequests]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: path
-   *         name: type
-   *         required: true
-   *         schema:
-   *           type: string
-   *           enum: [unlock, lock]
-   *       - in: query
-   *         name: page
-   *         schema:
-   *           type: integer
-   *       - in: query
-   *         name: limit
-   *         schema:
-   *           type: integer
-   *     responses:
-   *       200:
-   *         description: Liste des demandes en attente
-   */
-  async getPendingRequests(req: AuthRequest, res: express.Response) {
-    try {
-      const type = req.params.type as 'unlock' | 'lock';
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-
-      const result = await BikeRequestService.getPendingRequests(type, page, limit);
-
-      res.json({
-        success: true,
-        data: result
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * @swagger
-   * /bike-requests/unlock/pending:
-   *   get:
-   *     summary: Obtenir demandes de déverrouillage en attente (admin)
-   *     tags: [BikeRequests]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: query
-   *         name: page
-   *         schema:
-   *           type: integer
-   *       - in: query
-   *         name: limit
-   *         schema:
-   *           type: integer
-   *     responses:
-   *       200:
-   *         description: Liste des demandes de déverrouillage en attente
-   */
-  async getPendingUnlockRequests(req: AuthRequest, res: express.Response) {
-    try {
-      const type = 'unlock';
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-
-      const result = await BikeRequestService.getPendingRequests(type, page, limit);
-
-      res.json({
-        success: true,
-        data: result
-      });
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
-    }
-  }
-
-  /**
-   * @swagger
-   * /bike-requests/lock/pending:
-   *   get:
-   *     summary: Obtenir demandes de verrouillage en attente (admin)
-   *     tags: [BikeRequests]
-   *     security:
-   *       - bearerAuth: []
-   *     parameters:
-   *       - in: query
-   *         name: page
-   *         schema:
-   *           type: integer
-   *       - in: query
-   *         name: limit
-   *         schema:
-   *           type: integer
-   *     responses:
-   *       200:
-   *         description: Liste des demandes de verrouillage en attente
-   */
-  async getPendingLockRequests(req: AuthRequest, res: express.Response) {
-    try {
-      const type = 'lock';
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-
-      const result = await BikeRequestService.getPendingRequests(type, page, limit);
-
-      res.json({
-        success: true,
-        data: result
-      });
-    } catch (error: any) {
-      res.status(500).json({
         success: false,
         message: error.message
       });
