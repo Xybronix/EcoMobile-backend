@@ -1,11 +1,33 @@
 import express from 'express';
-import { AuthRequest, logActivity } from '../middleware/auth';
-import BikeRequestService from '../services/BikeRequestService';
 import { prisma } from '../config/prisma';
+import BikeRequestService from '../services/BikeRequestService';
+import { AuthRequest, logActivity } from '../middleware/auth';
 
 export class BikeRequestController {
   /**
-   * Créer demande de déverrouillage
+   * @swagger
+   * /bike-requests/unlock:
+   *   post:
+   *     summary: Créer une demande de déverrouillage
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - bikeId
+   *             properties:
+   *               bikeId:
+   *                 type: string
+   *               metadata:
+   *                 type: object
+   *     responses:
+   *       200:
+   *         description: Demande de déverrouillage créée
    */
   async createUnlockRequest(req: AuthRequest, res: express.Response) {
     try {
@@ -45,7 +67,33 @@ export class BikeRequestController {
   }
 
   /**
-   * Créer demande de verrouillage
+   * @swagger
+   * /bike-requests/lock:
+   *   post:
+   *     summary: Créer une demande de verrouillage
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - bikeId
+   *             properties:
+   *               bikeId:
+   *                 type: string
+   *               rideId:
+   *                 type: string
+   *               location:
+   *                 type: object
+   *               metadata:
+   *                 type: object
+   *     responses:
+   *       200:
+   *         description: Demande de verrouillage créée
    */
   async createLockRequest(req: AuthRequest, res: express.Response) {
     try {
@@ -78,7 +126,22 @@ export class BikeRequestController {
   }
 
   /**
-   * Supprimer une demande de déverrouillage
+   * @swagger
+   * /bike-requests/unlock/{id}:
+   *   delete:
+   *     summary: Supprimer une demande de déverrouillage
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Demande supprimée
    */
   async deleteUnlockRequest(req: AuthRequest, res: express.Response) {
     try {
@@ -127,7 +190,22 @@ export class BikeRequestController {
   }
 
   /**
-   * Supprimer une demande de verrouillage
+   * @swagger
+   * /bike-requests/lock/{id}:
+   *   delete:
+   *     summary: Supprimer une demande de verrouillage
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Demande supprimée
    */
   async deleteLockRequest(req: AuthRequest, res: express.Response) {
     try {
@@ -176,7 +254,25 @@ export class BikeRequestController {
   }
 
   /**
-   * Obtenir les demandes de déverrouillage de l'utilisateur
+   * @swagger
+   * /bike-requests/unlock:
+   *   get:
+   *     summary: Obtenir les demandes de déverrouillage de l'utilisateur
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: Liste des demandes de déverrouillage
    */
   async getUserUnlockRequests(req: AuthRequest, res: express.Response) {
     try {
@@ -196,7 +292,6 @@ export class BikeRequestController {
                 model: true
               }
             }
-            // validatedByUser n'existe pas dans le schéma, on utilise validatedBy qui est un string
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -205,7 +300,6 @@ export class BikeRequestController {
         prisma.unlockRequest.count({ where: { userId } })
       ]);
 
-      // Récupérer les informations des validateurs si nécessaire
       const validatedByUserIds = requests
         .filter(req => req.validatedBy)
         .map(req => req.validatedBy) as string[];
@@ -223,7 +317,6 @@ export class BikeRequestController {
         return acc;
       }, {} as Record<string, any>);
 
-      // Enrichir les demandes avec les informations des validateurs
       const enrichedRequests = requests.map(request => ({
         ...request,
         validatedByUser: request.validatedBy ? validatorMap[request.validatedBy] : null
@@ -258,7 +351,25 @@ export class BikeRequestController {
   }
 
   /**
-   * Obtenir les demandes de verrouillage de l'utilisateur
+   * @swagger
+   * /bike-requests/lock:
+   *   get:
+   *     summary: Obtenir les demandes de verrouillage de l'utilisateur
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: Liste des demandes de verrouillage
    */
   async getUserLockRequests(req: AuthRequest, res: express.Response) {
     try {
@@ -294,7 +405,6 @@ export class BikeRequestController {
         prisma.lockRequest.count({ where: { userId } })
       ]);
 
-      // Récupérer les informations des validateurs
       const validatedByUserIds = requests
         .filter(req => req.validatedBy)
         .map(req => req.validatedBy) as string[];
@@ -312,7 +422,6 @@ export class BikeRequestController {
         return acc;
       }, {} as Record<string, any>);
 
-      // Enrichir les demandes avec les informations des validateurs
       const enrichedRequests = requests.map(request => ({
         ...request,
         validatedByUser: request.validatedBy ? validatorMap[request.validatedBy] : null
@@ -347,7 +456,25 @@ export class BikeRequestController {
   }
 
   /**
-   * Obtenir toutes les demandes de l'utilisateur (déverrouillage + verrouillage)
+   * @swagger
+   * /bike-requests/all:
+   *   get:
+   *     summary: Obtenir toutes les demandes de l'utilisateur (déverrouillage + verrouillage)
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: Liste de toutes les demandes
    */
   async getAllUserRequests(req: AuthRequest, res: express.Response) {
     try {
@@ -398,7 +525,6 @@ export class BikeRequestController {
         prisma.lockRequest.count({ where: { userId } })
       ]);
 
-      // Récupérer tous les validateurs
       const allValidatedByIds = [
         ...unlockRequests.filter(req => req.validatedBy).map(req => req.validatedBy),
         ...lockRequests.filter(req => req.validatedBy).map(req => req.validatedBy)
@@ -417,7 +543,6 @@ export class BikeRequestController {
         return acc;
       }, {} as Record<string, any>);
 
-      // Combiner et enrichir les demandes
       const allRequests = [
         ...unlockRequests.map(req => ({ 
           ...req, 
@@ -463,7 +588,28 @@ export class BikeRequestController {
   }
 
   /**
-   * Obtenir une demande spécifique par ID
+   * @swagger
+   * /bike-requests/{type}/{id}:
+   *   get:
+   *     summary: Obtenir une demande spécifique par ID
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: type
+   *         required: true
+   *         schema:
+   *           type: string
+   *           enum: [unlock, lock]
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Détails de la demande
    */
   async getRequestById(req: AuthRequest, res: express.Response) {
     try {
@@ -528,7 +674,6 @@ export class BikeRequestController {
         });
       }
 
-      // Récupérer les informations du validateur si nécessaire
       if (request.validatedBy) {
         const validator = await prisma.user.findUnique({
           where: { id: request.validatedBy },
@@ -564,7 +709,31 @@ export class BikeRequestController {
   }
 
   /**
-   * Obtenir demandes en attente (admin)
+   * @swagger
+   * /bike-requests/admin/pending/{type}:
+   *   get:
+   *     summary: Obtenir demandes en attente (admin)
+   *     tags: [BikeRequests, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: type
+   *         required: true
+   *         schema:
+   *           type: string
+   *           enum: [unlock, lock]
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: Liste des demandes en attente
    */
   async getPendingRequests(req: AuthRequest, res: express.Response) {
     try {
@@ -587,7 +756,25 @@ export class BikeRequestController {
   }
 
   /**
-   * Obtenir demandes en attente (admin)
+   * @swagger
+   * /bike-requests/admin/pending/unlock:
+   *   get:
+   *     summary: Obtenir demandes de déverrouillage en attente (admin)
+   *     tags: [BikeRequests, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: Liste des demandes de déverrouillage en attente
    */
   async getPendingUnlockRequests(req: AuthRequest, res: express.Response) {
     try {
@@ -610,7 +797,25 @@ export class BikeRequestController {
   }
 
   /**
-   * Obtenir demandes en attente (admin)
+   * @swagger
+   * /bike-requests/admin/pending/lock:
+   *   get:
+   *     summary: Obtenir demandes de verrouillage en attente (admin)
+   *     tags: [BikeRequests, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *       - in: query
+   *         name: limit
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: Liste des demandes de verrouillage en attente
    */
   async getPendingLockRequests(req: AuthRequest, res: express.Response) {
     try {
@@ -633,7 +838,28 @@ export class BikeRequestController {
   }
 
   /**
-   * Approuver une demande
+   * @swagger
+   * /bike-requests/admin/approve/{type}/{id}:
+   *   post:
+   *     summary: Approuver une demande (admin)
+   *     tags: [BikeRequests, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: type
+   *         required: true
+   *         schema:
+   *           type: string
+   *           enum: [unlock, lock]
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Demande approuvée
    */
   async approveRequest(req: AuthRequest, res: express.Response) {
     try {
@@ -671,7 +897,36 @@ export class BikeRequestController {
   }
 
   /**
-   * Rejeter une demande
+   * @swagger
+   * /bike-requests/admin/reject/{type}/{id}:
+   *   post:
+   *     summary: Rejeter une demande (admin)
+   *     tags: [BikeRequests, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: type
+   *         required: true
+   *         schema:
+   *           type: string
+   *           enum: [unlock, lock]
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               reason:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Demande rejetée
    */
   async rejectRequest(req: AuthRequest, res: express.Response) {
     try {
@@ -683,7 +938,6 @@ export class BikeRequestController {
       if (type === 'unlock') {
         result = await BikeRequestService.rejectUnlockRequest(id, adminId, reason);
       } else {
-        // Pour l'instant, on gère seulement le rejet des déverrouillages
         throw new Error('Rejet des demandes de verrouillage non implémenté');
       }
 
@@ -711,7 +965,16 @@ export class BikeRequestController {
   }
 
   /**
-   * Obtenir les statistiques des demandes pour l'utilisateur
+   * @swagger
+   * /bike-requests/stats:
+   *   get:
+   *     summary: Obtenir les statistiques des demandes pour l'utilisateur
+   *     tags: [BikeRequests]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Statistiques des demandes
    */
   async getUserRequestStats(req: AuthRequest, res: express.Response) {
     try {
