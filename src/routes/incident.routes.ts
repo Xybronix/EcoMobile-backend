@@ -1,6 +1,6 @@
 import express from 'express';
 import IncidentController from '../controllers/IncidentController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requirePermission } from '../middleware/auth';
 import { incidentValidator, idValidator, validate } from '../middleware/validator';
 
 const router = express.Router();
@@ -39,5 +39,12 @@ router.put('/:id', authenticate, idValidator, validate, IncidentController.updat
  * @access  Private
  */
 router.delete('/:id', authenticate, idValidator, validate, IncidentController.deleteIncident);
+
+/**
+ * @route   POST /api/v1/incidents/admin/charge
+ * @desc    Créer une charge/incident affectée par l'admin
+ * @access  Private/Admin
+ */
+router.post('/admin/charge', authenticate, requirePermission('incidents', 'create'), IncidentController.createAdminCharge);
 
 export default router;

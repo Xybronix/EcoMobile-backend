@@ -1,5 +1,5 @@
 import { prisma } from '../config/prisma';
-import { RequestStatus, BikeStatus } from '@prisma/client';
+import { RequestStatus, SubscriptionType, BikeStatus } from '@prisma/client';
 import NotificationService from './NotificationService';
 import { imageService } from './ImageService';
 
@@ -645,6 +645,110 @@ export class BikeRequestService {
     }
 
     return imageService.getImageUrls(images.filter(img => img && img.trim() !== ''));
+  }
+
+  /**
+   * Calculer le coût avec pricing étendu
+   */
+  private async calculateRideCost(userId: string, duration: number, planId?: string): Promise<number> {
+    // Récupérer l'abonnement actif de l'utilisateur
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      },
+      include: { plan: { include: { overrides: true } } }
+    });
+
+    if (activeSubscription) {
+      // L'utilisateur a un forfait actif
+      const plan = activeSubscription.plan;
+      const durationHours = duration / 60;
+      
+      if (activeSubscription.type === SubscriptionType.DAILY && durationHours > 24) {
+        // Dépassement du forfait journalier
+        const override = plan.overrides?.[0];
+        if (override) {
+          if (override.overTimeType === 'FIXED_PRICE') {
+            return override.overTimeValue;
+          } else if (override.overTimeType === 'PERCENTAGE_REDUCTION') {
+            const normalPrice = plan.hourlyRate * (durationHours - 24);
+            return normalPrice * (1 - override.overTimeValue / 100);
+          }
+        }
+      }
+      
+      // Pas de dépassement, utiliser le forfait
+      return 0; // Déjà payé avec le forfait
+    } else {
+      // Pas d'abonnement, prix normal selon les règles
+      const plan = await prisma.pricingPlan.findUnique({
+        where: { id: planId || '' }
+      });
+      
+      return plan ? plan.hourlyRate * (duration / 60) : 200 * (duration / 60);
+    }
+  }
+
+  /**
+   * Traiter le paiement (wallet puis caution si nécessaire)
+   */
+  private async processPayment(userId: string, amount: number): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { wallet: true }
+    });
+
+    if (!user || !user.wallet) {
+      throw new Error('Utilisateur ou portefeuille non trouvé');
+    }
+
+    const wallet = user.wallet;
+
+    if (wallet.balance >= amount) {
+      // Déduire du wallet
+      await prisma.wallet.update({
+        where: { id: user.wallet.id },
+        data: { balance: { decrement: amount } }
+      });
+    } else {
+      // Déduire du wallet puis de la caution
+      const remainingAmount = amount - wallet.balance;
+      
+      if (user.depositBalance < remainingAmount) {
+        throw new Error('Solde et caution insuffisants');
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Vider le wallet
+        await tx.wallet.update({
+          where: { id: wallet.id },
+          data: { balance: 0 }
+        });
+
+        // Déduire de la caution
+        await tx.user.update({
+          where: { id: userId },
+          data: { depositBalance: { decrement: remainingAmount } }
+        });
+
+        // Créer transaction pour caution
+        await tx.transaction.create({
+          data: {
+            walletId: wallet.id,
+            type: 'RIDE_PAYMENT',
+            amount: remainingAmount,
+            fees: 0,
+            totalAmount: remainingAmount,
+            status: 'COMPLETED',
+            paymentMethod: 'DEPOSIT',
+            metadata: { source: 'deposit_deduction' }
+          }
+        });
+      });
+    }
   }
 
   /**
