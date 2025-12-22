@@ -1,4 +1,5 @@
 import express from 'express';
+import WalletService from '../services/WalletService';
 import { prisma } from '../config/prisma';
 import { AuthRequest, logActivity } from '../middleware/auth';
 import { t } from '../locales';
@@ -454,6 +455,129 @@ class IncidentController {
       return res.json({
         success: true,
         message: t('incidents.deleted_success', req.language)
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /incidents/admin/charge:
+   *   post:
+   *     summary: Créer une charge affectée par l'admin (déduite de la caution)
+   *     tags: [Incidents]
+   *     security:
+   *       - bearerAuth: []
+   */
+  async createAdminCharge(req: AuthRequest, res: express.Response) {
+    try {
+      const { userId, bikeId, amount, reason, description, images } = req.body;
+      const adminId = req.user!.id;
+
+      if (!userId || !amount || !reason) {
+        return res.status(400).json({
+          success: false,
+          message: 'userId, amount et reason sont requis'
+        });
+      }
+
+      if (amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le montant doit être supérieur à 0'
+        });
+      }
+
+      // Vérifier que l'utilisateur existe
+      const targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { wallet: true }
+      });
+
+      if (!targetUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'Utilisateur non trouvé'
+        });
+      }
+
+      // Vérifier le vélo si spécifié
+      let bike = null;
+      if (bikeId) {
+        bike = await prisma.bike.findUnique({
+          where: { id: bikeId },
+          select: { id: true, code: true, model: true }
+        });
+
+        if (!bike) {
+          return res.status(404).json({
+            success: false,
+            message: 'Vélo non trouvé'
+          });
+        }
+      }
+
+      // Utiliser le service de wallet pour appliquer la charge
+      const result = await WalletService.chargeDamage(
+        userId,
+        amount,
+        `${reason}${description ? ': ' + description : ''}`,
+        images,
+        adminId
+      );
+
+      // Créer aussi un incident pour le suivi
+      const incident = await prisma.incident.create({
+        data: {
+          userId,
+          bikeId: bikeId || null,
+          type: 'admin_charge',
+          description: `${reason}${description ? ': ' + description : ''}`,
+          priority: 'HIGH',
+          status: 'CLOSED',
+          resolvedAt: new Date(),
+          resolvedBy: adminId,
+          adminNote: `Charge de ${amount} FCFA affectée par l'administrateur`,
+          refundAmount: 0
+        },
+        include: {
+          bike: {
+            select: { id: true, code: true, model: true }
+          },
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true }
+          }
+        }
+      });
+
+      await logActivity(
+        adminId,
+        'CREATE',
+        'ADMIN_CHARGE',
+        incident.id,
+        `Admin charged user ${userId} with ${amount} FCFA`,
+        { 
+          userId, 
+          bikeId, 
+          amount, 
+          reason, 
+          transactionId: result.transaction.id 
+        },
+        req
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: `Charge de ${amount} FCFA affectée avec succès`,
+        data: {
+          incident,
+          transaction: result.transaction,
+          newDepositBalance: result.wallet.deposit
+        }
       });
     } catch (error: any) {
       return res.status(500).json({

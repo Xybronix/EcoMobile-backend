@@ -14,7 +14,9 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "postbuild": "mkdir -p dist/uploads",
+    "prestart": "mkdir -p dist/uploads"
   },
   "keywords": [
     "ecomobile",

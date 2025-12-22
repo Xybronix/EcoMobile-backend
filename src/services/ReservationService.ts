@@ -22,9 +22,76 @@ export class ReservationService {
   }
 
   /**
+   * Vérifier et supprimer les réservations expirées
+   */
+  async cleanupExpiredReservations(): Promise<{ cancelled: number; notified: string[] }> {
+    const now = new Date();
+    
+    // Trouver les réservations dont l'heure de début est passée
+    const expiredReservations = await prisma.reservation.findMany({
+      where: {
+        status: 'ACTIVE',
+        startDate: { lte: now }
+      },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true } },
+        bike: { select: { id: true, code: true } }
+      }
+    });
+
+    const cancelledIds: string[] = [];
+    const notifiedUsers: string[] = [];
+
+    for (const reservation of expiredReservations) {
+      // Vérifier s'il y a une demande de déverrouillage approuvée pour cette réservation
+      const approvedUnlock = await prisma.unlockRequest.findFirst({
+        where: {
+          userId: reservation.userId,
+          bikeId: reservation.bikeId,
+          status: 'APPROVED'
+        }
+      });
+
+      // Vérifier s'il y a un trajet en cours
+      const activeRide = await prisma.ride.findFirst({
+        where: {
+          userId: reservation.userId,
+          bikeId: reservation.bikeId,
+          status: 'IN_PROGRESS'
+        }
+      });
+
+      // Si pas de déverrouillage approuvé et pas de trajet en cours, supprimer la réservation
+      if (!approvedUnlock && !activeRide) {
+        await prisma.reservation.update({
+          where: { id: reservation.id },
+          data: { status: 'CANCELLED' }
+        });
+
+        cancelledIds.push(reservation.id);
+
+        // Notifier l'utilisateur
+        await this.notificationService.createNotification({
+          userId: reservation.userId,
+          title: 'Réservation expirée',
+          message: `Votre réservation pour le vélo ${reservation.bike.code} a été annulée car vous n'avez pas demandé le déverrouillage avant l'heure prévue.`,
+          type: 'RESERVATION_EXPIRED'
+        });
+
+        notifiedUsers.push(reservation.userId);
+      }
+    }
+
+    return { cancelled: cancelledIds.length, notified: notifiedUsers };
+  }
+
+  /**
    * Créer une nouvelle réservation
    */
   async createReservation(data: CreateReservationDto): Promise<any> {
+    // Nettoyer les réservations expirées avant de créer une nouvelle
+    await this.cleanupExpiredReservations();
+
     // Vérifier si le vélo existe et est disponible
     const bike = await prisma.bike.findUnique({
       where: { id: data.bikeId },
@@ -135,7 +202,7 @@ export class ReservationService {
     await this.notificationService.createNotification({
       userId: data.userId,
       title: 'Réservation confirmée',
-      message: `Votre réservation pour le vélo ${bike.code} a été confirmée pour le ${data.startDate.toLocaleDateString()} à ${data.startTime}`,
+      message: `Votre réservation pour le vélo ${bike.code} a été confirmée pour le ${data.startDate.toLocaleDateString()} à ${data.startTime}. N'oubliez pas de demander le déverrouillage avant cette heure !`,
       type: 'RESERVATION'
     });
 
@@ -166,6 +233,9 @@ export class ReservationService {
    * Obtenir les réservations d'un utilisateur
    */
   async getUserReservations(userId: string, status?: string) {
+    // Nettoyer les réservations expirées
+    await this.cleanupExpiredReservations();
+
     const where: any = { userId };
     if (status) where.status = status;
 
@@ -255,6 +325,9 @@ export class ReservationService {
    * Obtenir toutes les réservations (admin)
    */
   async getAllReservations(page: number = 1, limit: number = 20) {
+    // Nettoyer les réservations expirées
+    await this.cleanupExpiredReservations();
+    
     const skip = (page - 1) * limit;
 
     const [reservations, total] = await Promise.all([

@@ -41,7 +41,7 @@ export class BikeRequestController {
         });
       }
 
-      const request = await BikeRequestService.createUnlockRequest(userId, bikeId, metadata);
+      const request = await BikeRequestService.createUnlockRequest(userId, bikeId, metadata, req);
 
       await logActivity(
         userId,
@@ -100,7 +100,7 @@ export class BikeRequestController {
       const userId = req.user!.id;
       const { bikeId, rideId, location, metadata } = req.body;
 
-      const request = await BikeRequestService.createLockRequest(userId, bikeId, rideId, location, metadata);
+      const request = await BikeRequestService.createLockRequest(userId, bikeId, rideId, location, metadata, req);
 
       await logActivity(
         userId,
@@ -620,7 +620,7 @@ export class BikeRequestController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
-      const result = await BikeRequestService.getPendingRequests(type, page, limit);
+      const result = await BikeRequestService.getPendingRequests(type, page, limit, req);
 
       res.json({
         success: true,
