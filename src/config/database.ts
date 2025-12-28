@@ -58,35 +58,47 @@ class DatabaseManager {
   }
 
   private async connectMySQL(): Promise<DatabaseConnection> {
-    const pool = mysql.createPool({
-      host: config.database.mysql.host,
-      port: config.database.mysql.port,
-      user: config.database.mysql.user,
-      password: config.database.mysql.password,
-      database: config.database.mysql.database,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0
-    });
 
-    // Test connection
-    await pool.getConnection();
+  const databaseUrl = process.env.DATABASE_URL;
 
-    return {
-      type: 'mysql',
-      connection: pool,
-      query: async (sql: string, params?: any[]) => {
-        const [rows] = await pool.execute(sql, params);
-        return rows;
-      },
-      execute: async (sql: string, params?: any[]) => {
-        const [result] = await pool.execute(sql, params);
-        return result;
-      },
-      close: async () => {
-        await pool.end();
-      }
-    };
+  const pool = databaseUrl
+    ? mysql.createPool(databaseUrl)
+    : mysql.createPool({
+        host: config.database.mysql.host,
+        port: config.database.mysql.port,
+        user: config.database.mysql.user,
+        password: config.database.mysql.password,
+        database: config.database.mysql.database,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
+      });
+
+  console.log(
+    databaseUrl
+      ? '🗄️ MySQL using DATABASE_URL (production mode)'
+      : '🗄️ MySQL using MYSQL_* config (local mode)'
+  );
+
+  // Test connection
+  const conn = await pool.getConnection();
+  conn.release();
+
+  return {
+    type: 'mysql',
+    connection: pool,
+    query: async (sql: string, params?: any[]) => {
+      const [rows] = await pool.execute(sql, params);
+      return rows;
+    },
+    execute: async (sql: string, params?: any[]) => {
+      const [result] = await pool.execute(sql, params);
+      return result;
+    },
+    close: async () => {
+      await pool.end();
+    }
+  };
   }
 
   private async connectPostgreSQL(): Promise<DatabaseConnection> {
