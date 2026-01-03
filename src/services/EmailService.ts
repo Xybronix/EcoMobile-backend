@@ -110,6 +110,42 @@ class EmailService {
   }
 
   /**
+   * Generate Email Verified Template
+   */
+  generateEmailVerifiedTemplate(
+    firstName: string,
+    lang: 'en' | 'fr',
+    _translations: any
+  ): EmailTemplate {
+    const subject = lang === 'fr' 
+      ? 'Email vérifié avec succès - FreeBike'
+      : 'Email verified successfully - FreeBike';
+    
+    const title = lang === 'fr'
+      ? 'Email vérifié'
+      : 'Email Verified';
+    
+    const message = lang === 'fr'
+      ? `Bonjour ${firstName},<br><br>Votre email a été vérifié avec succès ! Votre compte FreeBike est maintenant activé. Vous pouvez profiter de tous les services.<br><br>Merci,<br>L'équipe FreeBike`
+      : `Hello ${firstName},<br><br>Your email has been successfully verified! Your FreeBike account is now activated. You can enjoy all our services.<br><br>Thank you,<br>The FreeBike Team`;
+    
+    const ctaText = lang === 'fr' ? 'Commencer à utiliser FreeBike' : 'Start using FreeBike';
+    const footerText = lang === 'fr' 
+      ? '© 2026 FreeBike. Tous droits réservés.'
+      : '© 2026 FreeBike. All rights reserved.';
+
+    const html = this.generateEmailTemplate({
+      title,
+      message,
+      ctaText,
+      ctaUrl: `${config.frontendUrl}/mobile/login`,
+      footerText
+    });
+
+    return { subject, html };
+  }
+
+  /**
    * Generate Welcome Email Template
    */
   generateWelcomeEmail(

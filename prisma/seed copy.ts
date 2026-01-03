@@ -331,6 +331,92 @@ async function main() {
 
   console.log('✅ Created default settings');
 
+
+  // Create wallets
+  const wallet1 = await prisma.wallet.create({
+    data: {
+      userId: user1.id,
+      balance: 5000,
+    },
+  });
+
+  const wallet2 = await prisma.wallet.create({
+    data: {
+      userId: user2.id,
+      balance: 3000,
+    },
+  });
+
+  await prisma.wallet.create({
+    data: {
+      userId: admin.id,
+      balance: 0,
+    },
+  });
+
+  console.log('✅ Created wallets');
+
+  // Create transactions
+  await prisma.transaction.create({
+    data: {
+      walletId: wallet1.id,
+      type: 'DEPOSIT',
+      amount: 5000,
+      fees: 175,
+      totalAmount: 5175,
+      status: 'COMPLETED',
+      paymentMethod: 'orange_money',
+      paymentProvider: 'MyCoolPay',
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      walletId: wallet2.id,
+      type: 'DEPOSIT',
+      amount: 3000,
+      fees: 145,
+      totalAmount: 3145,
+      status: 'COMPLETED',
+      paymentMethod: 'mtn_money',
+      paymentProvider: 'MyCoolPay',
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      walletId: wallet1.id,
+      type: 'REFUND',
+      amount: 750,
+      fees: 0,
+      totalAmount: 750,
+      status: 'COMPLETED',
+      paymentMethod: 'INCIDENT_REFUND',
+      metadata: {
+        incidentId: 'incident_refund_1',
+        description: 'Remboursement pour problème technique'
+      }
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      walletId: wallet2.id,
+      type: 'REFUND',
+      amount: 500,
+      fees: 0,
+      totalAmount: 500,
+      status: 'COMPLETED',
+      paymentMethod: 'INCIDENT_REFUND',
+      metadata: {
+        incidentId: 'incident_refund_2',
+        description: 'Remboursement pour pneu crevé'
+      }
+    },
+  });
+
+  console.log('✅ Created transactions');
+
   // Create pricing configuration
   const pricingConfig = await prisma.pricingConfig.create({
     data: {
@@ -340,7 +426,7 @@ async function main() {
     }
   });
 
-  // Create only the Standard pricing plan
+  // Create pricing plans
   const standardPlan = await prisma.pricingPlan.create({
     data: {
       pricingConfigId: pricingConfig.id,
@@ -356,70 +442,398 @@ async function main() {
     }
   });
 
-  console.log('✅ Created pricing configuration (Standard plan only)');
-
-  // Create bikes - only the first two real ones
-  const bike1 = await prisma.bike.create({
+  const premiumPlan = await prisma.pricingPlan.create({
     data: {
-      id: '9170123060', // Garder l'ID spécifique du premier vrai vélo
-      code: 'BIKE001',
-      model: 'E-Bike Pro',
-      status: 'AVAILABLE',
-      batteryLevel: 85,
-      latitude: 4.0511,
-      longitude: 9.7679,
-      locationName: 'Douala Centre',
-      equipment: ['headlight', 'taillight', 'basket', 'lock'],
-      qrCode: 'QR000001',
-      gpsDeviceId: '9170123060',
-      pricingPlanId: standardPlan.id,
-      lastMaintenanceAt: new Date(Date.now() - 86400000),
-    },
+      pricingConfigId: pricingConfig.id,
+      name: 'Premium',
+      hourlyRate: 300,
+      dailyRate: 4000,
+      weeklyRate: 25000,
+      monthlyRate: 80000,
+      minimumHours: 1,
+      discount: 0,
+      isActive: true,
+      conditions: {}
+    }
   });
 
-  const bike2 = await prisma.bike.create({
+  const studentPlan = await prisma.pricingPlan.create({
     data: {
-      id: '9170123061', // Garder l'ID spécifique du deuxième vrai vélo
-      code: 'BIKE002',
-      model: 'E-Bike Sport',
-      status: 'AVAILABLE',
-      batteryLevel: 75,
-      latitude: 4.0583,
-      longitude: 9.7083,
-      locationName: 'Akwa',
-      equipment: ['headlight', 'taillight', 'lock'],
-      qrCode: 'QR000002',
-      gpsDeviceId: '9170123061',
-      pricingPlanId: standardPlan.id,
-      lastMaintenanceAt: new Date(Date.now() - 172800000),
-    },
+      pricingConfigId: pricingConfig.id,
+      name: 'Étudiant',
+      hourlyRate: 150,
+      dailyRate: 2500,
+      weeklyRate: 15000,
+      monthlyRate: 45000,
+      minimumHours: 1,
+      discount: 25,
+      isActive: true,
+      conditions: { requiresStudentId: true }
+    }
   });
 
-  console.log('✅ Created 2 real bikes with their specific IDs');
+  // Create pricing rules
+  await prisma.pricingRule.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Heures de pointe',
+      dayOfWeek: null,
+      startHour: 7,
+      endHour: 9,
+      multiplier: 1.5,
+      isActive: true,
+      priority: 10
+    }
+  });
 
-  // Create wallets (only for users, no fake transactions)
-  await prisma.wallet.create({
+  await prisma.pricingRule.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Heures de pointe soir',
+      dayOfWeek: null,
+      startHour: 17,
+      endHour: 19,
+      multiplier: 1.3,
+      isActive: true,
+      priority: 10
+    }
+  });
+
+  await prisma.pricingRule.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Weekend',
+      dayOfWeek: 0, // Dimanche
+      startHour: null,
+      endHour: null,
+      multiplier: 0.9,
+      isActive: true,
+      priority: 5
+    }
+  });
+
+  await prisma.pricingRule.create({
+    data: {
+      pricingConfigId: pricingConfig.id,
+      name: 'Weekend',
+      dayOfWeek: 6, // Samedi
+      startHour: null,
+      endHour: null,
+      multiplier: 0.9,
+      isActive: true,
+      priority: 5
+    }
+  });
+
+  console.log('✅ Created pricing configuration');
+
+  // Create bikes
+  const bikes = [];
+  const bikeModels = ['E-Bike Pro', 'E-Bike Sport', 'E-Bike City'];
+  const locations = [
+    { lat: 4.0511, lng: 9.7679, name: 'Douala Centre' },
+    { lat: 4.0583, lng: 9.7083, name: 'Akwa' },
+    { lat: 4.0483, lng: 9.7383, name: 'Bonanjo' },
+    { lat: 4.0611, lng: 9.7479, name: 'Bonapriso' },
+    { lat: 4.0711, lng: 9.7579, name: 'Bonaberi' },
+  ];
+
+  const gpsDeviceIds = ['9170123060', '9170123061', '9170123063', '9170123064'];
+
+  for (let i = 1; i <= 10; i++) {
+    const location = locations[i % locations.length];
+    let selectedPlanId;
+    if (i <= 4) selectedPlanId = standardPlan.id;
+    else if (i <= 7) selectedPlanId = premiumPlan.id;
+    else selectedPlanId = studentPlan.id;
+
+    const gpsDeviceId = i <= 4 ? gpsDeviceIds[i - 1] : null;
+
+    const bike = await prisma.bike.create({
+      data: {
+        code: `BIKE${String(i).padStart(3, '0')}`,
+        model: bikeModels[i % bikeModels.length],
+        status: i <= 7 ? 'AVAILABLE' : i === 8 ? 'IN_USE' : 'MAINTENANCE',
+        batteryLevel: 20 + (i * 8),
+        latitude: location.lat + (Math.random() - 0.5) * 0.01,
+        longitude: location.lng + (Math.random() - 0.5) * 0.01,
+        locationName: location.name,
+        equipment: ['headlight', 'taillight', 'basket', 'lock'],
+        qrCode: `QR${String(i).padStart(6, '0')}`,
+        gpsDeviceId: gpsDeviceId,
+        pricingPlanId: selectedPlanId,
+        lastMaintenanceAt: new Date(Date.now() - i * 86400000),
+      },
+    });
+    bikes.push(bike);
+  }
+
+  console.log('✅ Created bikes');
+
+  // Create rides
+  await prisma.ride.create({
     data: {
       userId: user1.id,
-      balance: 0,
+      bikeId: bikes[7].id,
+      startLatitude: 4.0511,
+      startLongitude: 9.7679,
+      status: 'IN_PROGRESS',
     },
   });
 
-  await prisma.wallet.create({
+  await prisma.ride.create({
     data: {
       userId: user2.id,
-      balance: 0,
+      bikeId: bikes[0].id,
+      startTime: new Date(Date.now() - 3600000),
+      endTime: new Date(Date.now() - 1800000),
+      startLatitude: 4.0583,
+      startLongitude: 9.7083,
+      endLatitude: 4.0611,
+      endLongitude: 9.7479,
+      distance: 5.2,
+      duration: 30,
+      cost: 750,
+      status: 'COMPLETED',
     },
   });
 
-  await prisma.wallet.create({
+  await prisma.ride.create({
+    data: {
+      userId: user1.id,
+      bikeId: bikes[1].id,
+      startTime: new Date(Date.now() - 86400000),
+      endTime: new Date(Date.now() - 82800000),
+      startLatitude: 4.0511,
+      startLongitude: 9.7679,
+      endLatitude: 4.0483,
+      endLongitude: 9.7383,
+      distance: 3.8,
+      duration: 25,
+      cost: 625,
+      status: 'COMPLETED',
+    },
+  });
+
+  console.log('✅ Created rides');
+
+  // Create maintenance logs
+  await prisma.maintenanceLog.create({
+    data: {
+      bikeId: bikes[8].id,
+      type: 'repair',
+      description: 'Remplacement de la batterie',
+      cost: 15000,
+      performedBy: 'Technicien 1',
+    },
+  });
+
+  await prisma.maintenanceLog.create({
+    data: {
+      bikeId: bikes[0].id,
+      type: 'routine',
+      description: 'Vérification générale',
+      cost: 2000,
+      performedBy: 'Technicien 2',
+    },
+  });
+
+  console.log('✅ Created maintenance logs');
+
+  // Create incidents
+  await prisma.incident.create({
+    data: {
+      userId: user2.id,
+      bikeId: bikes[5].id,
+      type: 'technical',
+      description: 'Pneu crevé pendant le trajet',
+      status: 'RESOLVED',
+      priority: 'HIGH',
+      resolvedAt: new Date(),
+      refundAmount: 500,
+      adminNote: 'Remboursement pour réparation du pneu',
+      resolvedBy: admin.id,
+    },
+  });
+
+  await prisma.incident.create({
+    data: {
+      userId: user1.id,
+      bikeId: bikes[3].id,
+      type: 'payment',
+      description: 'Problème de surfacturation',
+      status: 'OPEN',
+      priority: 'MEDIUM',
+    },
+  });
+
+  await prisma.incident.create({
+    data: {
+      userId: user1.id,
+      bikeId: bikes[2].id,
+      type: 'theft',
+      description: 'Vol présumé du vélo',
+      status: 'CLOSED',
+      priority: 'HIGH',
+      resolvedAt: new Date(Date.now() - 86400000),
+      refundAmount: 0,
+      adminNote: 'Incident rejeté - preuves insuffisantes',
+      resolvedBy: admin.id,
+    },
+  });
+
+  await prisma.incident.create({
+    data: {
+      userId: user2.id,
+      bikeId: bikes[4].id,
+      type: 'accident',
+      description: 'Chute avec le vélo',
+      status: 'RESOLVED',
+      priority: 'HIGH',
+      resolvedAt: new Date(Date.now() - 172800000),
+      refundAmount: 1000,
+      adminNote: 'Remboursement pour dommages matériels',
+      resolvedBy: admin.id,
+    },
+  });
+
+  await prisma.incident.create({
+    data: {
+      userId: user1.id,
+      bikeId: bikes[1].id,
+      type: 'technical',
+      description: 'Problème de freins - vélo dangereux',
+      status: 'RESOLVED',
+      priority: 'HIGH',
+      resolvedAt: new Date(Date.now() - 432000000),
+      refundAmount: 750,
+      adminNote: 'Remboursement complet pour problème de sécurité',
+      resolvedBy: admin.id,
+    },
+  });
+
+  console.log('✅ Created incidents');
+
+  // Create notifications
+  await prisma.notification.create({
+    data: {
+      userId: user1.id,
+      title: 'Bienvenue sur FreeBike',
+      message: 'Merci de vous être inscrit ! Profitez de 10% de réduction sur votre premier trajet.',
+      type: 'welcome',
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: user1.id,
+      title: 'Trajet en cours',
+      message: 'Votre trajet est en cours. Bon voyage !',
+      type: 'ride',
+      isRead: true,
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: user2.id,
+      title: 'Trajet terminé',
+      message: 'Votre trajet de 5.2 km a coûté 750 FCFA.',
+      type: 'ride',
+      isRead: true,
+    },
+  });
+
+  console.log('✅ Created notifications');
+
+  // Create chat messages
+  await prisma.chatMessage.create({
+    data: {
+      userId: user1.id,
+      message: 'Bonjour, j\'ai un problème avec le vélo BIKE003',
+      isAdmin: false,
+    },
+  });
+
+  await prisma.chatMessage.create({
+    data: {
+      userId: user1.id,
+      message: 'Bonjour ! Nous allons regarder cela tout de suite.',
+      isAdmin: true,
+    },
+  });
+
+  console.log('✅ Created chat messages');
+
+  // Create activity logs
+  await prisma.activityLog.create({
     data: {
       userId: admin.id,
-      balance: 0,
+      action: 'USER_LOGIN',
+      resource: 'auth',
+      resourceId: admin.id,
+      details: 'Admin user logged in',
+      ipAddress: '127.0.0.1',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     },
   });
 
-  console.log('✅ Created empty wallets for users');
+  await prisma.activityLog.create({
+    data: {
+      userId: user1.id,
+      action: 'RIDE_STARTED',
+      resource: 'ride',
+      resourceId: 'ride_1',
+      details: 'User started a new ride',
+      ipAddress: '127.0.0.1',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)'
+    },
+  });
+
+  console.log('✅ Created activity logs');
+
+  // Create sessions
+  await prisma.session.create({
+    data: {
+      userId: admin.id,
+      token: 'admin_session_token_123',
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    },
+  });
+
+  await prisma.session.create({
+    data: {
+      userId: user1.id,
+      token: 'user_session_token_456',
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    },
+  });
+
+  console.log('✅ Created sessions');
+
+  // Create settings
+  await prisma.settings.create({
+    data: {
+      key: 'company_name',
+      value: 'FreeBike Cameroun',
+    },
+  });
+
+  await prisma.settings.create({
+    data: {
+      key: 'support_email',
+      value: 'support@freebike.cm',
+    },
+  });
+
+  await prisma.settings.create({
+    data: {
+      key: 'support_phone',
+      value: '+237600000000',
+    },
+  });
+
+  console.log('✅ Created settings');
 
   console.log('');
   console.log('🎉 Database seeding completed successfully!');
@@ -439,7 +853,7 @@ async function main() {
   console.log('👤 User:');
   console.log('   Email: user@freebike.cm');
   console.log('   Password: user123');
-  console.log('   Balance: 0 FCFA');
+  console.log('   Balance: 5000 FCFA');
   console.log('   Permissions: Basic user access');
   console.log('');
   console.log('👩‍💼 Support:');
@@ -447,19 +861,7 @@ async function main() {
   console.log('   Password: admin123');
   console.log('   Permissions: Employee access');
   console.log('');
-  console.log('🚲 Bikes: 2 real bikes created with Standard pricing plan');
-  console.log('');
-  console.log('⚠️  Removed:');
-  console.log('   - Fake bikes (only kept 2 real ones with specific IDs)');
-  console.log('   - All fake incidents');
-  console.log('   - All maintenance logs');
-  console.log('   - All fake pricing rules (only kept Standard plan)');
-  console.log('   - All fake transactions');
-  console.log('   - All fake sessions');
-  console.log('   - All notifications');
-  console.log('   - All rides (including user-started ride)');
-  console.log('   - All chat messages');
-  console.log('   - All activity logs');
+  console.log('🚲 Bikes: 10 bikes created with various statuses');
   console.log('');
 }
 

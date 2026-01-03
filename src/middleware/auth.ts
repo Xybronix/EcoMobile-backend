@@ -14,6 +14,7 @@ declare global {
         role: UserRole;
         roleId: string | null;
         permissions: string[];
+        emailVerified: boolean
       };
       language?: 'fr' | 'en';
     }
@@ -85,12 +86,20 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
         email: string;
         role: string;
         roleId: string;
+        emailVerified?: boolean
       };
 
       // Récupérer les permissions de l'utilisateur
       const userWithPermissions = await prisma.user.findUnique({
         where: { id: decoded.id },
-        include: {
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          roleId: true,
+          isActive: true,
+          status: true,
+          emailVerified: true,
           roleRelation: {
             include: {
               permissions: {
@@ -128,7 +137,8 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
         email: userWithPermissions.email,
         role: userWithPermissions.role,
         roleId: userWithPermissions.roleId,
-        permissions: permissions || []
+        permissions: permissions || [],
+        emailVerified: userWithPermissions.emailVerified
       };
 
       next();
@@ -229,7 +239,12 @@ export const optionalAuth = async (req: AuthRequest, _res: express.Response, nex
 
           const user = await prisma.user.findUnique({
             where: { id: decoded.id },
-            include: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              roleId: true,
+              emailVerified: true,
               roleRelation: {
                 include: {
                   permissions: {
@@ -252,7 +267,8 @@ export const optionalAuth = async (req: AuthRequest, _res: express.Response, nex
               email: user.email,
               role: user.role,
               roleId: user.roleId,
-              permissions
+              permissions,
+              emailVerified: user.emailVerified
             };
           }
         }
@@ -267,7 +283,7 @@ export const optionalAuth = async (req: AuthRequest, _res: express.Response, nex
   }
 };
 
-export const generateToken = (user: { id: string; email: string; role: string; roleId: string }): string => {
+export const generateToken = (user: { id: string; email: string; role: string; roleId: string; emailVerified?: boolean; }): string => {
   const secret = config.jwt.secret;
   if (!secret) {
     throw new Error('JWT secret is not configured');
@@ -277,7 +293,8 @@ export const generateToken = (user: { id: string; email: string; role: string; r
     id: user.id,
     email: user.email,
     role: user.role,
-    roleId: user.roleId
+    roleId: user.roleId,
+    emailVerified: user.emailVerified || false
   };
   
   return jwt.sign(payload, secret, {
@@ -286,7 +303,7 @@ export const generateToken = (user: { id: string; email: string; role: string; r
   });
 };
 
-export const generateRefreshToken = (user: { id: string; email: string; role: string; roleId: string }): string => {
+export const generateRefreshToken = (user: { id: string; email: string; role: string; roleId: string; emailVerified?: boolean; }): string => {
   const refreshSecret = config.jwt.refreshSecret;
   if (!refreshSecret) {
     throw new Error('JWT refresh secret is not configured');
@@ -320,5 +337,29 @@ export const verifyRefreshToken = (token: string): { id: string; email: string; 
     };
   } catch (error) {
     return null;
+  }
+};
+
+export const detectLanguage = (req: AuthRequest, _res: express.Response, next: express.NextFunction): void => {
+  try {
+    const acceptLanguage = req.headers['accept-language'];
+    const queryLang = req.query.lang as string;
+    const cookieLang = req.cookies?.lang;
+    
+    if (queryLang && ['fr', 'en'].includes(queryLang.toLowerCase())) {
+      req.language = queryLang.toLowerCase() as 'fr' | 'en';
+    } else if (cookieLang && ['fr', 'en'].includes(cookieLang.toLowerCase())) {
+      req.language = cookieLang.toLowerCase() as 'fr' | 'en';
+    } else if (acceptLanguage) {
+      const preferredLang = acceptLanguage.split(',')[0].split('-')[0].toLowerCase();
+      req.language = ['fr', 'en'].includes(preferredLang) ? preferredLang as 'fr' | 'en' : 'fr';
+    } else {
+      req.language = 'fr';
+    }
+    
+    next();
+  } catch (error) {
+    req.language = 'fr';
+    next();
   }
 };

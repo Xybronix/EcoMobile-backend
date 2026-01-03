@@ -6,16 +6,19 @@ import { generateToken, generateRefreshToken } from '../middleware/auth';
 import { AppError } from '../middleware/errorHandler';
 import { t } from '../locales';
 import NotificationService from './NotificationService';
+import { EmailVerificationService } from './EmailVerificationService';
 
 export class AuthService {
   private userRepository: UserRepository;
   private sessionRepository: SessionRepository;
   private notificationService: NotificationService;
+  private emailVerificationService: EmailVerificationService;
 
   constructor() {
     this.userRepository = new UserRepository();
     this.sessionRepository = new SessionRepository();
     this.notificationService = new NotificationService();
+    this.emailVerificationService = new EmailVerificationService();
   }
 
   async register(data: RegisterRequest, language: 'fr' | 'en' = 'fr'): Promise<AuthResponse> {
@@ -27,6 +30,10 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 12);
 
+    // Générer le token de vérification
+    const verificationToken = this.emailVerificationService.generateVerificationToken();
+    const verificationExpires = this.emailVerificationService.getTokenExpiration();
+
     // Create user
     const user = await this.userRepository.create({
       email: data.email,
@@ -37,15 +44,30 @@ export class AuthService {
       role: 'USER',
       status: 'active',
       emailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires,
       language: data.language || language
     });
+
+    // Send verification email
+    try {
+      await this.emailVerificationService.sendVerificationEmail(
+        user.id,
+        user.email,
+        user.firstName,
+        verificationToken,
+        language
+      );
+    } catch (error) {
+      console.error(t('error.email_verification_failed', language), error);
+    }
 
     // Remove password from response
     const { password, ...userWithoutPassword } = user;
 
     // Generate tokens
-    const token = generateToken({ id: user.id, email: user.email, role: user.role, roleId: user.roleId || '' });
-    const refreshToken = generateRefreshToken({ id: user.id, email: user.email, role: user.role, roleId: user.roleId || '' });
+    const token = generateToken({ id: user.id, email: user.email, role: user.role, roleId: user.roleId || '', emailVerified: false });
+    const refreshToken = generateRefreshToken({ id: user.id, email: user.email, role: user.role, roleId: user.roleId || '', emailVerified: false });
 
     // Send welcome notification and email
     try {
@@ -56,12 +78,12 @@ export class AuthService {
         language
       );
     } catch (error) {
-      console.error('Failed to send welcome notification:', error);
+      console.error(t('error.welcome_notification_failed', language), error);
       // Don't throw - registration was successful
     }
 
     return {
-      user: userWithoutPassword,
+      user: { ...userWithoutPassword, emailVerified: false },
       token,
       refreshToken
     };
@@ -80,6 +102,11 @@ export class AuthService {
       throw new AppError(t('auth.login.failed', language), 401);
     }
 
+    // Check if email is verified
+    if (!user.emailVerified) {
+      throw new AppError(t('error.email_not_verified', language), 403);
+    }
+
     // Check if user is active
     if (user.status !== 'active') {
       throw new AppError(t('auth.unauthorized', language), 403);
@@ -89,9 +116,9 @@ export class AuthService {
     const { password, ...userWithoutPassword } = user;
 
     // Generate tokens
-    const token = generateToken({ id: user.id, email: user.email, role: user.role, roleId: user.roleId || '' });
-    const refreshToken = generateRefreshToken({ id: user.id, email: user.email, role: user.role, roleId: user.roleId || '' });
-
+    const token = generateToken({ id: user.id, email: user.email, role: user.role, roleId: user.roleId || '', emailVerified: user.emailVerified });
+    const refreshToken = generateRefreshToken({ id: user.id, email: user.email, role: user.role, roleId: user.roleId || '', emailVerified: user.emailVerified });
+    
     if (req) {
       try {
         const expiresAt = new Date();
@@ -100,8 +127,8 @@ export class AuthService {
         await this.sessionRepository.createSession({
           userId: user.id,
           token: token,
-          device: this.parseDeviceFromUserAgent(req.get('User-Agent')),
-          location: await this.getLocationFromIP(req.ip),
+          device: this.parseDeviceFromUserAgent(req.get('User-Agent'), language),
+          location: await this.getLocationFromIP(req.ip, language),
           ipAddress: req.ip,
           userAgent: req.get('User-Agent'),
           expiresAt
@@ -206,7 +233,7 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(email);
     if (!user) {
       // Don't reveal if user exists or not for security
-      return 'Si un compte avec cet email existe, un lien de réinitialisation a été envoyé.';
+      throw new AppError(t('auth.forgot_password.success', language), 200);
     }
 
     // Generate reset token
@@ -222,11 +249,11 @@ export class AuthService {
         language
       );
     } catch (error) {
-      console.error('Failed to send password reset email:', error);
-      throw new AppError('Failed to send password reset email', 500);
+      console.error(t('error.password_reset_failed', language), error);
+      throw new AppError(t('error.password_reset_failed', language), 500);
     }
 
-    return 'Email de réinitialisation envoyé avec succès';
+    throw new AppError(t('auth.forgot_password.success', language), 200);
   }
 
   async resetPassword(email: string, newPassword: string, language: 'fr' | 'en' = 'fr'): Promise<any> {
@@ -258,11 +285,11 @@ export class AuthService {
 
     // Validate new password strength
     if (newPassword.length < 8) {
-      throw new AppError('Le mot de passe doit contenir au moins 8 caractères', 400);
+      throw new AppError(t('validation.password.min_length', language), 400);
     }
 
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
-      throw new AppError('Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre', 400);
+      throw new AppError(t('validation.password.complexity', language), 400);
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
@@ -277,8 +304,92 @@ export class AuthService {
     }
   }
 
-  private parseDeviceFromUserAgent(userAgent?: string): string {
-    if (!userAgent) return 'Appareil inconnu';
+  /**
+   * Vérifier l'email avec le token
+   */
+  async verifyEmail(userId: string, token: string, language: 'fr' | 'en' = 'fr'): Promise<boolean> {
+    const user = await this.userRepository.findById(userId);
+    
+    if (!user) {
+      throw new AppError(t('user.not_found', language), 404);
+    }
+
+    // Vérifier si l'email est déjà vérifié
+    if (user.emailVerified) {
+      throw new AppError(t('error.email_already_verified', language), 400);
+    }
+
+    // Vérifier le token
+    if (!user.emailVerificationToken || user.emailVerificationToken !== token) {
+      throw new AppError(t('error.invalid_verification_token', language), 400);
+    }
+
+    // Vérifier l'expiration
+    if (!user.emailVerificationExpires || new Date() > user.emailVerificationExpires) {
+      throw new AppError(t('error.verification_token_expired', language), 400);
+    }
+
+    // Mettre à jour l'utilisateur
+    await this.userRepository.update(userId, {
+      emailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpires: null
+    });
+
+    // Envoyer une notification de confirmation
+    try {
+      await this.notificationService.sendEmailVerifiedConfirmation(
+        user.id,
+        user.email,
+        user.firstName,
+        language
+      );
+    } catch (error) {
+      console.error('Failed to send verification confirmation:', error);
+    }
+
+    return true;
+  }
+
+  /**
+   * Resend the verification email
+   */
+  async resendVerificationEmail(email: string, language: 'fr' | 'en' = 'fr'): Promise<boolean> {
+    const user = await this.userRepository.findByEmail(email);
+    
+    if (!user) {
+      return true;
+    }
+
+    if (user.emailVerified) {
+      throw new AppError('email_already_verified', 400);
+    }
+
+    // Generate new verification token
+    const verificationToken = this.emailVerificationService.generateVerificationToken();
+    const verificationExpires = this.emailVerificationService.getTokenExpiration();
+
+    // Update user with new token
+    await this.userRepository.updateEmailVerificationToken(
+      user.id, 
+      verificationToken, 
+      verificationExpires
+    );
+
+    // Send new verification email
+    await this.emailVerificationService.sendVerificationEmail(
+      user.id,
+      user.email,
+      user.firstName,
+      verificationToken,
+      language
+    );
+
+    return true;
+  }
+
+  private parseDeviceFromUserAgent(userAgent?: string, language: 'fr' | 'en' = 'fr'): string {
+    if (!userAgent) return t('device.unknown', language);
     
     if (userAgent.includes('Chrome')) {
       if (userAgent.includes('Windows')) return 'Chrome sur Windows';
@@ -303,10 +414,10 @@ export class AuthService {
     return 'Navigateur inconnu';
   }
 
-  private async getLocationFromIP(ip?: string): Promise<string> {
+  private async getLocationFromIP(ip?: string, language: 'fr' | 'en' = 'fr'): Promise<string> {
     if (!ip || ip === '127.0.0.1' || ip === '::1') {
-      return 'Localisation locale';
+      return t('location.local', language);
     }
-    return 'Cameroun'; // Default for your app context
+    return t('location.cameroon', language); // Default for your app context
   }
 }

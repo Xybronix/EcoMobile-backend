@@ -11,7 +11,21 @@
     "token_required": "Token required",
     "password_reset_success": "Password reset successfully",
     "password_changed": "Password changed successfully",
-    "email_verified": "Email verified successfully"
+    "email_verified": "Email verified successfully",
+    "register": {
+      "email_exists": "This email already exists"
+    },
+    "login": {
+      "failed": "Invalid email or password"
+    },
+    "password": {
+      "current": {
+        "invalid": "Current password incorrect"
+      }
+    },
+    "forgot_password": {
+      "success": "If an account with this email exists, a reset link has been sent."
+    }
   },
   "user": {
     "not_found": "User not found",
@@ -97,14 +111,25 @@
     "password_weak": "Password must be at least 8 characters long",
     "field_required": "Field {{field}} is required",
     "invalid_format": "Invalid format",
-    "invalid_phone": "Invalid phone number"
+    "invalid_phone": "Invalid phone number",
+    "password": {
+      "min_length": "Password must be at least 8 characters long",
+      "complexity": "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+    }
   },
   "error": {
     "internal_server": "Internal server error",
     "not_found": "Resource not found",
     "bad_request": "Invalid request",
     "database_error": "Database error",
-    "service_unavailable": "Service temporarily unavailable"
+    "service_unavailable": "Service temporarily unavailable",
+    "email_not_verified": "Email not verified",
+    "email_already_verified": "Email already verified",
+    "invalid_verification_token": "Invalid verification token",
+    "verification_token_expired": "Verification token expired",
+    "email_verification_failed": "Failed to send verification email",
+    "password_reset_failed": "Failed to send reset email",
+    "welcome_notification_failed": "Failed to send welcome notification"
   },
   "success": {
     "operation_completed": "Operation completed successfully",
@@ -142,5 +167,35 @@
     "footer_text": "Thank you for using FreeBike",
     "footer_contact": "Need help? Contact us",
     "unsubscribe": "Unsubscribe"
+  },
+  "session": {
+    "fetch": {
+      "error": "Error fetching sessions"
+    },
+    "not_found": "Session not found",
+    "disconnect": {
+      "error": "Error disconnecting session"
+    },
+    "disconnect_all": {
+      "error": "Error disconnecting all sessions"
+    }
+  },
+  "device": {
+    "unknown": "Unknown device",
+    "chrome": "Chrome",
+    "chrome_windows": "Chrome on Windows",
+    "chrome_mac": "Chrome on Mac",
+    "chrome_android": "Chrome on Android",
+    "safari_iphone": "Safari on iPhone",
+    "safari_ipad": "Safari on iPad",
+    "safari_mac": "Safari on Mac",
+    "safari": "Safari",
+    "firefox_windows": "Firefox on Windows",
+    "firefox_mac": "Firefox on Mac",
+    "firefox": "Firefox"
+  },
+  "location": {
+    "local": "Local location",
+    "cameroon": "Cameroon"
   }
 }

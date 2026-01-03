@@ -10,8 +10,10 @@ export interface User {
   avatar?: string;
   role: 'USER' | 'EMPLOYEE' | 'ADMIN' | 'SUPER_ADMIN';
   roleId?: string;
-  status: 'active' | 'inactive' | 'suspended';
+  status: 'pending' | 'active' | 'inactive' | 'suspended';
   emailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   language: 'fr' | 'en';
   createdAt: Date;
   updatedAt: Date;
