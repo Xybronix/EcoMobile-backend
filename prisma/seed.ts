@@ -359,9 +359,9 @@ async function main() {
   console.log('✅ Created pricing configuration (Standard plan only)');
 
   // Create bikes - only the first two real ones
-  const bike1 = await prisma.bike.create({
+  await prisma.bike.create({
     data: {
-      id: '9170123060', // Garder l'ID spécifique du premier vrai vélo
+      id: '9170123060',
       code: 'BIKE001',
       model: 'E-Bike Pro',
       status: 'AVAILABLE',
@@ -377,9 +377,9 @@ async function main() {
     },
   });
 
-  const bike2 = await prisma.bike.create({
+  await prisma.bike.create({
     data: {
-      id: '9170123061', // Garder l'ID spécifique du deuxième vrai vélo
+      id: '9170123061',
       code: 'BIKE002',
       model: 'E-Bike Sport',
       status: 'AVAILABLE',
