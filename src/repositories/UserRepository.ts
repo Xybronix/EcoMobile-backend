@@ -25,6 +25,9 @@ export class UserRepository extends BaseRepository<User> {
     lastName?: string;
     phone?: string;
     address?: string;
+    emailVerified?: boolean;
+    emailVerificationToken?: string | null;
+    emailVerificationExpires?: Date | null;
   }): Promise<User> {
     const updateFields: string[] = [];
     const values: any[] = [];
@@ -55,6 +58,21 @@ export class UserRepository extends BaseRepository<User> {
       values.push(data.address);
     }
 
+    if (data.emailVerified !== undefined) {
+      updateFields.push(`emailVerified = ${this.getPlaceholder(paramIndex++)}`);
+      values.push(data.emailVerified);
+    }
+
+    if (data.emailVerificationToken !== undefined) {
+      updateFields.push(`emailVerificationToken = ${this.getPlaceholder(paramIndex++)}`);
+      values.push(data.emailVerificationToken);
+    }
+
+    if (data.emailVerificationExpires !== undefined) {
+      updateFields.push(`emailVerificationExpires = ${this.getPlaceholder(paramIndex++)}`);
+      values.push(data.emailVerificationExpires);
+    }
+
     updateFields.push(`updatedAt = ${this.getPlaceholder(paramIndex++)}`);
     values.push(new Date());
 
@@ -76,8 +94,13 @@ export class UserRepository extends BaseRepository<User> {
   }
 
   async verifyEmail(userId: string): Promise<void> {
-    const sql = `UPDATE ${this.tableName} SET emailVerified = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
+    const sql = `UPDATE ${this.tableName} SET emailVerified = ${this.getPlaceholder(1)}, emailVerificationToken = NULL, emailVerificationExpires = NULL, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
     await this.executeNonQuery(sql, [true, new Date(), userId]);
+  }
+
+  async updateEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+    const sql = `UPDATE ${this.tableName} SET emailVerificationToken = ${this.getPlaceholder(1)}, emailVerificationExpires = ${this.getPlaceholder(2)}, updatedAt = ${this.getPlaceholder(3)} WHERE id = ${this.getPlaceholder(4)}`;
+    await this.executeNonQuery(sql, [token, expiresAt, new Date(), userId]);
   }
 
   async updateStatus(userId: string, status: 'active' | 'inactive' | 'suspended'): Promise<void> {

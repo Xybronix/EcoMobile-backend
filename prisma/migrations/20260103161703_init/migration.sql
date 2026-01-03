@@ -12,6 +12,8 @@ CREATE TABLE `users` (
     `status` VARCHAR(191) NOT NULL DEFAULT 'active',
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `emailVerified` BOOLEAN NOT NULL DEFAULT false,
+    `emailVerificationToken` VARCHAR(191) NULL,
+    `emailVerificationExpires` DATETIME(3) NULL,
     `language` VARCHAR(191) NOT NULL DEFAULT 'fr',
     `depositBalance` DOUBLE NOT NULL DEFAULT 0,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),

@@ -68,6 +68,46 @@ class NotificationService {
   }
 
   /**
+   * Send email verification confirmation
+   */
+  async sendEmailVerifiedConfirmation(
+    userId: string,
+    userEmail: string,
+    firstName: string,
+    lang: 'en' | 'fr' = 'fr'
+  ): Promise<void> {
+    // Create notification
+    await this.createNotification({
+      userId,
+      title: t('notification.email_verified', lang),
+      message: t('auth.email.verified', lang),
+      type: 'EMAIL_VERIFIED',
+      sendEmail: true,
+      emailData: {
+        userEmail,
+        firstName,
+        lang,
+      },
+    });
+
+    // Send verification confirmation email
+    try {
+      const emailTemplate = this.emailService.generateEmailVerifiedTemplate(
+        firstName,
+        lang,
+        t
+      );
+      await this.emailService.sendEmail({
+        to: userEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+      });
+    } catch (error) {
+      console.error('Failed to send email verification confirmation:', error);
+    }
+  }
+
+  /**
    * Create notification for ride started
    */
   async notifyRideStarted(

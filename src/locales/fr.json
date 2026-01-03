@@ -11,7 +11,21 @@
     "token_required": "Token requis",
     "password_reset_success": "Mot de passe réinitialisé avec succès",
     "password_changed": "Mot de passe modifié avec succès",
-    "email_verified": "Email vérifié avec succès"
+    "email_verified": "Email vérifié avec succès",
+    "register": {
+      "email_exists": "Cet email existe déjà"
+    },
+    "login": {
+      "failed": "Email ou mot de passe incorrect"
+    },
+    "password": {
+      "current": {
+        "invalid": "Mot de passe actuel incorrect"
+      }
+    },
+    "forgot_password": {
+      "success": "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé."
+    }
   },
   "user": {
     "not_found": "Utilisateur non trouvé",
@@ -97,14 +111,25 @@
     "password_weak": "Le mot de passe doit contenir au moins 8 caractères",
     "field_required": "Le champ {{field}} est requis",
     "invalid_format": "Format invalide",
-    "invalid_phone": "Numéro de téléphone invalide"
+    "invalid_phone": "Numéro de téléphone invalide",
+    "password": {
+      "min_length": "Le mot de passe doit contenir au moins 8 caractères",
+      "complexity": "Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre"
+    }
   },
   "error": {
     "internal_server": "Erreur interne du serveur",
     "not_found": "Ressource non trouvée",
     "bad_request": "Requête invalide",
     "database_error": "Erreur de base de données",
-    "service_unavailable": "Service temporairement indisponible"
+    "service_unavailable": "Service temporairement indisponible",
+    "email_not_verified": "Email non vérifié",
+    "email_already_verified": "Email déjà vérifié",
+    "invalid_verification_token": "Token de vérification invalide",
+    "verification_token_expired": "Token de vérification expiré",
+    "email_verification_failed": "Échec de l'envoi de l'email de vérification",
+    "password_reset_failed": "Échec de l'envoi de l'email de réinitialisation",
+    "welcome_notification_failed": "Échec de l'envoi de la notification de bienvenue"
   },
   "success": {
     "operation_completed": "Opération terminée avec succès",
@@ -142,5 +167,35 @@
     "footer_text": "Merci d'utiliser FreeBike",
     "footer_contact": "Besoin d'aide? Contactez-nous",
     "unsubscribe": "Se désabonner"
+  },
+  "session": {
+    "fetch": {
+      "error": "Erreur lors de la récupération des sessions"
+    },
+    "not_found": "Session non trouvée",
+    "disconnect": {
+      "error": "Erreur lors de la déconnexion de la session"
+    },
+    "disconnect_all": {
+      "error": "Erreur lors de la déconnexion de toutes les sessions"
+    }
+  },
+  "device": {
+    "unknown": "Appareil inconnu",
+    "chrome": "Chrome",
+    "chrome_windows": "Chrome sur Windows",
+    "chrome_mac": "Chrome sur Mac",
+    "chrome_android": "Chrome sur Android",
+    "safari_iphone": "Safari sur iPhone",
+    "safari_ipad": "Safari sur iPad",
+    "safari_mac": "Safari sur Mac",
+    "safari": "Safari",
+    "firefox_windows": "Firefox sur Windows",
+    "firefox_mac": "Firefox sur Mac",
+    "firefox": "Firefox"
+  },
+  "location": {
+    "local": "Localisation locale",
+    "cameroon": "Cameroun"
   }
 }

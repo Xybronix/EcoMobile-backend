@@ -491,6 +491,98 @@ export class AuthController {
 
   /**
    * @swagger
+   * /auth/verify-email:
+   *   post:
+   *     summary: Verify email with token
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - userId
+   *               - token
+   *             properties:
+   *               userId:
+   *                 type: string
+   *               token:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Email successfully verified
+   */
+  verifyEmail = asyncHandler(async (req: AuthRequest, res: express.Response) => {
+    const language = req.language || 'fr';
+    const { userId, token } = req.body;
+
+    const verified = await this.authService.verifyEmail(userId, token, language);
+
+    await logActivity(
+      userId,
+      'VERIFY',
+      'EMAIL',
+      userId,
+      'Email verified successfully',
+      null,
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: t('auth.verify_email.success', language),
+      data: { verified }
+    });
+  });
+
+  /**
+   * @swagger
+   * /auth/resend-verification:
+   *   post:
+   *     summary: Resend verification email
+   *     tags: [Auth]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - email
+   *             properties:
+   *               email:
+   *                 type: string
+   *                 format: email
+   *     responses:
+   *       200:
+   *         description: Verification email resent
+   */
+  resendVerification = asyncHandler(async (req: AuthRequest, res: express.Response) => {
+    const language = req.language || 'fr';
+    const { email } = req.body;
+
+    const resent = await this.authService.resendVerificationEmail(email, language);
+
+    await logActivity(
+      null,
+      'RESEND',
+      'VERIFICATION_EMAIL',
+      '',
+      `Verification email resent to: ${email}`,
+      { email },
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: t('auth.resend_verification.success', language),
+      data: { resent }
+    });
+  });
+
+  /**
+   * @swagger
    * /auth/logout:
    *   post:
    *     summary: Logout user

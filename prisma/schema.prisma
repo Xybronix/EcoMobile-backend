@@ -12,55 +12,57 @@ generator client {
 }
 
 model User {
-  id              String   @id @default(uuid())
-  email           String   @unique
-  password        String
-  firstName       String
-  lastName        String
-  phone           String?
-  address         String?
-  avatar          String?
-  role            UserRole @default(USER)
-  status          String   @default("active")
-  isActive        Boolean  @default(true)
-  emailVerified   Boolean  @default(false)
-  language        String   @default("fr")
-  depositBalance  Float    @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                        String   @id @default(uuid())
+  email                     String   @unique
+  password                  String
+  firstName                 String
+  lastName                  String
+  phone                     String?
+  address                   String?
+  avatar                    String?
+  role                      UserRole @default(USER)
+  status                    String   @default("active")
+  isActive                  Boolean  @default(true)
+  emailVerified             Boolean  @default(false)
+  emailVerificationToken    String?
+  emailVerificationExpires  DateTime?
+  language                  String   @default("fr")
+  depositBalance            Float    @default(0)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
   // Relations
-  wallet           Wallet?
-  rides            Ride[]
-  notifications    Notification[]
-  chatMessages     ChatMessage[]
-  incidents        Incident[]
-  reservations     Reservation[]
-  unlockRequests   UnlockRequest[]
-  lockRequests     LockRequest[]
-  sessions         Session[]
-  activityLogs     ActivityLog[]
-  reviews          Review[]
-  preferences      UserPreferences?
-  pushTokens       PushToken[]
-  subscriptions    Subscription[]
-  roleId           String?
-  roleRelation     Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+wallet            Wallet?
+rides             Ride[]
+notifications     Notification[]
+chatMessages      ChatMessage[]
+incidents         Incident[]
+reservations      Reservation[]
+unlockRequests    UnlockRequest[]
+lockRequests      LockRequest[]
+sessions          Session[]
+activityLogs      ActivityLog[]
+reviews           Review[]
+preferences       UserPreferences?
+pushTokens        PushToken[]
+subscriptions     Subscription[]
+roleId            String?
+roleRelation      Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
 
 model UserPreferences {
-  id                      String   @id @default(uuid())
-  userId                  String   @unique
-  rideNotifications       Boolean  @default(true)
-  promotionalNotifications Boolean  @default(true)
-  securityNotifications   Boolean  @default(true)
-  systemNotifications     Boolean  @default(true)
-  emailNotifications      Boolean  @default(true)
-  pushNotifications       Boolean  @default(true)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                        String   @id @default(uuid())
+  userId                    String   @unique
+  rideNotifications         Boolean  @default(true)
+  promotionalNotifications  Boolean  @default(true)
+  securityNotifications     Boolean  @default(true)
+  systemNotifications       Boolean  @default(true)
+  emailNotifications        Boolean  @default(true)
+  pushNotifications         Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
