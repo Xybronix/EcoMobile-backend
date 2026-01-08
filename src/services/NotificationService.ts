@@ -282,14 +282,19 @@ class NotificationService {
 
     // Send welcome email
     try {
-      const emailTemplate = this.emailService.generateWelcomeEmail(firstName, lang, t);
-      await this.emailService.sendEmail({
-        to: userEmail,
-        subject: emailTemplate.subject,
-        html: emailTemplate.html,
-      });
+      if (this.emailService.isConfigured()) {
+        const emailTemplate = this.emailService.generateWelcomeEmail(firstName, lang, t);
+        await this.emailService.sendEmail({
+          to: userEmail,
+          subject: emailTemplate.subject,
+          html: emailTemplate.html,
+        });
+      } else {
+        console.log(`[DEV EMAIL] Email service not configured, skipping welcome email`);
+      }
     } catch (error) {
       console.error('Failed to send welcome email:', error);
+      // Don't throw - email failure shouldn't block registration
     }
 
     return notification;

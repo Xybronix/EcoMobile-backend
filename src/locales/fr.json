@@ -25,14 +25,23 @@
     },
     "forgot_password": {
       "success": "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé."
-    }
+    },
+    "phone": {
+      "verification_sent": "Code de vérification envoyé",
+      "verified": "Téléphone vérifié avec succès",
+      "invalid_code": "Code invalide ou expiré",
+      "code_expired": "Le code de vérification a expiré",
+      "no_code_sent": "Aucun code de vérification n'a été envoyé"
+    },
+    "account_verified": "Compte vérifié avec succès"
   },
   "user": {
     "not_found": "Utilisateur non trouvé",
     "profile_updated": "Profil mis à jour avec succès",
     "account_deactivated": "Compte désactivé",
     "invalid_credentials": "Identifiants invalides",
-    "profile_retrieved": "Profil récupéré avec succès"
+    "profile_retrieved": "Profil récupéré avec succès",
+    "account_verified": "Compte vérifié avec succès"
   },
   "bike": {
     "not_found": "Vélo non trouvé",
@@ -129,7 +138,10 @@
     "verification_token_expired": "Token de vérification expiré",
     "email_verification_failed": "Échec de l'envoi de l'email de vérification",
     "password_reset_failed": "Échec de l'envoi de l'email de réinitialisation",
-    "welcome_notification_failed": "Échec de l'envoi de la notification de bienvenue"
+    "welcome_notification_failed": "Échec de l'envoi de la notification de bienvenue",
+    "phone_not_found": "Numéro de téléphone non trouvé",
+    "phone_required": "Numéro de téléphone requis",
+    "code_required": "Code de vérification requis"
   },
   "success": {
     "operation_completed": "Opération terminée avec succès",
@@ -160,11 +172,11 @@
     "promotion_title": "{{title}}",
     "promotion_message": "{{message}}",
     "promotion_cta": "En savoir plus",
+    "footer_text": "© 2026 FreeBike. Tous droits réservés.",
     "incident_resolved_subject": "Votre incident a été résolu - FreeBike",
     "incident_resolved_title": "Incident résolu",
     "incident_resolved_message": "Bonjour {{firstName}},\n\nNous vous informons que votre incident #{{incidentId}} a été résolu.\n\nMerci de votre patience.",
     "incident_resolved_cta": "Voir les détails",
-    "footer_text": "Merci d'utiliser FreeBike",
     "footer_contact": "Besoin d'aide? Contactez-nous",
     "unsubscribe": "Se désabonner"
   },
@@ -197,5 +209,19 @@
   "location": {
     "local": "Localisation locale",
     "cameroon": "Cameroun"
+  },
+  "document": {
+    "submitted": "Document soumis avec succès",
+    "status_retrieved": "Statut des documents récupéré",
+    "pending_retrieved": "Documents en attente récupérés",
+    "approved": "Document approuvé",
+    "rejected": "Document rejeté",
+    "not_all_approved": "Tous les documents doivent être approuvés avant la validation du compte",
+    "identity": {
+      "already_submitted": "Un document d'identité est déjà en attente ou approuvé"
+    },
+    "residence": {
+      "already_submitted": "Une preuve de résidence est déjà en attente ou approuvée"
+    }
   }
 }

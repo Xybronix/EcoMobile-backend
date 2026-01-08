@@ -18,15 +18,28 @@ class EmailService {
   private transporter: any;
 
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: config.email.host,
-      port: config.email.port,
-      secure: config.email.secure, // true for 465, false for other ports
-      auth: {
-        user: config.email.user,
-        pass: config.email.password,
-      },
-    });
+    // Only create transporter if email is configured
+    if (this.isConfigured()) {
+      this.transporter = nodemailer.createTransport({
+        host: config.email.host,
+        port: config.email.port,
+        secure: config.email.secure, // true for 465, false for other ports
+        auth: {
+          user: config.email.user,
+          pass: config.email.password,
+        },
+      });
+    } else {
+      // In development, create a mock transporter
+      if (process.env.NODE_ENV === 'development') {
+        this.transporter = {
+          sendMail: async () => {
+            console.log('[DEV EMAIL] Email service not configured, skipping email send');
+            return { messageId: 'dev-mock-id' };
+          }
+        };
+      }
+    }
   }
 
   /**
@@ -46,6 +59,17 @@ class EmailService {
    * Send an email
    */
   async sendEmail(options: EmailOptions): Promise<boolean> {
+    // In development, if email is not configured, just log instead of failing
+    if (!this.isConfigured()) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DEV EMAIL] Would send email to: ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
+        console.log(`[DEV EMAIL] Subject: ${options.subject}`);
+        return true;
+      } else {
+        throw new Error('Email service not configured');
+      }
+    }
+
     try {
       const recipients = Array.isArray(options.to) ? options.to.join(', ') : options.to;
 
@@ -62,6 +86,11 @@ class EmailService {
       return true;
     } catch (error) {
       console.error('Error sending email:', error);
+      // In development, don't throw error if email fails
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DEV EMAIL] Email sending failed, but continuing in development mode`);
+        return false;
+      }
       throw error;
     }
   }

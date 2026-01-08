@@ -25,14 +25,23 @@
     },
     "forgot_password": {
       "success": "If an account with this email exists, a reset link has been sent."
-    }
+    },
+    "phone": {
+      "verification_sent": "Verification code sent",
+      "verified": "Phone verified successfully",
+      "invalid_code": "Invalid or expired code",
+      "code_expired": "Verification code has expired",
+      "no_code_sent": "No verification code has been sent"
+    },
+    "account_verified": "Account verified successfully"
   },
   "user": {
     "not_found": "User not found",
     "profile_updated": "Profile updated successfully",
     "account_deactivated": "Account deactivated",
     "invalid_credentials": "Invalid credentials",
-    "profile_retrieved": "Profile retrieved successfully"
+    "profile_retrieved": "Profile retrieved successfully",
+    "account_verified": "Account verified successfully"
   },
   "bike": {
     "not_found": "Bike not found",
@@ -129,7 +138,10 @@
     "verification_token_expired": "Verification token expired",
     "email_verification_failed": "Failed to send verification email",
     "password_reset_failed": "Failed to send reset email",
-    "welcome_notification_failed": "Failed to send welcome notification"
+    "welcome_notification_failed": "Failed to send welcome notification",
+    "phone_not_found": "Phone number not found",
+    "phone_required": "Phone number required",
+    "code_required": "Verification code required"
   },
   "success": {
     "operation_completed": "Operation completed successfully",
@@ -160,6 +172,7 @@
     "promotion_title": "{{title}}",
     "promotion_message": "{{message}}",
     "promotion_cta": "Learn more",
+    "footer_text": "© 2026 FreeBike. All rights reserved.",
     "incident_resolved_subject": "Your incident has been resolved - FreeBike",
     "incident_resolved_title": "Incident resolved",
     "incident_resolved_message": "Hello {{firstName}},\n\nWe inform you that your incident #{{incidentId}} has been resolved.\n\nThank you for your patience.",
@@ -197,5 +210,19 @@
   "location": {
     "local": "Local location",
     "cameroon": "Cameroon"
+  },
+  "document": {
+    "submitted": "Document submitted successfully",
+    "status_retrieved": "Document status retrieved",
+    "pending_retrieved": "Pending documents retrieved",
+    "approved": "Document approved",
+    "rejected": "Document rejected",
+    "not_all_approved": "All documents must be approved before account validation",
+    "identity": {
+      "already_submitted": "An identity document is already pending or approved"
+    },
+    "residence": {
+      "already_submitted": "A residence proof is already pending or approved"
+    }
   }
 }
