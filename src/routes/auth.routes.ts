@@ -104,4 +104,25 @@ router.get('/validate', authenticate, authController.validateToken);
  */
 router.post('/logout', authenticate, authController.logout);
 
+/**
+ * @route   POST /api/v1/auth/verify-phone/initiate
+ * @desc    Initiate phone verification
+ * @access  Private
+ */
+router.post('/verify-phone/initiate', authenticate, authController.initiatePhoneVerification);
+
+/**
+ * @route   POST /api/v1/auth/verify-phone/verify
+ * @desc    Verify phone code
+ * @access  Private
+ */
+router.post('/verify-phone/verify', authenticate, authController.verifyPhoneCode);
+
+/**
+ * @route   POST /api/v1/auth/verify-phone/resend
+ * @desc    Resend phone verification code
+ * @access  Private
+ */
+router.post('/verify-phone/resend', authenticate, authController.resendPhoneVerification);
+
 export default router;

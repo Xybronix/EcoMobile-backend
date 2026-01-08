@@ -7,18 +7,21 @@ import { AppError } from '../middleware/errorHandler';
 import { t } from '../locales';
 import NotificationService from './NotificationService';
 import { EmailVerificationService } from './EmailVerificationService';
+import { SmsVerificationService } from './SmsVerificationService';
 
 export class AuthService {
   private userRepository: UserRepository;
   private sessionRepository: SessionRepository;
   private notificationService: NotificationService;
   private emailVerificationService: EmailVerificationService;
+  private smsVerificationService: SmsVerificationService;
 
   constructor() {
     this.userRepository = new UserRepository();
     this.sessionRepository = new SessionRepository();
     this.notificationService = new NotificationService();
     this.emailVerificationService = new EmailVerificationService();
+    this.smsVerificationService = new SmsVerificationService();
   }
 
   async register(data: RegisterRequest, language: 'fr' | 'en' = 'fr'): Promise<AuthResponse> {
@@ -34,7 +37,7 @@ export class AuthService {
     const verificationToken = this.emailVerificationService.generateVerificationToken();
     const verificationExpires = this.emailVerificationService.getTokenExpiration();
 
-    // Create user
+    // Create user with pending verification status
     const user = await this.userRepository.create({
       email: data.email,
       password: hashedPassword,
@@ -42,10 +45,12 @@ export class AuthService {
       lastName: data.lastName,
       phone: data.phone,
       role: 'USER',
-      status: 'active',
+      status: 'pending_verification',
+      isActive: false,
       emailVerified: false,
       emailVerificationToken: verificationToken,
       emailVerificationExpires: verificationExpires,
+      phoneVerified: false,
       language: data.language || language
     });
 
@@ -102,13 +107,10 @@ export class AuthService {
       throw new AppError(t('auth.login.failed', language), 401);
     }
 
-    // Check if email is verified
-    if (!user.emailVerified) {
-      throw new AppError(t('error.email_not_verified', language), 403);
-    }
-
-    // Check if user is active
-    if (user.status !== 'active') {
+    // Note: Email verification is no longer blocking - user can login but account status will be pending
+    // Check if user account is verified by admin (not just active status)
+    // Users with pending_verification status can login but will be redirected to document submission
+    if (user.status === 'suspended' || user.status === 'banned') {
       throw new AppError(t('auth.unauthorized', language), 403);
     }
 
@@ -419,5 +421,26 @@ export class AuthService {
       return t('location.local', language);
     }
     return t('location.cameroon', language); // Default for your app context
+  }
+
+  /**
+   * Initiate phone verification
+   */
+  async initiatePhoneVerification(userId: string, phoneNumber: string, language: 'fr' | 'en' = 'fr'): Promise<string> {
+    return await this.smsVerificationService.initiatePhoneVerification(userId, phoneNumber, language);
+  }
+
+  /**
+   * Verify phone code
+   */
+  async verifyPhoneCode(userId: string, code: string): Promise<boolean> {
+    return await this.smsVerificationService.verifyPhoneCode(userId, code);
+  }
+
+  /**
+   * Resend phone verification code
+   */
+  async resendPhoneVerification(userId: string, language: 'fr' | 'en' = 'fr'): Promise<void> {
+    await this.smsVerificationService.resendVerificationCode(userId, language);
   }
 }
