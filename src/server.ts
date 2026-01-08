@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
 if (process.env.NODE_ENV === 'production') {
   dotenv.config({ path: path.join(__dirname, '../../.env.production') });
@@ -59,9 +60,22 @@ if (config.env === 'development') {
 // i18n Middleware
 app.use(i18nMiddleware);
 
-// Images Loader
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/uploads', express.static(path.join(__dirname, '../dist/uploads')));
+// Static files - Serve uploads directory
+// In development, serve from project root
+// In production (after build), serve from dist folder
+const uploadsPathDev = path.join(process.cwd(), 'uploads');
+const uploadsPathProd = path.join(__dirname, '../uploads');
+const uploadsPathDist = path.join(__dirname, '../dist/uploads');
+
+// Serve static files from uploads directory
+// This will serve /uploads/documents/... correctly
+if (fs.existsSync(uploadsPathDev)) {
+  app.use('/uploads', express.static(uploadsPathDev));
+} else if (fs.existsSync(uploadsPathProd)) {
+  app.use('/uploads', express.static(uploadsPathProd));
+} else if (fs.existsSync(uploadsPathDist)) {
+  app.use('/uploads', express.static(uploadsPathDist));
+}
 
 // Health Check
 app.get('/health', (_req: express.Request, res: express.Response) => {

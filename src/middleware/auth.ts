@@ -120,7 +120,21 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
         return;
       }
 
-      if (!userWithPermissions.isActive || userWithPermissions.status !== 'active') {
+      // Autoriser les utilisateurs avec pending_verification pour certaines actions
+      // (gestion dans authenticateWithPendingVerification)
+      // Bloquer seulement les comptes bannis ou suspendus
+      if (userWithPermissions.status === 'banned' || userWithPermissions.status === 'suspended') {
+        res.status(403).json({
+          success: false,
+          error: t('auth.account.deactivated', req.language)
+        });
+        return;
+      }
+
+      // Pour les utilisateurs en attente de vérification, on les autorise uniquement
+      // pour certaines actions spécifiques (soumission de documents, vérification téléphone, etc.)
+      // mais on bloque leur accès aux fonctionnalités principales de l'application
+      if (!userWithPermissions.isActive && userWithPermissions.status !== 'pending_verification') {
         res.status(403).json({
           success: false,
           error: t('auth.account.deactivated', req.language)
@@ -219,6 +233,118 @@ export const requirePermission = (resource: string, action: string) => {
 };
 
 export const requireAdmin = authorize('ADMIN', 'SUPER_ADMIN');
+
+/**
+ * Middleware d'authentification qui autorise les utilisateurs avec pending_verification
+ * Utilisé pour les routes de vérification (téléphone, documents, profil basique)
+ */
+export const authenticateWithPendingVerification = async (req: AuthRequest, res: express.Response, next: express.NextFunction): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({
+        success: false,
+        error: t('auth.token.missing', req.language)
+      });
+      return;
+    }
+
+    const token = authHeader.substring(7);
+
+    try {
+      const secret = config.jwt.secret;
+      if (!secret) {
+        throw new Error('JWT secret is not configured');
+      }
+
+      const decoded = jwt.verify(token, secret as string) as {
+        id: string;
+        email: string;
+        role: string;
+        roleId: string;
+        emailVerified?: boolean
+      };
+
+      // Récupérer les permissions de l'utilisateur
+      const userWithPermissions = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          roleId: true,
+          isActive: true,
+          status: true,
+          emailVerified: true,
+          roleRelation: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!userWithPermissions) {
+        res.status(401).json({
+          success: false,
+          error: t('auth.user.not_found', req.language)
+        });
+        return;
+      }
+
+      // Autoriser uniquement les utilisateurs actifs ou en attente de vérification
+      // Bloquer les comptes bannis ou suspendus
+      if (userWithPermissions.status === 'banned' || userWithPermissions.status === 'suspended') {
+        res.status(403).json({
+          success: false,
+          error: t('auth.account.deactivated', req.language)
+        });
+        return;
+      }
+
+      // Autoriser les utilisateurs avec pending_verification pour la vérification
+      if (userWithPermissions.status !== 'active' && userWithPermissions.status !== 'pending_verification') {
+        res.status(403).json({
+          success: false,
+          error: t('auth.account.deactivated', req.language)
+        });
+        return;
+      }
+
+      const permissions = userWithPermissions.roleRelation?.permissions.map(
+        rp => `${rp.permission.resource}:${rp.permission.action}`
+      ) || [];
+
+      req.user = {
+        id: userWithPermissions.id,
+        email: userWithPermissions.email,
+        role: userWithPermissions.role,
+        roleId: userWithPermissions.roleId,
+        permissions: permissions || [],
+        emailVerified: userWithPermissions.emailVerified
+      };
+
+      next();
+    } catch (error) {
+      res.status(401).json({
+        success: false,
+        error: t('auth.token.invalid', req.language)
+      });
+      return;
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: t('error.server', req.language)
+    });
+    return;
+  }
+};
 
 export const optionalAuth = async (req: AuthRequest, _res: express.Response, next: express.NextFunction): Promise<void> => {
   try {

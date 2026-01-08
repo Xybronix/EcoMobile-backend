@@ -1,6 +1,6 @@
 import express from 'express';
 import { AuthController } from '../controllers/AuthController';
-import { authenticate } from '../middleware/auth';
+import { authenticateWithPendingVerification } from '../middleware/auth';
 import { loginValidator, registerValidator, updateProfileValidator, validate } from '../middleware/validator';
 
 const router = express.Router();
@@ -37,37 +37,37 @@ router.post('/resend-verification', validate, authController.resendVerification)
 /**
  * @route   GET /api/v1/auth/me
  * @desc    Get current user
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.get('/me', authenticate, authController.me);
+router.get('/me', authenticateWithPendingVerification, authController.me);
 
 /**
  * @route   PUT /api/v1/auth/profile
  * @desc    Update user profile
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.put('/profile', authenticate, updateProfileValidator, validate, authController.updateProfile);
+router.put('/profile', authenticateWithPendingVerification, updateProfileValidator, validate, authController.updateProfile);
 
 /**
  * @route   GET /api/v1/auth/sessions
  * @desc    Get user sessions
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.get('/sessions', authenticate, authController.getSessions);
+router.get('/sessions', authenticateWithPendingVerification, authController.getSessions);
 
 /**
  * @route   DELETE /api/v1/auth/sessions/:sessionId
  * @desc    Disconnect specific session
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.delete('/sessions/:sessionId', authenticate, authController.disconnectSession);
+router.delete('/sessions/:sessionId', authenticateWithPendingVerification, authController.disconnectSession);
 
 /**
  * @route   DELETE /api/v1/auth/sessions
  * @desc    Disconnect all other sessions
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.delete('/sessions', authenticate, authController.disconnectAllSessions);
+router.delete('/sessions', authenticateWithPendingVerification, authController.disconnectAllSessions);
 
 /**
  * @route   POST /api/v1/auth/forgot-password
@@ -86,43 +86,43 @@ router.post('/reset-password', authController.resetPassword);
 /**
  * @route   POST /api/v1/auth/change-password
  * @desc    Change password
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.post('/change-password', authenticate, authController.changePassword);
+router.post('/change-password', authenticateWithPendingVerification, authController.changePassword);
 
 /**
  * @route   GET /api/v1/auth/validate
  * @desc    Validate token
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.get('/validate', authenticate, authController.validateToken);
+router.get('/validate', authenticateWithPendingVerification, authController.validateToken);
 
 /**
  * @route   POST /api/v1/auth/logout
  * @desc    Logout user
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.post('/logout', authenticate, authController.logout);
+router.post('/logout', authenticateWithPendingVerification, authController.logout);
 
 /**
  * @route   POST /api/v1/auth/verify-phone/initiate
  * @desc    Initiate phone verification
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.post('/verify-phone/initiate', authenticate, authController.initiatePhoneVerification);
+router.post('/verify-phone/initiate', authenticateWithPendingVerification, authController.initiatePhoneVerification);
 
 /**
  * @route   POST /api/v1/auth/verify-phone/verify
  * @desc    Verify phone code
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.post('/verify-phone/verify', authenticate, authController.verifyPhoneCode);
+router.post('/verify-phone/verify', authenticateWithPendingVerification, authController.verifyPhoneCode);
 
 /**
  * @route   POST /api/v1/auth/verify-phone/resend
  * @desc    Resend phone verification code
- * @access  Private
+ * @access  Private (including pending_verification)
  */
-router.post('/verify-phone/resend', authenticate, authController.resendPhoneVerification);
+router.post('/verify-phone/resend', authenticateWithPendingVerification, authController.resendPhoneVerification);
 
 export default router;

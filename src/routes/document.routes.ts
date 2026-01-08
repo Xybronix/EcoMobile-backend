@@ -1,14 +1,14 @@
 import express from 'express';
 import { DocumentController } from '../controllers/DocumentController';
-import { authenticate, requirePermission } from '../middleware/auth';
+import { authenticate, authenticateWithPendingVerification, requirePermission } from '../middleware/auth';
 
 const router = express.Router();
 const documentController = new DocumentController();
 
-// User routes
-router.post('/identity', authenticate, documentController.submitIdentityDocument);
-router.post('/residence', authenticate, documentController.submitResidenceProof);
-router.get('/status', authenticate, documentController.getUserDocumentsStatus);
+// User routes - autoriser les utilisateurs avec pending_verification pour soumettre leurs documents
+router.post('/identity', authenticateWithPendingVerification, documentController.submitIdentityDocument);
+router.post('/residence', authenticateWithPendingVerification, documentController.submitResidenceProof);
+router.get('/status', authenticateWithPendingVerification, documentController.getUserDocumentsStatus);
 router.get('/user/:userId/status', authenticate, requirePermission('users', 'read'), documentController.getUserDocumentsStatusByUserId);
 
 // Admin routes
