@@ -282,6 +282,7 @@ class NotificationService {
 
     // Send welcome email
     try {
+<<<<<<< HEAD
       if (this.emailService.isConfigured()) {
         const emailTemplate = this.emailService.generateWelcomeEmail(firstName, lang, t);
         await this.emailService.sendEmail({
@@ -295,6 +296,16 @@ class NotificationService {
     } catch (error) {
       console.error('Failed to send welcome email:', error);
       // Don't throw - email failure shouldn't block registration
+=======
+      const emailTemplate = this.emailService.generateWelcomeEmail(firstName, lang, t);
+      await this.emailService.sendEmail({
+        to: userEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+      });
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+>>>>>>> origin/main
     }
 
     return notification;

@@ -25,6 +25,7 @@
     },
     "forgot_password": {
       "success": "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé."
+<<<<<<< HEAD
     },
     "phone": {
       "verification_sent": "Code de vérification envoyé",
@@ -34,14 +35,21 @@
       "no_code_sent": "Aucun code de vérification n'a été envoyé"
     },
     "account_verified": "Compte vérifié avec succès"
+=======
+    }
+>>>>>>> origin/main
   },
   "user": {
     "not_found": "Utilisateur non trouvé",
     "profile_updated": "Profil mis à jour avec succès",
     "account_deactivated": "Compte désactivé",
     "invalid_credentials": "Identifiants invalides",
+<<<<<<< HEAD
     "profile_retrieved": "Profil récupéré avec succès",
     "account_verified": "Compte vérifié avec succès"
+=======
+    "profile_retrieved": "Profil récupéré avec succès"
+>>>>>>> origin/main
   },
   "bike": {
     "not_found": "Vélo non trouvé",
@@ -138,10 +146,14 @@
     "verification_token_expired": "Token de vérification expiré",
     "email_verification_failed": "Échec de l'envoi de l'email de vérification",
     "password_reset_failed": "Échec de l'envoi de l'email de réinitialisation",
+<<<<<<< HEAD
     "welcome_notification_failed": "Échec de l'envoi de la notification de bienvenue",
     "phone_not_found": "Numéro de téléphone non trouvé",
     "phone_required": "Numéro de téléphone requis",
     "code_required": "Code de vérification requis"
+=======
+    "welcome_notification_failed": "Échec de l'envoi de la notification de bienvenue"
+>>>>>>> origin/main
   },
   "success": {
     "operation_completed": "Opération terminée avec succès",
@@ -172,11 +184,18 @@
     "promotion_title": "{{title}}",
     "promotion_message": "{{message}}",
     "promotion_cta": "En savoir plus",
+<<<<<<< HEAD
     "footer_text": "© 2026 FreeBike. Tous droits réservés.",
+=======
+>>>>>>> origin/main
     "incident_resolved_subject": "Votre incident a été résolu - FreeBike",
     "incident_resolved_title": "Incident résolu",
     "incident_resolved_message": "Bonjour {{firstName}},\n\nNous vous informons que votre incident #{{incidentId}} a été résolu.\n\nMerci de votre patience.",
     "incident_resolved_cta": "Voir les détails",
+<<<<<<< HEAD
+=======
+    "footer_text": "Merci d'utiliser FreeBike",
+>>>>>>> origin/main
     "footer_contact": "Besoin d'aide? Contactez-nous",
     "unsubscribe": "Se désabonner"
   },
@@ -209,6 +228,7 @@
   "location": {
     "local": "Localisation locale",
     "cameroon": "Cameroun"
+<<<<<<< HEAD
   },
   "document": {
     "submitted": "Document soumis avec succès",
@@ -223,5 +243,7 @@
     "residence": {
       "already_submitted": "Une preuve de résidence est déjà en attente ou approuvée"
     }
+=======
+>>>>>>> origin/main
   }
 }
