@@ -615,4 +615,122 @@ export class AuthController {
       message: t('auth.logout.success', language)
     });
   });
+
+  /**
+   * @swagger
+   * /auth/verify-phone/initiate:
+   *   post:
+   *     summary: Initiate phone verification
+   *     tags: [Auth]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - phone
+   *             properties:
+   *               phone:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Verification code sent
+   */
+  initiatePhoneVerification = asyncHandler(async (req: AuthRequest, res: express.Response) => {
+    const language = req.language || 'fr';
+    const { phone } = req.body;
+
+    if (!phone) {
+      res.status(400).json({
+        success: false,
+        message: t('error.phone_required', language)
+      });
+      return;
+    }
+
+    const result = await this.authService.initiatePhoneVerification(req.user!.id, phone, language);
+
+    res.status(200).json({
+      success: true,
+      message: t('auth.phone.verification_sent', language),
+      data: { code: process.env.NODE_ENV === 'development' ? result : undefined } // Only return code in dev
+    });
+  });
+
+  /**
+   * @swagger
+   * /auth/verify-phone/verify:
+   *   post:
+   *     summary: Verify phone code
+   *     tags: [Auth]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - code
+   *             properties:
+   *               code:
+   *                 type: string
+   *     responses:
+   *       200:
+   *         description: Phone verified
+   */
+  verifyPhoneCode = asyncHandler(async (req: AuthRequest, res: express.Response) => {
+    const language = req.language || 'fr';
+    const { code } = req.body;
+
+    if (!code) {
+      res.status(400).json({
+        success: false,
+        message: t('error.code_required', language)
+      });
+      return;
+    }
+
+    const isValid = await this.authService.verifyPhoneCode(req.user!.id, code);
+
+    if (!isValid) {
+      res.status(400).json({
+        success: false,
+        message: t('auth.phone.invalid_code', language)
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: t('auth.phone.verified', language)
+    });
+  });
+
+  /**
+   * @swagger
+   * /auth/verify-phone/resend:
+   *   post:
+   *     summary: Resend phone verification code
+   *     tags: [Auth]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Verification code resent
+   */
+  resendPhoneVerification = asyncHandler(async (req: AuthRequest, res: express.Response) => {
+    const language = req.language || 'fr';
+
+    await this.authService.resendPhoneVerification(req.user!.id, language);
+
+    res.status(200).json({
+      success: true,
+      message: t('auth.phone.verification_sent', language)
+    });
+  });
 }

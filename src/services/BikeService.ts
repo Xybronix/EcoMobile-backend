@@ -9,6 +9,7 @@ export interface CreateBikeDto {
   code: string;
   model: string;
   status?: BikeStatus;
+  isActive?: boolean;
   batteryLevel?: number;
   latitude?: number;
   longitude?: number;
@@ -20,6 +21,7 @@ export interface UpdateBikeDto {
   code?: string;
   model?: string;
   status?: BikeStatus;
+  isActive?: boolean;
   batteryLevel?: number;
   latitude?: number;
   longitude?: number;
@@ -85,6 +87,7 @@ export class BikeService {
         ...data,
         qrCode,
         status: data.status || BikeStatus.AVAILABLE,
+        isActive: data.isActive !== undefined ? data.isActive : true, // Ensure isActive is true by default
         batteryLevel: data.batteryLevel || 100
       }
     });

@@ -10,10 +10,17 @@ export interface User {
   avatar?: string;
   role: 'USER' | 'EMPLOYEE' | 'ADMIN' | 'SUPER_ADMIN';
   roleId?: string;
-  status: 'pending' | 'active' | 'inactive' | 'suspended';
+  status: 'pending' | 'pending_verification' | 'active' | 'inactive' | 'suspended' | 'banned';
+  isActive?: boolean;
   emailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
+  phoneVerified?: boolean;
+  phoneVerificationCode?: string;
+  phoneVerificationExpires?: Date;
+  accountVerified?: boolean;
+  accountVerifiedAt?: Date;
+  accountVerifiedBy?: string;
   language: 'fr' | 'en';
   createdAt: Date;
   updatedAt: Date;

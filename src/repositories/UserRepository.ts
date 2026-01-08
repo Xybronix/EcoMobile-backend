@@ -103,7 +103,7 @@ export class UserRepository extends BaseRepository<User> {
     await this.executeNonQuery(sql, [token, expiresAt, new Date(), userId]);
   }
 
-  async updateStatus(userId: string, status: 'active' | 'inactive' | 'suspended'): Promise<void> {
+  async updateStatus(userId: string, status: 'pending' | 'pending_verification' | 'active' | 'inactive' | 'suspended' | 'banned'): Promise<void> {
     const sql = `UPDATE ${this.tableName} SET status = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
     await this.executeNonQuery(sql, [status, new Date(), userId]);
   }

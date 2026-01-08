@@ -212,7 +212,7 @@ export class BikeController {
       const filter: any = {
         status: BikeStatus.AVAILABLE,
         isActive: true,
-        hasPricingPlan: true,
+        // hasPricingPlan is optional - bikes without pricing plan can still be available
         minBatteryLevel
       };
 
