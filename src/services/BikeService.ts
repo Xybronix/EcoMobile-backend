@@ -84,7 +84,6 @@ export class BikeService {
 
     const bike = await prisma.bike.create({
       data: {
-<<<<<<< HEAD
         code: data.code,
         model: data.model,
         status: data.status || BikeStatus.AVAILABLE,
@@ -95,13 +94,6 @@ export class BikeService {
         gpsDeviceId: data.gpsDeviceId,
         equipment: data.equipment,
         qrCode
-=======
-        ...data,
-        qrCode,
-        status: data.status || BikeStatus.AVAILABLE,
-        isActive: data.isActive !== undefined ? data.isActive : true, // Ensure isActive is true by default
-        batteryLevel: data.batteryLevel || 100
->>>>>>> origin/main
       }
     });
 

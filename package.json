@@ -55,10 +55,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
     "ts-node": "^10.9.2",
-<<<<<<< HEAD
     "twilio": "^5.11.2",
-=======
->>>>>>> origin/main
     "uuid": "^13.0.0",
     "winston": "^3.11.0"
   },

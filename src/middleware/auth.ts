@@ -120,7 +120,6 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
         return;
       }
 
-<<<<<<< HEAD
       // Autoriser les utilisateurs avec pending_verification pour certaines actions
       // (gestion dans authenticateWithPendingVerification)
       // Bloquer seulement les comptes bannis ou suspendus
@@ -136,9 +135,6 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
       // pour certaines actions spécifiques (soumission de documents, vérification téléphone, etc.)
       // mais on bloque leur accès aux fonctionnalités principales de l'application
       if (!userWithPermissions.isActive && userWithPermissions.status !== 'pending_verification') {
-=======
-      if (!userWithPermissions.isActive || userWithPermissions.status !== 'active') {
->>>>>>> origin/main
         res.status(403).json({
           success: false,
           error: t('auth.account.deactivated', req.language)
@@ -147,7 +143,7 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
       }
 
       const permissions = userWithPermissions.roleRelation?.permissions.map(
-        rp => `${rp.permission.resource}:${rp.permission.action}`
+        (        rp: { permission: { resource: any; action: any; }; }) => `${rp.permission.resource}:${rp.permission.action}`
       ) || [];
 
       req.user = {
@@ -238,7 +234,6 @@ export const requirePermission = (resource: string, action: string) => {
 
 export const requireAdmin = authorize('ADMIN', 'SUPER_ADMIN');
 
-<<<<<<< HEAD
 /**
  * Middleware d'authentification qui autorise les utilisateurs avec pending_verification
  * Utilisé pour les routes de vérification (téléphone, documents, profil basique)
@@ -322,7 +317,7 @@ export const authenticateWithPendingVerification = async (req: AuthRequest, res:
       }
 
       const permissions = userWithPermissions.roleRelation?.permissions.map(
-        rp => `${rp.permission.resource}:${rp.permission.action}`
+        (        rp: { permission: { resource: any; action: any; }; }) => `${rp.permission.resource}:${rp.permission.action}`
       ) || [];
 
       req.user = {
@@ -351,8 +346,6 @@ export const authenticateWithPendingVerification = async (req: AuthRequest, res:
   }
 };
 
-=======
->>>>>>> origin/main
 export const optionalAuth = async (req: AuthRequest, _res: express.Response, next: express.NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;

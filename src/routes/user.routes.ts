@@ -1,51 +1,29 @@
 import express from 'express';
 import UserController from '../controllers/UserController';
-<<<<<<< HEAD
 import { authenticate, authenticateWithPendingVerification, requirePermission } from '../middleware/auth';
-=======
-import { authenticate, requirePermission } from '../middleware/auth';
->>>>>>> origin/main
 
 const router = express.Router();
 
 /**
  * @route   GET /api/v1/users/profile
  * @desc    Get user profile
-<<<<<<< HEAD
  * @access  Private (including pending_verification)
  */
 router.get('/profile', authenticateWithPendingVerification, UserController.getProfile);
-=======
- * @access  Private
- */
-router.get('/profile', authenticate, UserController.getProfile);
->>>>>>> origin/main
 
 /**
  * @route   PUT /api/v1/users/profile
  * @desc    Update user profile
-<<<<<<< HEAD
  * @access  Private (including pending_verification)
  */
 router.put('/profile', authenticateWithPendingVerification, UserController.updateProfile);
-=======
- * @access  Private
- */
-router.put('/profile', authenticate, UserController.updateProfile);
->>>>>>> origin/main
 
 /**
  * @route   PUT /api/v1/users/password
  * @desc    Update user password
-<<<<<<< HEAD
  * @access  Private (including pending_verification)
  */
 router.put('/password', authenticateWithPendingVerification, UserController.updatePassword);
-=======
- * @access  Private
- */
-router.put('/password', authenticate, UserController.updatePassword);
->>>>>>> origin/main
 
 /**
  * @route   GET /api/v1/users/stats

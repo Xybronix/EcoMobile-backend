@@ -18,7 +18,6 @@ class EmailService {
   private transporter: any;
 
   constructor() {
-<<<<<<< HEAD
     // Only create transporter if email is configured
     if (this.isConfigured()) {
       this.transporter = nodemailer.createTransport({
@@ -41,17 +40,6 @@ class EmailService {
         };
       }
     }
-=======
-    this.transporter = nodemailer.createTransport({
-      host: config.email.host,
-      port: config.email.port,
-      secure: config.email.secure, // true for 465, false for other ports
-      auth: {
-        user: config.email.user,
-        pass: config.email.password,
-      },
-    });
->>>>>>> origin/main
   }
 
   /**
@@ -71,7 +59,6 @@ class EmailService {
    * Send an email
    */
   async sendEmail(options: EmailOptions): Promise<boolean> {
-<<<<<<< HEAD
     // In development, if email is not configured, just log instead of failing
     if (!this.isConfigured()) {
       if (process.env.NODE_ENV === 'development') {
@@ -83,8 +70,6 @@ class EmailService {
       }
     }
 
-=======
->>>>>>> origin/main
     try {
       const recipients = Array.isArray(options.to) ? options.to.join(', ') : options.to;
 
@@ -101,14 +86,11 @@ class EmailService {
       return true;
     } catch (error) {
       console.error('Error sending email:', error);
-<<<<<<< HEAD
       // In development, don't throw error if email fails
       if (process.env.NODE_ENV === 'development') {
         console.log(`[DEV EMAIL] Email sending failed, but continuing in development mode`);
         return false;
       }
-=======
->>>>>>> origin/main
       throw error;
     }
   }
