@@ -25,7 +25,6 @@
     },
     "forgot_password": {
       "success": "Si un compte avec cet email existe, un lien de réinitialisation a été envoyé."
-<<<<<<< HEAD
     },
     "phone": {
       "verification_sent": "Code de vérification envoyé",
@@ -34,22 +33,18 @@
       "code_expired": "Le code de vérification a expiré",
       "no_code_sent": "Aucun code de vérification n'a été envoyé"
     },
+    "account": {
+      "deactivated": "Votre compte a été désactivé. Veuillez contacter le support."
+    },
     "account_verified": "Compte vérifié avec succès"
-=======
-    }
->>>>>>> origin/main
   },
   "user": {
     "not_found": "Utilisateur non trouvé",
     "profile_updated": "Profil mis à jour avec succès",
     "account_deactivated": "Compte désactivé",
     "invalid_credentials": "Identifiants invalides",
-<<<<<<< HEAD
     "profile_retrieved": "Profil récupéré avec succès",
     "account_verified": "Compte vérifié avec succès"
-=======
-    "profile_retrieved": "Profil récupéré avec succès"
->>>>>>> origin/main
   },
   "bike": {
     "not_found": "Vélo non trouvé",

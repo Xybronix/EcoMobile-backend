@@ -25,7 +25,6 @@
     },
     "forgot_password": {
       "success": "If an account with this email exists, a reset link has been sent."
-<<<<<<< HEAD
     },
     "phone": {
       "verification_sent": "Verification code sent",
@@ -34,22 +33,18 @@
       "code_expired": "Verification code has expired",
       "no_code_sent": "No verification code has been sent"
     },
+    "account": {
+      "deactivated": "Your account has been deactivated. Please contact support."
+    },
     "account_verified": "Account verified successfully"
-=======
-    }
->>>>>>> origin/main
   },
   "user": {
     "not_found": "User not found",
     "profile_updated": "Profile updated successfully",
     "account_deactivated": "Account deactivated",
     "invalid_credentials": "Invalid credentials",
-<<<<<<< HEAD
     "profile_retrieved": "Profile retrieved successfully",
     "account_verified": "Account verified successfully"
-=======
-    "profile_retrieved": "Profile retrieved successfully"
->>>>>>> origin/main
   },
   "bike": {
     "not_found": "Bike not found",

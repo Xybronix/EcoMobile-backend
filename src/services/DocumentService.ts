@@ -41,7 +41,7 @@ export class DocumentService {
   private async saveImage(base64Data: string, userId: string, type: string, side: 'front' | 'back'): Promise<string> {
     const base64Match = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
     if (!base64Match) {
-      throw new AppError('Invalid image format', 400);
+      throw new AppError(t('error.document.invalid_image_format', 'fr'), 400);
     }
 
     const extension = base64Match[1];

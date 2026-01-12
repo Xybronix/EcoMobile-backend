@@ -35,7 +35,7 @@ export class ChatController {
       if (!message || message.trim() === '') {
         res.status(400).json({
           success: false,
-          message: 'Le message ne peut pas être vide'
+          error: t('validation.message.required', req.language || 'fr')
         });
         return;
       }
@@ -60,7 +60,7 @@ export class ChatController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -112,7 +112,7 @@ export class ChatController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -210,7 +210,7 @@ export class ChatController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -267,7 +267,7 @@ export class ChatController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -334,7 +334,7 @@ export class ChatController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }

@@ -96,7 +96,7 @@ export class RideService {
       return ride;
     } catch (error) {
       console.error('Error starting ride:', error);
-      throw new AppError('Failed to start ride', 500);
+      throw new AppError(t('error.ride.start_failed', language), 500);
     }
   }
 
@@ -251,7 +251,7 @@ export class RideService {
       return { ...updatedRide, costDetails: costCalculation };
     } catch (error) {
       console.error('Error ending ride:', error);
-      throw new AppError('Failed to end ride', 500);
+      throw new AppError(t('error.ride.end_failed', language), 500);
     }
   }
 
@@ -390,7 +390,7 @@ export class RideService {
       return cancelledRide;
     } catch (error) {
       console.error('Error cancelling ride:', error);
-      throw new AppError('Failed to cancel ride', 500);
+      throw new AppError(t('error.ride.cancel_failed', language), 500);
     }
   }
 

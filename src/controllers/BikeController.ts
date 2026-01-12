@@ -61,7 +61,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -149,7 +149,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -204,7 +204,7 @@ export class BikeController {
       if (page < 1 || limit < 1 || limit > 100) {
         res.status(400).json({
           success: false,
-          message: 'Invalid pagination parameters'
+          error: t('validation.invalid_pagination', req.language || 'fr')
         });
         return;
       }
@@ -248,7 +248,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -319,7 +319,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -334,7 +334,7 @@ export class BikeController {
    *       200:
    *         description: Default areas retrieved
    */
-  async getDefaultAreas(_req: AuthRequest, res: express.Response): Promise<void> {
+  async getDefaultAreas(req: AuthRequest, res: express.Response): Promise<void> {
     try {
       const areas = await BikeService.getDefaultAreas();
 
@@ -346,7 +346,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -407,7 +407,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -446,7 +446,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -485,7 +485,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -557,7 +557,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -629,7 +629,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -682,7 +682,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -735,7 +735,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -796,7 +796,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -848,7 +848,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -894,7 +894,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -940,7 +940,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -986,7 +986,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -1050,7 +1050,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -1139,7 +1139,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -1195,7 +1195,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -1240,7 +1240,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -1294,7 +1294,7 @@ export class BikeController {
     } catch (error: any) {
       res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }

@@ -110,8 +110,11 @@ export class AuthService {
     // Note: Email verification is no longer blocking - user can login but account status will be pending
     // Check if user account is verified by admin (not just active status)
     // Users with pending_verification status can login but will be redirected to document submission
-    if (user.status === 'suspended' || user.status === 'banned') {
-      throw new AppError(t('auth.unauthorized', language), 403);
+    
+    // Vérifier si le compte est désactivé/bloqué
+    const deactivatedStatuses = ['suspended', 'banned', 'blocked', 'inactive', 'deleted'];
+    if (deactivatedStatuses.includes(user.status) || user.isActive === false) {
+      throw new AppError(t('auth.account.deactivated', language), 403);
     }
 
     // Remove password from response
@@ -364,7 +367,7 @@ export class AuthService {
     }
 
     if (user.emailVerified) {
-      throw new AppError('email_already_verified', 400);
+      throw new AppError(t('error.email_already_verified', language), 400);
     }
 
     // Generate new verification token

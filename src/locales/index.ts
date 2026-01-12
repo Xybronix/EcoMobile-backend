@@ -83,6 +83,18 @@ export const translations: Translations = {
     fr: 'Si un compte avec cet email existe, un lien de réinitialisation a été envoyé.',
     en: 'If an account with this email exists, a reset link has been sent.'
   },
+  'auth.account.deactivated': {
+    fr: 'Votre compte a été désactivé. Veuillez contacter le support.',
+    en: 'Your account has been deactivated. Please contact support.'
+  },
+  'auth.user.not_found': {
+    fr: 'Utilisateur non trouvé',
+    en: 'User not found'
+  },
+  'auth.insufficient_permissions': {
+    fr: 'Permissions insuffisantes',
+    en: 'Insufficient permissions'
+  },
 
   // Users
   'user.not_found': {
@@ -467,6 +479,18 @@ export const translations: Translations = {
     fr: 'Numéro de téléphone invalide',
     en: 'Invalid phone number'
   },
+  'validation.invalid_date': {
+    fr: 'Date ou heure invalide',
+    en: 'Invalid date or time'
+  },
+  'validation.invalid_pagination': {
+    fr: 'Paramètres de pagination invalides',
+    en: 'Invalid pagination parameters'
+  },
+  'validation.message.required': {
+    fr: 'Le message ne peut pas être vide',
+    en: 'Message cannot be empty'
+  },
   'validation.password.min_length': {
     fr: 'Le mot de passe doit contenir au moins 8 caractères',
     en: 'Password must be at least 8 characters long'
@@ -524,6 +548,22 @@ export const translations: Translations = {
   'error.verification_token_expired': {
     fr: 'Token de vérification expiré',
     en: 'Verification token expired'
+  },
+  'error.ride.start_failed': {
+    fr: 'Échec du démarrage du trajet',
+    en: 'Failed to start ride'
+  },
+  'error.ride.end_failed': {
+    fr: 'Échec de la fin du trajet',
+    en: 'Failed to end ride'
+  },
+  'error.ride.cancel_failed': {
+    fr: 'Échec de l\'annulation du trajet',
+    en: 'Failed to cancel ride'
+  },
+  'error.document.invalid_image_format': {
+    fr: 'Format d\'image invalide',
+    en: 'Invalid image format'
   },
   'error.email_verification_failed': {
     fr: 'Échec de l\'envoi de l\'email de vérification',

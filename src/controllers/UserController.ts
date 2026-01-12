@@ -122,7 +122,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -175,7 +175,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -421,7 +421,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -520,7 +520,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -590,7 +590,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -799,7 +799,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -897,7 +897,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -1094,7 +1094,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -1160,7 +1160,7 @@ export class UserController {
     } catch (error: any) {
       res.status(400).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }

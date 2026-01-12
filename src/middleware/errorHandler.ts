@@ -33,9 +33,19 @@ export const errorHandler = (
 
   // Handle known errors
   if (err instanceof AppError) {
+    // Si le message est une clé i18n (contient un point et pas d'espaces), le traduire
+    let errorMessage = err.message;
+    // Détecter si c'est une clé i18n : contient des points, pas d'espaces, et commence par une lettre
+    if (err.message.includes('.') && !err.message.includes(' ') && /^[a-z]/.test(err.message)) {
+      // C'est probablement une clé i18n, la traduire
+      const translated = t(err.message, language);
+      // Si la traduction retourne la même chose, ce n'était pas une clé valide
+      errorMessage = translated !== err.message ? translated : err.message;
+    }
+    
     return res.status(err.statusCode).json({
       success: false,
-      error: err.message
+      error: errorMessage
     });
   }
 
@@ -43,7 +53,7 @@ export const errorHandler = (
   if (err.name === 'ValidationError') {
     return res.status(400).json({
       success: false,
-      error: t('error.validation', language),
+      error: err.message || t('error.validation', language),
       details: err.message
     });
   }
@@ -67,14 +77,14 @@ export const errorHandler = (
   if (err.message.includes('database') || err.message.includes('SQL')) {
     return res.status(500).json({
       success: false,
-      error: t('error.database', language)
+      error: err.message || t('error.database', language)
     });
   }
 
-  // Default error
+  // Default error - préserver le message d'erreur si disponible
   return res.status(500).json({
     success: false,
-    error: t('error.server', language)
+    error: err.message || t('error.server', language)
   });
 };
 

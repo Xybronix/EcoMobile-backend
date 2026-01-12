@@ -514,26 +514,34 @@ export class AuthController {
    *         description: Email successfully verified
    */
   verifyEmail = asyncHandler(async (req: AuthRequest, res: express.Response) => {
-    const language = req.language || 'fr';
-    const { userId, token } = req.body;
+    try{
+      const language = req.language || 'fr';
+      const { userId, token } = req.body;
 
-    const verified = await this.authService.verifyEmail(userId, token, language);
+      const verified = await this.authService.verifyEmail(userId, token, language);
 
-    await logActivity(
-      userId,
-      'VERIFY',
-      'EMAIL',
-      userId,
-      'Email verified successfully',
-      null,
-      req
-    );
+      await logActivity(
+        userId,
+        'VERIFY',
+        'EMAIL',
+        userId,
+        'Email verified successfully',
+        null,
+        req
+      );
 
-    res.status(200).json({
-      success: true,
-      message: t('auth.verify_email.success', language),
-      data: { verified }
-    });
+      res.status(200).json({
+        success: true,
+        message: t('auth.verify_email.success', language),
+        data: { verified }
+      });
+    } catch(error: any) {
+      const language = req.language || 'fr';
+      res.status(500).json({
+        success: false,
+        error: error.message || t('error.server', language)
+      });
+    }
   });
 
   /**
@@ -559,26 +567,34 @@ export class AuthController {
    *         description: Verification email resent
    */
   resendVerification = asyncHandler(async (req: AuthRequest, res: express.Response) => {
-    const language = req.language || 'fr';
-    const { email } = req.body;
+    try{
+      const language = req.language || 'fr';
+      const { email } = req.body;
 
-    const resent = await this.authService.resendVerificationEmail(email, language);
+      const resent = await this.authService.resendVerificationEmail(email, language);
 
-    await logActivity(
-      null,
-      'RESEND',
-      'VERIFICATION_EMAIL',
-      '',
-      `Verification email resent to: ${email}`,
-      { email },
-      req
-    );
+      await logActivity(
+        null,
+        'RESEND',
+        'VERIFICATION_EMAIL',
+        '',
+        `Verification email resent to: ${email}`,
+        { email },
+        req
+      );
 
-    res.status(200).json({
-      success: true,
-      message: t('auth.resend_verification.success', language),
-      data: { resent }
-    });
+      res.status(200).json({
+        success: true,
+        message: t('auth.resend_verification.success', language),
+        data: { resent }
+      });
+    } catch(error: any) {
+      const language = req.language || 'fr';
+      res.status(500).json({
+        success: false,
+        error: error.message || t('error.server', language)
+      });
+    }
   });
 
   /**
@@ -594,26 +610,34 @@ export class AuthController {
    *         description: User successfully logged out
    */
   logout = asyncHandler(async (req: AuthRequest, res: express.Response) => {
-    const language = req.language || 'fr';
-    const userId = req.user?.id;
+    try{
+      const language = req.language || 'fr';
+      const userId = req.user?.id;
 
-    if (userId) {
-      await this.authService.logout(userId, language);
-      await logActivity(
-        userId,
-        'LOGOUT',
-        'AUTH',
-        userId,
-        'User logged out successfully',
-        null,
-        req
-      );
+      if (userId) {
+        await this.authService.logout(userId, language);
+        await logActivity(
+          userId,
+          'LOGOUT',
+          'AUTH',
+          userId,
+          'User logged out successfully',
+          null,
+          req
+        );
+      }
+
+      res.status(200).json({
+        success: true,
+        message: t('auth.logout.success', language)
+      });
+    } catch(error: any) {
+      const language = req.language || 'fr';
+      res.status(500).json({
+        success: false,
+        error: error.message || t('error.server', language)
+      });
     }
-
-    res.status(200).json({
-      success: true,
-      message: t('auth.logout.success', language)
-    });
   });
 
   /**
@@ -640,24 +664,32 @@ export class AuthController {
    *         description: Verification code sent
    */
   initiatePhoneVerification = asyncHandler(async (req: AuthRequest, res: express.Response) => {
-    const language = req.language || 'fr';
-    const { phone } = req.body;
+    try{
+      const language = req.language || 'fr';
+      const { phone } = req.body;
 
-    if (!phone) {
-      res.status(400).json({
-        success: false,
-        message: t('error.phone_required', language)
+      if (!phone) {
+        res.status(400).json({
+          success: false,
+          error: t('error.phone_required', language)
+        });
+        return;
+      }
+
+      const result = await this.authService.initiatePhoneVerification(req.user!.id, phone, language);
+
+      res.status(200).json({
+        success: true,
+        message: t('auth.phone.verification_sent', language),
+        data: { code: process.env.NODE_ENV === 'development' ? result : undefined } // Only return code in dev
       });
-      return;
+    } catch(error: any) {
+      const language = req.language || 'fr';
+      res.status(500).json({
+        success: false,
+        error: error.message || t('error.server', language)
+      });
     }
-
-    const result = await this.authService.initiatePhoneVerification(req.user!.id, phone, language);
-
-    res.status(200).json({
-      success: true,
-      message: t('auth.phone.verification_sent', language),
-      data: { code: process.env.NODE_ENV === 'development' ? result : undefined } // Only return code in dev
-    });
   });
 
   /**
@@ -684,31 +716,39 @@ export class AuthController {
    *         description: Phone verified
    */
   verifyPhoneCode = asyncHandler(async (req: AuthRequest, res: express.Response) => {
-    const language = req.language || 'fr';
-    const { code } = req.body;
+    try{
+      const language = req.language || 'fr';
+      const { code } = req.body;
 
-    if (!code) {
-      res.status(400).json({
-        success: false,
-        message: t('error.code_required', language)
+      if (!code) {
+        res.status(400).json({
+          success: false,
+          error: t('error.code_required', language)
+        });
+        return;
+      }
+
+      const isValid = await this.authService.verifyPhoneCode(req.user!.id, code);
+
+      if (!isValid) {
+        res.status(400).json({
+          success: false,
+          error: t('auth.phone.invalid_code', language)
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: t('auth.phone.verified', language)
       });
-      return;
-    }
-
-    const isValid = await this.authService.verifyPhoneCode(req.user!.id, code);
-
-    if (!isValid) {
-      res.status(400).json({
+    } catch(error: any) {
+      const language = req.language || 'fr';
+      res.status(500).json({
         success: false,
-        message: t('auth.phone.invalid_code', language)
+        error: error.message || t('error.server', language)
       });
-      return;
     }
-
-    res.status(200).json({
-      success: true,
-      message: t('auth.phone.verified', language)
-    });
   });
 
   /**
@@ -724,13 +764,21 @@ export class AuthController {
    *         description: Verification code resent
    */
   resendPhoneVerification = asyncHandler(async (req: AuthRequest, res: express.Response) => {
-    const language = req.language || 'fr';
+    try{
+      const language = req.language || 'fr';
 
-    await this.authService.resendPhoneVerification(req.user!.id, language);
+      await this.authService.resendPhoneVerification(req.user!.id, language);
 
-    res.status(200).json({
-      success: true,
-      message: t('auth.phone.verification_sent', language)
-    });
+      res.status(200).json({
+        success: true,
+        message: t('auth.phone.verification_sent', language)
+      });
+    } catch(error: any) {
+      const language = req.language || 'fr';
+      res.status(500).json({
+        success: false,
+        error: error.message || t('error.server', language)
+      });
+    }
   });
 }

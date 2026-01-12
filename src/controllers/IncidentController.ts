@@ -82,7 +82,7 @@ class IncidentController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -152,7 +152,7 @@ class IncidentController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -279,7 +279,7 @@ class IncidentController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -388,7 +388,7 @@ class IncidentController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -459,7 +459,7 @@ class IncidentController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -582,7 +582,7 @@ class IncidentController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }

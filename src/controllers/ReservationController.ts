@@ -25,7 +25,7 @@ export class ReservationController {
       const startDateTime = new Date(`${startDate}T${startTime}:00`);
 
       if (isNaN(startDateTime.getTime())) {
-        throw new Error('Date ou heure invalide');
+        throw new Error(t('validation.invalid_date', req.language || 'fr'));
       }
 
       const reservation = await ReservationService.createReservation({
@@ -55,7 +55,7 @@ export class ReservationController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -138,7 +138,7 @@ export class ReservationController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -176,7 +176,7 @@ export class ReservationController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -263,7 +263,7 @@ export class ReservationController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -381,7 +381,7 @@ export class ReservationController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -457,7 +457,7 @@ export class ReservationController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
@@ -491,7 +491,7 @@ export class ReservationController {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        message: error.message
+        error: error.message || t('error.server', req.language || 'fr')
       });
     }
   }
