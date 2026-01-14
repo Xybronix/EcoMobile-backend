@@ -4,6 +4,7 @@ import WalletService from '../services/WalletService';
 import { AuthRequest, logActivity } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 import { t } from '../locales';
+import { prisma } from '../config/prisma';
 
 export class UserController {
   /**
@@ -1556,6 +1557,200 @@ export class UserController {
       });
     }
   };
+
+  /**
+   * Verify phone number manually (admin)
+   */
+  async verifyPhoneManually(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      
+      const user = await UserService.verifyPhoneManually(id, req.user!.id);
+      const { password, ...userWithoutPassword } = user;
+
+      await logActivity(
+        req.user!.id,
+        'UPDATE',
+        'USER_PHONE_VERIFICATION',
+        id,
+        'Phone number verified manually by admin',
+        { 
+          userId: id,
+          userEmail: user.email,
+          userPhone: user.phone
+        },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: 'Phone number verified successfully',
+        data: userWithoutPassword
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        error: error.message || t('error.server', req.language || 'fr')
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /users/{id}/deposit-exemption:
+   *   post:
+   *     summary: Grant deposit exemption to user (Admin only)
+   *     tags: [Users, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - days
+   *             properties:
+   *               days:
+   *                 type: integer
+   *                 minimum: 1
+   *                 maximum: 365
+   *     responses:
+   *       200:
+   *         description: Deposit exemption granted
+   */
+  async grantDepositExemption(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { days } = req.body;
+
+      if (!days || days < 1 || days > 365) {
+        res.status(400).json({
+          success: false,
+          message: 'Le nombre de jours doit être entre 1 et 365'
+        });
+        return;
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id }
+      });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'Utilisateur non trouvé'
+        });
+        return;
+      }
+
+      const exemptionUntil = new Date();
+      exemptionUntil.setDate(exemptionUntil.getDate() + days);
+
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+          depositExemptionUntil: exemptionUntil,
+          depositExemptionGrantedBy: req.user?.id,
+          depositExemptionGrantedAt: new Date()
+        }
+      });
+
+      await logActivity(
+        req.user?.id || null,
+        'UPDATE',
+        'USER_DEPOSIT_EXEMPTION',
+        id,
+        `Granted deposit exemption for ${days} days to user ${user.email}`,
+        { userId: id, days, exemptionUntil },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: `Déblocage sans caution accordé pour ${days} jour(s)`,
+        data: updatedUser
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Erreur lors de l\'octroi du déblocage'
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /users/{id}/deposit-exemption:
+   *   delete:
+   *     summary: Revoke deposit exemption from user (Admin only)
+   *     tags: [Users, Admin]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: Deposit exemption revoked
+   */
+  async revokeDepositExemption(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      const user = await prisma.user.findUnique({
+        where: { id }
+      });
+
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          message: 'Utilisateur non trouvé'
+        });
+        return;
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+          depositExemptionUntil: null,
+          depositExemptionGrantedBy: null,
+          depositExemptionGrantedAt: null
+        }
+      });
+
+      await logActivity(
+        req.user?.id || null,
+        'UPDATE',
+        'USER_DEPOSIT_EXEMPTION',
+        id,
+        `Revoked deposit exemption from user ${user.email}`,
+        { userId: id },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: 'Déblocage révoqué avec succès',
+        data: updatedUser
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Erreur lors de la révocation du déblocage'
+      });
+    }
+  }
 }
 
 export default new UserController();

@@ -4,6 +4,8 @@ import { randomUUID } from 'crypto';
 import GpsService from './GpsService';
 //import GooglePlacesService from './GooglePlacesService';
 import OpenStreetMapService from './OpenStreetMapService';
+import { AppError } from '../middleware/errorHandler';
+import { t } from '../locales';
 
 export interface CreateBikeDto {
   code: string;
@@ -13,8 +15,10 @@ export interface CreateBikeDto {
   batteryLevel?: number;
   latitude?: number;
   longitude?: number;
+  locationName?: string;
   gpsDeviceId?: string;
   equipment?: string[];
+  pricingPlanId?: string;
 }
 
 export interface UpdateBikeDto {
@@ -25,8 +29,12 @@ export interface UpdateBikeDto {
   batteryLevel?: number;
   latitude?: number;
   longitude?: number;
+  locationName?: string;
+  maintenanceReason?: string;
+  maintenanceDetails?: string;
   gpsDeviceId?: string;
   equipment?: string[];
+  pricingPlanId?: string;
 }
 
 export interface BikeFilter {
@@ -91,8 +99,10 @@ export class BikeService {
         batteryLevel: data.batteryLevel || 100,
         latitude: data.latitude,
         longitude: data.longitude,
+        locationName: data.locationName,
         gpsDeviceId: data.gpsDeviceId,
         equipment: data.equipment,
+        pricingPlanId: data.pricingPlanId || null,
         qrCode
       }
     });
@@ -485,6 +495,22 @@ export class BikeService {
                   }
                 }
               }
+            },
+            rides: {
+              where: {
+                status: 'IN_PROGRESS'
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true
+                  }
+                }
+              },
+              take: 1
             }
           }
         }),
@@ -508,13 +534,21 @@ export class BikeService {
 
       // Ajouter le pricing et les métadonnées
       const bikesWithEnhancements = await Promise.all(
-        syncedBikes.map(async (bike) => {
-          const currentPricing = await this.calculateCurrentPricing(bike);
+        syncedBikes.map(async (syncedBike, index) => {
+          const originalBike = bikes[index] as any;
+          const currentPricing = await this.calculateCurrentPricing(syncedBike);
+          const currentUser = originalBike.rides && originalBike.rides.length > 0 ? {
+            id: originalBike.rides[0].user.id,
+            firstName: originalBike.rides[0].user.firstName,
+            lastName: originalBike.rides[0].user.lastName,
+            email: originalBike.rides[0].user.email
+          } : null;
           return {
-            ...bike,
+            ...syncedBike,
             currentPricing,
-            isGpsEnabled: !!bike.gpsDeviceId,
-            isOnline: bike.gpsDeviceId ? await this.isDeviceOnline(bike.gpsDeviceId) : false
+            currentUser,
+            isGpsEnabled: !!syncedBike.gpsDeviceId,
+            isOnline: syncedBike.gpsDeviceId ? await this.isDeviceOnline(syncedBike.gpsDeviceId) : false
           };
         })
       );
@@ -584,10 +618,48 @@ export class BikeService {
    * Update bike
    */
   async updateBike(id: string, data: UpdateBikeDto): Promise<Bike> {
-    return await prisma.bike.update({
+    const bike = await prisma.bike.findUnique({ where: { id } });
+    if (!bike) {
+      throw new AppError(t('error.bike.not_found', 'fr'), 404);
+    }
+
+    // Vérifier si le code ou gpsDeviceId existe déjà sur un autre vélo
+    if (data.code && data.code !== bike.code) {
+      const existingBike = await prisma.bike.findFirst({ where: { code: data.code } });
+      if (existingBike && existingBike.id !== id) {
+        throw new AppError(t('error.bike.code_exists', 'fr'), 400);
+      }
+    }
+    if (data.gpsDeviceId && data.gpsDeviceId !== bike.gpsDeviceId) {
+      const existingBike = await prisma.bike.findFirst({ where: { gpsDeviceId: data.gpsDeviceId } });
+      if (existingBike && existingBike.id !== id) {
+        throw new AppError(t('error.bike.gps_device_exists', 'fr'), 400);
+      }
+    }
+
+    // Exclure maintenanceReason et maintenanceDetails car ils n'existent pas dans le modèle Bike
+    const { maintenanceReason, maintenanceDetails, ...updateData } = data;
+
+    // Mettre à jour le vélo
+    const updatedBike = await prisma.bike.update({
       where: { id },
-      data
+      data: updateData
     });
+
+    // Si le statut passe à MAINTENANCE et qu'une raison est fournie, créer un log de maintenance
+    if (data.status === BikeStatus.MAINTENANCE && bike.status !== BikeStatus.MAINTENANCE) {
+      if (maintenanceReason || maintenanceDetails) {
+        await prisma.maintenanceLog.create({
+          data: {
+            bikeId: id,
+            type: 'MAINTENANCE_REQUESTED',
+            description: maintenanceReason || maintenanceDetails || 'Maintenance demandée'
+          }
+        });
+      }
+    }
+
+    return updatedBike;
   }
 
   /**

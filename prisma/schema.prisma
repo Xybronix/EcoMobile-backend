@@ -29,11 +29,16 @@ model User {
   phoneVerified             Boolean  @default(false)
   phoneVerificationCode     String?
   phoneVerificationExpires  DateTime?
+  phoneVerifiedBy           String?  // ID de l'admin qui a validé manuellement
+  phoneVerifiedAt           DateTime?
   accountVerified           Boolean  @default(false)
   accountVerifiedAt         DateTime?
   accountVerifiedBy         String?
   language                  String   @default("fr")
   depositBalance            Float    @default(0)
+  depositExemptionUntil     DateTime? // Date d'expiration du déblocage sans caution
+  depositExemptionGrantedBy String?  // ID de l'admin qui a accordé le déblocage
+  depositExemptionGrantedAt DateTime? // Date d'octroi du déblocage
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
@@ -52,10 +57,11 @@ reviews           Review[]
 preferences       UserPreferences?
 pushTokens        PushToken[]
 subscriptions     Subscription[]
-roleId            String?
-roleRelation      Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
-identityDocuments IdentityDocument[]
-residenceProofs   ResidenceProof[]
+  roleId            String?
+  roleRelation      Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  identityDocuments IdentityDocument[]
+  residenceProofs   ResidenceProof[]
+  activityLocationProofs ActivityLocationProof[]
 
   @@map("users")
 }
@@ -401,6 +407,15 @@ model PlanOverride {
   planId         String
   overTimeType   String   // 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION'
   overTimeValue  Float
+  // Plages horaires pour chaque type de forfait
+  hourlyStartHour Int?    // Heure de début pour forfait horaire (0-23)
+  hourlyEndHour   Int?    // Heure de fin pour forfait horaire (0-23)
+  dailyStartHour  Int?    // Heure de début pour forfait journalier (0-23)
+  dailyEndHour    Int?    // Heure de fin pour forfait journalier (0-23)
+  weeklyStartHour Int?    // Heure de début pour forfait hebdomadaire (0-23)
+  weeklyEndHour   Int?    // Heure de fin pour forfait hebdomadaire (0-23)
+  monthlyStartHour Int?   // Heure de début pour forfait mensuel (0-23)
+  monthlyEndHour   Int?    // Heure de fin pour forfait mensuel (0-23)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -652,6 +667,7 @@ model IdentityDocument {
   documentType      DocumentType
   frontImage        String
   backImage         String?
+  selfieImage       String?             // Photo/vidéo selfie de l'utilisateur
   status            DocumentStatus      @default(PENDING)
   rejectionReason   String?             @db.Text
   reviewedBy        String?
@@ -705,6 +721,36 @@ enum DocumentStatus {
 }
 
 enum ResidenceProofType {
+  DOCUMENT
+  MAP_COORDINATES
+}
+
+model ActivityLocationProof {
+  id                String              @id @default(uuid())
+  userId            String
+  proofType         ActivityLocationProofType
+  documentFile      String?             // Photo du document
+  latitude          Float?              // Coordonnées GPS
+  longitude         Float?
+  address           String?             @db.Text
+  details           String?             @db.Text
+  status            DocumentStatus      @default(PENDING)
+  rejectionReason   String?             @db.Text
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  submittedAt       DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("activity_location_proofs")
+}
+
+enum ActivityLocationProofType {
   DOCUMENT
   MAP_COORDINATES
 }

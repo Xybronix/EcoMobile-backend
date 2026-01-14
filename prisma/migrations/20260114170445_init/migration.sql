@@ -17,11 +17,16 @@ CREATE TABLE `users` (
     `phoneVerified` BOOLEAN NOT NULL DEFAULT false,
     `phoneVerificationCode` VARCHAR(191) NULL,
     `phoneVerificationExpires` DATETIME(3) NULL,
+    `phoneVerifiedBy` VARCHAR(191) NULL,
+    `phoneVerifiedAt` DATETIME(3) NULL,
     `accountVerified` BOOLEAN NOT NULL DEFAULT false,
     `accountVerifiedAt` DATETIME(3) NULL,
     `accountVerifiedBy` VARCHAR(191) NULL,
     `language` VARCHAR(191) NOT NULL DEFAULT 'fr',
     `depositBalance` DOUBLE NOT NULL DEFAULT 0,
+    `depositExemptionUntil` DATETIME(3) NULL,
+    `depositExemptionGrantedBy` VARCHAR(191) NULL,
+    `depositExemptionGrantedAt` DATETIME(3) NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `roleId` VARCHAR(191) NULL,
@@ -328,6 +333,14 @@ CREATE TABLE `plan_overrides` (
     `planId` VARCHAR(191) NOT NULL,
     `overTimeType` VARCHAR(191) NOT NULL,
     `overTimeValue` DOUBLE NOT NULL,
+    `hourlyStartHour` INTEGER NULL,
+    `hourlyEndHour` INTEGER NULL,
+    `dailyStartHour` INTEGER NULL,
+    `dailyEndHour` INTEGER NULL,
+    `weeklyStartHour` INTEGER NULL,
+    `weeklyEndHour` INTEGER NULL,
+    `monthlyStartHour` INTEGER NULL,
+    `monthlyEndHour` INTEGER NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -482,6 +495,7 @@ CREATE TABLE `identity_documents` (
     `documentType` ENUM('CNI', 'RECEPISSE') NOT NULL,
     `frontImage` VARCHAR(191) NOT NULL,
     `backImage` VARCHAR(191) NULL,
+    `selfieImage` VARCHAR(191) NULL,
     `status` ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
     `rejectionReason` TEXT NULL,
     `reviewedBy` VARCHAR(191) NULL,
@@ -515,5 +529,28 @@ CREATE TABLE `residence_proofs` (
 
     INDEX `residence_proofs_userId_idx`(`userId`),
     INDEX `residence_proofs_status_idx`(`status`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `activity_location_proofs` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `proofType` ENUM('DOCUMENT', 'MAP_COORDINATES') NOT NULL,
+    `documentFile` VARCHAR(191) NULL,
+    `latitude` DOUBLE NULL,
+    `longitude` DOUBLE NULL,
+    `address` TEXT NULL,
+    `details` TEXT NULL,
+    `status` ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    `rejectionReason` TEXT NULL,
+    `reviewedBy` VARCHAR(191) NULL,
+    `reviewedAt` DATETIME(3) NULL,
+    `submittedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `activity_location_proofs_userId_idx`(`userId`),
+    INDEX `activity_location_proofs_status_idx`(`status`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

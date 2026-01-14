@@ -43,12 +43,22 @@ export class WalletService {
   async getDepositInfo(userId: string) {
     const wallet = await this.getOrCreateWallet(userId);
     const requiredDeposit = await this.getRequiredDeposit();
-
+    
+    // Vérifier si l'utilisateur a un déblocage sans caution actif
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { depositExemptionUntil: true }
+    });
+    
+    const hasActiveExemption = user?.depositExemptionUntil && new Date(user.depositExemptionUntil) > new Date();
+    
     return {
       currentDeposit: wallet.deposit,
       requiredDeposit,
-      canUseService: wallet.deposit >= requiredDeposit,
-      negativeBalance: wallet.negativeBalance
+      canUseService: hasActiveExemption || wallet.deposit >= requiredDeposit,
+      negativeBalance: wallet.negativeBalance,
+      hasDepositExemption: hasActiveExemption,
+      depositExemptionUntil: user?.depositExemptionUntil || null
     };
   }
 
@@ -336,9 +346,10 @@ export class WalletService {
 
         if (activeReservation) {
           // Déterminer si on est en overtime (en dehors des heures du forfait)
-          const isActuallyOvertime = this.isOvertimeForSubscription(
+          const isActuallyOvertime = await this.isOvertimeForSubscription(
             rideStartTime || new Date(), 
-            activeReservation.packageType
+            activeReservation.packageType,
+            activeReservation.planId
           );
 
           if ((isOvertime || isActuallyOvertime) && activeReservation.plan.overrides.length > 0) {
@@ -425,14 +436,70 @@ export class WalletService {
   /**
    * Determine if a ride time is considered overtime for a subscription
    */
-  private isOvertimeForSubscription(rideTime: Date, packageType: string): boolean {
+  private async isOvertimeForSubscription(rideTime: Date, packageType: string, planId?: string): Promise<boolean> {
     const hour = rideTime.getHours();
     
-    // Définir les heures de validité selon le type de forfait
+    // Si un planId est fourni, vérifier les plages horaires définies dans PlanOverride
+    if (planId) {
+      const override = await prisma.planOverride.findFirst({
+        where: { planId }
+      });
+      
+      if (override) {
+        const packageTypeLower = packageType.toLowerCase();
+        let startHour: number | null = null;
+        let endHour: number | null = null;
+        
+        switch (packageTypeLower) {
+          case 'hourly':
+          case 'horaire':
+            startHour = override.hourlyStartHour;
+            endHour = override.hourlyEndHour;
+            break;
+          case 'daily':
+          case 'journalier':
+            startHour = override.dailyStartHour;
+            endHour = override.dailyEndHour;
+            break;
+          case 'weekly':
+          case 'hebdomadaire':
+            startHour = override.weeklyStartHour;
+            endHour = override.weeklyEndHour;
+            break;
+          case 'monthly':
+          case 'mensuel':
+            startHour = override.monthlyStartHour;
+            endHour = override.monthlyEndHour;
+            break;
+        }
+        
+        // Si des plages horaires sont définies, les utiliser
+        if (startHour !== null && endHour !== null) {
+          if (startHour <= endHour) {
+            // Plage normale (ex: 8h-19h)
+            return hour < startHour || hour >= endHour;
+          } else {
+            // Plage qui traverse minuit (ex: 22h-6h)
+            return hour < startHour && hour >= endHour;
+          }
+        }
+      }
+    }
+    
+    // Fallback sur les valeurs par défaut
     switch (packageType.toLowerCase()) {
       case 'daily':
       case 'journalier':
         // Forfait journalier valide de 8h à 19h
+        return hour < 8 || hour >= 19;
+      case 'hourly':
+      case 'horaire':
+        return hour < 8 || hour >= 19;
+      case 'weekly':
+      case 'hebdomadaire':
+        return hour < 8 || hour >= 19;
+      case 'monthly':
+      case 'mensuel':
         return hour < 8 || hour >= 19;
       case 'morning':
       case 'matin':
@@ -1193,26 +1260,49 @@ export class WalletService {
   async createPlanOverride(
     planId: string, 
     overTimeType: 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION', 
-    overTimeValue: number
+    overTimeValue: number,
+    timeSlots?: {
+      hourlyStartHour?: number | null;
+      hourlyEndHour?: number | null;
+      dailyStartHour?: number | null;
+      dailyEndHour?: number | null;
+      weeklyStartHour?: number | null;
+      weeklyEndHour?: number | null;
+      monthlyStartHour?: number | null;
+      monthlyEndHour?: number | null;
+    }
   ) {
     const existingOverride = await prisma.planOverride.findFirst({
       where: { planId }
     });
 
+    const overrideData: any = {
+      overTimeType,
+      overTimeValue
+    };
+
+    // Ajouter les plages horaires si fournies
+    if (timeSlots) {
+      if (timeSlots.hourlyStartHour !== undefined) overrideData.hourlyStartHour = timeSlots.hourlyStartHour;
+      if (timeSlots.hourlyEndHour !== undefined) overrideData.hourlyEndHour = timeSlots.hourlyEndHour;
+      if (timeSlots.dailyStartHour !== undefined) overrideData.dailyStartHour = timeSlots.dailyStartHour;
+      if (timeSlots.dailyEndHour !== undefined) overrideData.dailyEndHour = timeSlots.dailyEndHour;
+      if (timeSlots.weeklyStartHour !== undefined) overrideData.weeklyStartHour = timeSlots.weeklyStartHour;
+      if (timeSlots.weeklyEndHour !== undefined) overrideData.weeklyEndHour = timeSlots.weeklyEndHour;
+      if (timeSlots.monthlyStartHour !== undefined) overrideData.monthlyStartHour = timeSlots.monthlyStartHour;
+      if (timeSlots.monthlyEndHour !== undefined) overrideData.monthlyEndHour = timeSlots.monthlyEndHour;
+    }
+
     if (existingOverride) {
       return await prisma.planOverride.update({
         where: { id: existingOverride.id },
-        data: {
-          overTimeType,
-          overTimeValue
-        }
+        data: overrideData
       });
     } else {
       return await prisma.planOverride.create({
         data: {
           planId,
-          overTimeType,
-          overTimeValue
+          ...overrideData
         }
       });
     }

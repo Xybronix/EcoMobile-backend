@@ -26,7 +26,10 @@ export class BikeRequestService {
       throw new Error('Portefeuille non trouvé');
     }
 
-    if (user.wallet.deposit < requiredDeposit) {
+    // Vérifier si l'utilisateur a un déblocage sans caution actif
+    const hasActiveExemption = user.depositExemptionUntil && new Date(user.depositExemptionUntil) > new Date();
+
+    if (!hasActiveExemption && user.wallet.deposit < requiredDeposit) {
       throw new Error(`Caution insuffisante. Minimum requis : ${requiredDeposit} FCFA. Votre caution actuelle est de : ${user.wallet.deposit} FCFA`);
     }
 
@@ -503,7 +506,7 @@ export class BikeRequestService {
 
     if (activeSubscription) {
       hasActiveSubscription = true;
-      isOvertime = this.checkIfOvertime(startTime, activeSubscription.packageType);
+      isOvertime = await this.checkIfOvertime(startTime, activeSubscription.packageType, activeSubscription.planId);
       
       if (isOvertime) {
         const overrideRule = await this.getOverrideRule(activeSubscription.planId);
@@ -545,12 +548,66 @@ export class BikeRequestService {
     };
   }
 
-  private checkIfOvertime(startTime: Date, packageType: string): boolean {
+  private async checkIfOvertime(startTime: Date, packageType: string, planId?: string): Promise<boolean> {
     const hour = startTime.getHours();
     
+    // Si un planId est fourni, vérifier les plages horaires définies dans PlanOverride
+    if (planId) {
+      const override = await this.getOverrideRule(planId);
+      if (override) {
+        const packageTypeLower = packageType.toLowerCase();
+        let startHour: number | null = null;
+        let endHour: number | null = null;
+        
+        switch (packageTypeLower) {
+          case 'hourly':
+          case 'horaire':
+            startHour = override.hourlyStartHour;
+            endHour = override.hourlyEndHour;
+            break;
+          case 'daily':
+          case 'journalier':
+            startHour = override.dailyStartHour;
+            endHour = override.dailyEndHour;
+            break;
+          case 'weekly':
+          case 'hebdomadaire':
+            startHour = override.weeklyStartHour;
+            endHour = override.weeklyEndHour;
+            break;
+          case 'monthly':
+          case 'mensuel':
+            startHour = override.monthlyStartHour;
+            endHour = override.monthlyEndHour;
+            break;
+        }
+        
+        // Si des plages horaires sont définies, les utiliser
+        if (startHour !== null && endHour !== null) {
+          if (startHour <= endHour) {
+            // Plage normale (ex: 8h-19h)
+            return hour < startHour || hour >= endHour;
+          } else {
+            // Plage qui traverse minuit (ex: 22h-6h)
+            return hour < startHour && hour >= endHour;
+          }
+        }
+      }
+    }
+    
+    // Fallback sur les valeurs par défaut si aucune plage n'est définie
     switch (packageType.toLowerCase()) {
       case 'daily':
       case 'journalier':
+        return hour < 8 || hour >= 19;
+      case 'hourly':
+      case 'horaire':
+        return hour < 8 || hour >= 19;
+      case 'weekly':
+      case 'hebdomadaire':
+        return hour < 8 || hour >= 19;
+      case 'monthly':
+      case 'mensuel':
         return hour < 8 || hour >= 19;
       case 'morning':
       case 'matin':

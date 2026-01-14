@@ -1,3 +1,4 @@
+import { AppError } from '../middleware/errorHandler';
 import { prisma } from '../config/prisma';
 import { User, UserRole, Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -1075,6 +1076,30 @@ export class UserService {
       where: {
         userId,
         isActive: true
+      }
+    });
+  }
+
+  /**
+   * Verify phone number manually (admin)
+   */
+  async verifyPhoneManually(userId: string, adminId: string): Promise<any> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+    
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    return await prisma.user.update({
+      where: { id: userId },
+      data: {
+        phoneVerified: true,
+        phoneVerifiedBy: adminId,
+        phoneVerifiedAt: new Date(),
+        phoneVerificationCode: null,
+        phoneVerificationExpires: null
       }
     });
   }

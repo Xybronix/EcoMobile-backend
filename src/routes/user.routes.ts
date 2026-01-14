@@ -131,6 +131,20 @@ router.get('/search', authenticate, requirePermission('users', 'read'), UserCont
 router.get('/:id', authenticate, requirePermission('users', 'read'), UserController.getUserById);
 
 /**
+ * @route   POST /api/v1/users/:id/deposit-exemption
+ * @desc    Grant deposit exemption to user (Admin only)
+ * @access  Private/Admin
+ */
+router.post('/:id/deposit-exemption', authenticate, requirePermission('users', 'update'), UserController.grantDepositExemption);
+
+/**
+ * @route   DELETE /api/v1/users/:id/deposit-exemption
+ * @desc    Revoke deposit exemption from user (Admin only)
+ * @access  Private/Admin
+ */
+router.delete('/:id/deposit-exemption', authenticate, requirePermission('users', 'update'), UserController.revokeDepositExemption);
+
+/**
  * @route   GET /api/v1/admin/users/:id/incidents
  * @desc    Get user incidents (Admin only)
  * @access  Private/Admin
@@ -185,6 +199,13 @@ router.put('/:id/role', authenticate, requirePermission('users', 'update'), User
  * @access  Private/Admin
  */
 router.put('/:id/status', authenticate, requirePermission('users', 'update'), UserController.toggleUserStatus);
+
+/**
+ * @route   POST /api/v1/users/:id/verify-phone
+ * @desc    Verify phone number manually (Admin only)
+ * @access  Private/Admin
+ */
+router.post('/:id/verify-phone', authenticate, requirePermission('users', 'update'), UserController.verifyPhoneManually);
 
 /**
  * @route   DELETE /api/v1/users/:id

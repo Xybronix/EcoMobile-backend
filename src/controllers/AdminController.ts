@@ -1226,7 +1226,18 @@ export class AdminController {
   async createOrUpdatePlanOverride(req: AuthRequest, res: express.Response) {
     try {
       const { id } = req.params;
-      const { overTimeType, overTimeValue } = req.body;
+      const { 
+        overTimeType, 
+        overTimeValue,
+        hourlyStartHour,
+        hourlyEndHour,
+        dailyStartHour,
+        dailyEndHour,
+        weeklyStartHour,
+        weeklyEndHour,
+        monthlyStartHour,
+        monthlyEndHour
+      } = req.body;
 
       if (!overTimeType || overTimeValue === undefined) {
         return res.status(400).json({
@@ -1256,22 +1267,33 @@ export class AdminController {
         });
       }
 
+      const overrideData: any = {
+        overTimeType,
+        overTimeValue: parseFloat(overTimeValue)
+      };
+
+      // Ajouter les plages horaires si fournies
+      if (hourlyStartHour !== undefined) overrideData.hourlyStartHour = hourlyStartHour ? parseInt(hourlyStartHour) : null;
+      if (hourlyEndHour !== undefined) overrideData.hourlyEndHour = hourlyEndHour ? parseInt(hourlyEndHour) : null;
+      if (dailyStartHour !== undefined) overrideData.dailyStartHour = dailyStartHour ? parseInt(dailyStartHour) : null;
+      if (dailyEndHour !== undefined) overrideData.dailyEndHour = dailyEndHour ? parseInt(dailyEndHour) : null;
+      if (weeklyStartHour !== undefined) overrideData.weeklyStartHour = weeklyStartHour ? parseInt(weeklyStartHour) : null;
+      if (weeklyEndHour !== undefined) overrideData.weeklyEndHour = weeklyEndHour ? parseInt(weeklyEndHour) : null;
+      if (monthlyStartHour !== undefined) overrideData.monthlyStartHour = monthlyStartHour ? parseInt(monthlyStartHour) : null;
+      if (monthlyEndHour !== undefined) overrideData.monthlyEndHour = monthlyEndHour ? parseInt(monthlyEndHour) : null;
+
       let planOverride;
 
       if (plan.overrides && plan.overrides.length > 0) {
         planOverride = await prisma.planOverride.update({
           where: { id: plan.overrides[0].id },
-          data: {
-            overTimeType,
-            overTimeValue: parseFloat(overTimeValue)
-          }
+          data: overrideData
         });
       } else {
         planOverride = await prisma.planOverride.create({
           data: {
             planId: id,
-            overTimeType,
-            overTimeValue: parseFloat(overTimeValue)
+            ...overrideData
           }
         });
       }

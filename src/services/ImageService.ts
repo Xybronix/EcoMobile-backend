@@ -10,12 +10,24 @@ export class ImageService {
   private uploadsDir: string;
 
   constructor() {
-    // Pour le développement
-    this.uploadsDir = path.join(__dirname, '../../uploads');
-    // Pour la production (après build)
-    if (!fs.existsSync(this.uploadsDir)) {
-      this.uploadsDir = path.join(__dirname, '../uploads');
+    // Initialiser avec le chemin par défaut
+    this.uploadsDir = path.join(process.cwd(), 'uploads');
+    
+    // Essayer plusieurs chemins possibles
+    const possiblePaths = [
+      path.join(process.cwd(), 'uploads'), // Développement depuis la racine
+      path.join(__dirname, '../../uploads'), // Développement depuis src
+      path.join(__dirname, '../uploads'), // Production depuis dist
+      path.join(process.cwd(), 'dist', 'uploads') // Production build
+    ];
+    
+    for (const dirPath of possiblePaths) {
+      if (fs.existsSync(dirPath) || dirPath === path.join(process.cwd(), 'uploads')) {
+        this.uploadsDir = dirPath;
+        break;
+      }
     }
+    
     this.ensureUploadsDir();
   }
 
@@ -61,7 +73,9 @@ export class ImageService {
       // Sauvegarder le fichier
       await writeFileAsync(filepath, buffer);
 
-      return `/uploads/${filename}`;
+      // Retourner le chemin relatif pour servir via express.static
+      const relativePath = path.relative(process.cwd(), filepath);
+      return relativePath.startsWith('uploads') ? `/${relativePath.replace(/\\/g, '/')}` : `/uploads/${filename}`;
     } catch (error) {
       console.error('Erreur lors de la sauvegarde de l\'image:', error);
       return base64Data;

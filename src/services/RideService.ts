@@ -453,7 +453,7 @@ export class RideService {
 
     if (activeSubscription) {
       // L'utilisateur a un forfait actif
-      isOvertime = this.checkIfOvertime(startTime, activeSubscription.packageType);
+      isOvertime = await this.checkIfOvertime(startTime, activeSubscription.packageType, activeSubscription.planId);
       
       if (isOvertime) {
         // Hors des heures du forfait - appliquer les règles d'override
@@ -503,13 +503,67 @@ export class RideService {
   /**
    * Vérifier si on est en overtime selon le type de forfait
    */
-  private checkIfOvertime(startTime: Date, packageType: string): boolean {
+  private async checkIfOvertime(startTime: Date, packageType: string, planId?: string): Promise<boolean> {
     const hour = startTime.getHours();
     
+    // Si un planId est fourni, vérifier les plages horaires définies dans PlanOverride
+    if (planId) {
+      const override = await this.getOverrideRule(planId);
+      if (override) {
+        const packageTypeLower = packageType.toLowerCase();
+        let startHour: number | null = null;
+        let endHour: number | null = null;
+        
+        switch (packageTypeLower) {
+          case 'hourly':
+          case 'horaire':
+            startHour = override.hourlyStartHour;
+            endHour = override.hourlyEndHour;
+            break;
+          case 'daily':
+          case 'journalier':
+            startHour = override.dailyStartHour;
+            endHour = override.dailyEndHour;
+            break;
+          case 'weekly':
+          case 'hebdomadaire':
+            startHour = override.weeklyStartHour;
+            endHour = override.weeklyEndHour;
+            break;
+          case 'monthly':
+          case 'mensuel':
+            startHour = override.monthlyStartHour;
+            endHour = override.monthlyEndHour;
+            break;
+        }
+        
+        // Si des plages horaires sont définies, les utiliser
+        if (startHour !== null && endHour !== null) {
+          if (startHour <= endHour) {
+            // Plage normale (ex: 8h-19h)
+            return hour < startHour || hour >= endHour;
+          } else {
+            // Plage qui traverse minuit (ex: 22h-6h)
+            return hour < startHour && hour >= endHour;
+          }
+        }
+      }
+    }
+    
+    // Fallback sur les valeurs par défaut
     switch (packageType.toLowerCase()) {
       case 'daily':
       case 'journalier':
         return hour < 8 || hour >= 19; // 8h-19h
+      case 'hourly':
+      case 'horaire':
+        return hour < 8 || hour >= 19;
+      case 'weekly':
+      case 'hebdomadaire':
+        return hour < 8 || hour >= 19;
+      case 'monthly':
+      case 'mensuel':
+        return hour < 8 || hour >= 19;
       case 'morning':
       case 'matin':
         return hour < 6 || hour >= 12; // 6h-12h

@@ -8,6 +8,7 @@ const documentController = new DocumentController();
 // User routes - autoriser les utilisateurs avec pending_verification pour soumettre leurs documents
 router.post('/identity', authenticateWithPendingVerification, documentController.submitIdentityDocument);
 router.post('/residence', authenticateWithPendingVerification, documentController.submitResidenceProof);
+router.post('/activity-location', authenticateWithPendingVerification, documentController.submitActivityLocationProof);
 router.get('/status', authenticateWithPendingVerification, documentController.getUserDocumentsStatus);
 router.get('/user/:userId/status', authenticate, requirePermission('users', 'read'), documentController.getUserDocumentsStatusByUserId);
 
@@ -17,6 +18,8 @@ router.post('/identity/:documentId/approve', authenticate, requirePermission('us
 router.post('/identity/:documentId/reject', authenticate, requirePermission('users', 'update'), documentController.rejectIdentityDocument);
 router.post('/residence/:proofId/approve', authenticate, requirePermission('users', 'update'), documentController.approveResidenceProof);
 router.post('/residence/:proofId/reject', authenticate, requirePermission('users', 'update'), documentController.rejectResidenceProof);
+router.post('/activity-location/:proofId/approve', authenticate, requirePermission('users', 'update'), documentController.approveActivityLocationProof);
+router.post('/activity-location/:proofId/reject', authenticate, requirePermission('users', 'update'), documentController.rejectActivityLocationProof);
 router.post('/verify-account/:userId', authenticate, requirePermission('users', 'update'), documentController.verifyUserAccount);
 
 export default router;

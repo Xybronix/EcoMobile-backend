@@ -60,6 +60,30 @@ export class DocumentController {
   });
 
   /**
+   * Submit activity location proof
+   */
+  submitActivityLocationProof = asyncHandler(async (req: AuthRequest, res: express.Response) => {
+    const language = req.language || 'fr';
+    const result = await this.documentService.submitActivityLocationProof(req.user!.id, req.body);
+
+    await logActivity(
+      req.user!.id,
+      'CREATE',
+      'ACTIVITY_LOCATION_PROOF',
+      result.id,
+      'Activity location proof submitted',
+      { proofType: req.body.proofType },
+      req
+    );
+
+    res.status(201).json({
+      success: true,
+      message: t('document.submitted', language),
+      data: result
+    });
+  });
+
+  /**
    * Get user documents status
    */
   getUserDocumentsStatus = asyncHandler(async (req: AuthRequest, res: express.Response) => {
@@ -200,6 +224,59 @@ export class DocumentController {
       'RESIDENCE_PROOF',
       proofId,
       'Residence proof rejected',
+      { proofId, reason },
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: t('document.rejected', language),
+      data: result
+    });
+  });
+
+  /**
+   * Approve activity location proof (admin)
+   */
+  approveActivityLocationProof = asyncHandler(async (req: AuthRequest, res: express.Response) => {
+    const language = req.language || 'fr';
+    const { proofId } = req.params;
+    
+    const result = await this.documentService.approveActivityLocationProof(proofId, req.user!.id);
+
+    await logActivity(
+      req.user!.id,
+      'APPROVE',
+      'ACTIVITY_LOCATION_PROOF',
+      proofId,
+      'Activity location proof approved',
+      { proofId },
+      req
+    );
+
+    res.status(200).json({
+      success: true,
+      message: t('document.approved', language),
+      data: result
+    });
+  });
+
+  /**
+   * Reject activity location proof (admin)
+   */
+  rejectActivityLocationProof = asyncHandler(async (req: AuthRequest, res: express.Response) => {
+    const language = req.language || 'fr';
+    const { proofId } = req.params;
+    const { reason } = req.body;
+    
+    const result = await this.documentService.rejectActivityLocationProof(proofId, req.user!.id, reason);
+
+    await logActivity(
+      req.user!.id,
+      'REJECT',
+      'ACTIVITY_LOCATION_PROOF',
+      proofId,
+      'Activity location proof rejected',
       { proofId, reason },
       req
     );
