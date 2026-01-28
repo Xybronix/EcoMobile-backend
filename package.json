@@ -5,18 +5,13 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "render-build": "npm ci --production=false && npx prisma generate && npm run build && npx prisma db push --accept-data-loss && npx prisma db seed",
+    "build": "tsc && mkdir -p dist/uploads",
+    "start": "npx prisma db push --accept-data-loss && node dist/server.js",
     "postinstall": "npx prisma generate",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push",
-    "prisma:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts",
-    "postbuild": "mkdir -p dist/uploads",
-    "prestart": "mkdir -p dist/uploads"
+    "migrate:prod": "npx prisma db push --accept-data-loss",
+    "db:seed": "ts-node prisma/seed.ts"
   },
   "keywords": [
     "ecomobile",
