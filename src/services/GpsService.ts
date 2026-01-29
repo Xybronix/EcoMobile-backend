@@ -89,7 +89,8 @@ class GpsService {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      // Augmenter le timeout à 30 secondes pour les requêtes GPS qui peuvent être lentes
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(url, {
         signal: controller.signal,
@@ -178,9 +179,13 @@ class GpsService {
 
   async getLastPosition(deviceId: string): Promise<GpsLocation | null> {
     try {
-      const isAuthenticated = await this.login();
-      if (!isAuthenticated) {
-        throw new Error('GPS authentication failed');
+      // Ne se connecter que si on n'est pas déjà authentifié
+      if (!this.isAuthenticated) {
+        const isAuthenticated = await this.login();
+        if (!isAuthenticated) {
+          console.warn(`⚠️ GPS authentication failed for device ${deviceId}`);
+          return null;
+        }
       }
 
       const response = await this.makeJsonPRequest<string>(
@@ -225,6 +230,8 @@ class GpsService {
       
       return gpsLocation;
     } catch (error) {
+      // Réinitialiser l'état d'authentification en cas d'erreur
+      this.isAuthenticated = false;
       console.error(`❌ Failed to get last position for device ${deviceId}:`, error);
       return null;
     }
@@ -329,27 +336,25 @@ class GpsService {
   }
 
   parseBatteryLevel(nFuel: number): number {
-    
-    if (nFuel === 0) {
-      // Peut-être que le système GPS n'envoie pas encore les données de batterie
-      // Retourner une valeur raisonnable au lieu de 0%
-      const randomBattery = 60 + Math.floor(Math.random() * 30); // Entre 60% et 90%
-      console.log(`🔋 nFuel is 0, using default battery: ${randomBattery}%`);
-      return randomBattery;
+    // Si nFuel est entre 0 et 100, c'est déjà un pourcentage
+    if (nFuel >= 0 && nFuel <= 100) {
+      return Math.round(nFuel);
     }
     
-    if (nFuel >= 1 && nFuel <= 100) {
-      return Math.max(1, Math.min(100, Math.round(nFuel)));
+    // Si nFuel est dans une autre plage, on le normalise
+    // Certains systèmes GPS peuvent envoyer des valeurs différentes
+    if (nFuel > 100) {
+      return 100;
     }
     
-    if (nFuel >= 10 && nFuel <= 15) {
-      const percentage = Math.round(((nFuel - 10) / 5) * 100);
-      return Math.max(1, Math.min(100, percentage));
+    // Si nFuel est négatif ou invalide, on retourne 0 (batterie vide)
+    if (nFuel < 0 || isNaN(nFuel)) {
+      console.log(`🔋 Invalid nFuel value (${nFuel}), returning 0%`);
+      return 0;
     }
     
-    const defaultBattery = 75;
-    console.log(`🔋 Unknown nFuel format (${nFuel}), using default: ${defaultBattery}%`);
-    return defaultBattery;
+    // Par défaut, retourner la valeur telle quelle (arrondie)
+    return Math.round(nFuel);
   }
 
   parseGpsSignal(nGPSSignal: number): number {

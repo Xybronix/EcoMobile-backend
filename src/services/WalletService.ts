@@ -108,7 +108,7 @@ export class WalletService {
   /**
    * Charge user for damage (Admin only)
    */
-  async chargeDamage(userId: string, amount: number, description: string, images?: string[], chargedBy?: string) {
+  async chargeDamage(userId: string, amount: number, description: string, images?: string[], chargedBy?: string, incidentId?: string) {
     const wallet = await this.getOrCreateWallet(userId);
 
     const result = await prisma.$transaction(async (tx) => {
@@ -141,7 +141,8 @@ export class WalletService {
             images: images || [],
             chargedBy,
             deductFromDeposit,
-            addedToNegativeBalance: remainingAmount
+            addedToNegativeBalance: remainingAmount,
+            incidentId: incidentId || null
           }
         }
       });

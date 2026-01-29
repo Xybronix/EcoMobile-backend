@@ -47,4 +47,18 @@ router.delete('/:id', authenticate, idValidator, validate, IncidentController.de
  */
 router.post('/admin/charge', authenticate, requirePermission('incidents', 'create'), IncidentController.createAdminCharge);
 
+/**
+ * @route   PUT /api/v1/incidents/admin/charge/:id
+ * @desc    Modifier une charge admin (super admin ou créateur uniquement)
+ * @access  Private/Admin
+ */
+router.put('/admin/charge/:id', authenticate, requirePermission('incidents', 'update'), idValidator, validate, IncidentController.updateAdminCharge);
+
+/**
+ * @route   DELETE /api/v1/incidents/admin/charge/:id
+ * @desc    Supprimer une charge admin (super admin ou créateur uniquement)
+ * @access  Private/Admin
+ */
+router.delete('/admin/charge/:id', authenticate, requirePermission('incidents', 'delete'), idValidator, validate, IncidentController.deleteAdminCharge);
+
 export default router;

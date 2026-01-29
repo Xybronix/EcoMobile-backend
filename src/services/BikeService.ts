@@ -1088,7 +1088,8 @@ export class BikeService {
       for (const bike of bikes) {
         try {
           const lastPosition = await this.gpsService.getLastPosition(bike.gpsDeviceId!);
-          const isOnline = lastPosition ? await this.isDeviceOnline(bike.gpsDeviceId!) : false;
+          // Utiliser la position déjà récupérée pour éviter les appels redondants
+          const isOnline = lastPosition ? await this.isDeviceOnline(bike.gpsDeviceId!, lastPosition) : false;
           
           if (lastPosition) {
             let locationName = bike.locationName;
@@ -1391,13 +1392,16 @@ export class BikeService {
 
   /**
    * Vérifier si un dispositif GPS est en ligne
+   * @param gpsDeviceId - ID du dispositif GPS
+   * @param lastPosition - Position déjà récupérée (optionnel, pour éviter les appels redondants)
    */
-  private async isDeviceOnline(gpsDeviceId: string): Promise<boolean> {
+  private async isDeviceOnline(gpsDeviceId: string, lastPosition?: any): Promise<boolean> {
     try {
-      const lastPosition = await this.gpsService.getLastPosition(gpsDeviceId);
-      if (!lastPosition) return false;
+      // Utiliser la position fournie si disponible, sinon la récupérer
+      const position = lastPosition || await this.gpsService.getLastPosition(gpsDeviceId);
+      if (!position) return false;
 
-      const lastUpdate = this.gpsService.convertUtcToLocalTime(lastPosition.nTime);
+      const lastUpdate = this.gpsService.convertUtcToLocalTime(position.nTime);
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
       
       return lastUpdate > thirtyMinutesAgo;

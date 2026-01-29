@@ -2087,7 +2087,9 @@ export class AdminController {
         }
       });
 
-      if (refundAmount && refundAmount > 0 && status === 'RESOLVED') {
+      // Créer un remboursement uniquement pour les incidents créés par les utilisateurs (pas les charges admin)
+      // Les charges admin sont déjà validées et déduites lors de leur création
+      if (refundAmount && refundAmount > 0 && status === 'RESOLVED' && incident.type !== 'admin_charge') {
         const userWallet = await prisma.wallet.findUnique({
           where: { userId: incident.userId }
         });
