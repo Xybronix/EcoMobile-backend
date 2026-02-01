@@ -8,14 +8,16 @@ Le backend utilise une **architecture en couches** avec abstraction de base de d
 
 ```
 src/
-├── config/          # Configuration (DB, Swagger, etc.)
-├── controllers/     # Contrôleurs (logique HTTP)
-├── services/        # Services métier
+├── config/          # Configuration (DB, Swagger, Prisma)
+├── controllers/     # Contrôleurs HTTP (13 fichiers)
+├── services/        # Services métier (32 fichiers)
 ├── repositories/    # Couche d'accès aux données (Pattern Repository)
-├── middleware/      # Middlewares (auth, i18n, rate limiting, etc.)
-├── routes/          # Définition des routes
+├── middleware/      # Middlewares (auth, i18n, rate limiting, validation)
+├── routes/          # Définition des routes (16 fichiers)
 ├── models/          # Types et modèles TypeScript
-├── locales/         # Fichiers de traduction (fr/en)
+├── locales/         # Fichiers de traduction (fr.json, en.json)
+├── types/           # Types Express personnalisés
+├── utils/           # Utilitaires (scheduled jobs)
 └── server.ts        # Point d'entrée
 ```
 
@@ -33,31 +35,31 @@ Modifier le fichier `.env` :
 
 ```env
 # Type de base de données (mysql, postgresql, sqlite)
-DATABASE_TYPE=mysql
+DB_TYPE=mysql
 
 # MySQL
-DATABASE_HOST=localhost
-DATABASE_PORT=3306
-DATABASE_NAME=freebike
-DATABASE_USER=root
-DATABASE_PASSWORD=
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DATABASE=ecomobile_db
+MYSQL_USER=root
+MYSQL_PASSWORD=
 
-# PostgreSQL (si DATABASE_TYPE=postgresql)
-# DATABASE_HOST=localhost
-# DATABASE_PORT=5432
-# DATABASE_NAME=freebike
-# DATABASE_USER=postgres
-# DATABASE_PASSWORD=
+# PostgreSQL (si DB_TYPE=postgresql)
+# POSTGRES_HOST=localhost
+# POSTGRES_PORT=5432
+# POSTGRES_DATABASE=ecomobile_db
+# POSTGRES_USER=postgres
+# POSTGRES_PASSWORD=
 
-# SQLite (si DATABASE_TYPE=sqlite)
-# DATABASE_PATH=./data/freebike.db
+# SQLite (si DB_TYPE=sqlite)
+# SQLITE_PATH=./data/ecomobile.db
 ```
 
 ## 🚀 Installation et Démarrage
 
 ### Prérequis
 
-- Node.js 18+ 
+- Node.js 20+
 - npm ou yarn
 - Base de données (MySQL, PostgreSQL ou SQLite)
 
@@ -71,66 +73,94 @@ npm install
 ### Configuration
 
 1. Copier le fichier `.env.example` en `.env`
-2. Configurer les variables d'environnement :
+2. Configurer les variables d'environnement (voir [ENV_VARIABLES.md](ENV_VARIABLES.md))
+
+Variables essentielles :
 
 ```env
 # Serveur
-PORT=3000
+PORT=10000
 NODE_ENV=development
 
 # Base de données
-DATABASE_TYPE=mysql
-DATABASE_HOST=localhost
-DATABASE_PORT=3306
-DATABASE_NAME=freebike
-DATABASE_USER=root
-DATABASE_PASSWORD=
+DB_TYPE=mysql
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_DATABASE=ecomobile_db
+MYSQL_USER=root
+MYSQL_PASSWORD=
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRES_IN=7d
+JWT_EXPIRES_IN=24h
 
 # Email (SMTP)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password
-EMAIL_FROM=FreeBike <noreply@freebike.cm>
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=FreeBike <noreply@freebike.cm>
 
 # My-CoolPay API
 COOLPAY_API_URL=https://api.my-coolpay.com
 COOLPAY_API_KEY=your-coolpay-api-key
 COOLPAY_MERCHANT_ID=your-merchant-id
 
-# Frais de transfert
-COOLPAY_FEE_PERCENTAGE=1.5
-ORANGE_FEE_FIXED=100
+# CORS
+CORS_ORIGIN=http://localhost:3000,https://xybronix.github.io
 
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-
-# Langue par défaut
-DEFAULT_LANGUAGE=fr
+# SMS (Twilio) - Optionnel
+SMS_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_PHONE_NUMBER=+1234567890
 ```
 
 ### Migrations de base de données
 
 ```bash
-# Générer les migrations Prisma
+# Générer Prisma Client
 npx prisma generate
 
-# Appliquer les migrations
+# Appliquer les migrations (développement)
+npm run migrate
+# ou
 npx prisma migrate dev
 
-# (Optionnel) Seed avec données de test
+# Appliquer les migrations (production)
+npm run migrate:deploy
+# ou
+npx prisma migrate deploy
+
+# Push du schéma (production, sans migrations)
+npm run migrate:prod
+# ou
+npx prisma db push --accept-data-loss
+```
+
+### Seed de la base de données
+
+Le seed est **production-safe** : il utilise `upsert()` pour créer uniquement les éléments manquants, sans supprimer les données existantes.
+
+```bash
+# Exécuter le seed
+npm run db:seed
+# ou
 npx prisma db seed
 ```
+
+**Données créées** :
+- Rôles (SUPER_ADMIN, ADMIN, EMPLOYEE, etc.)
+- Permissions
+- Utilisateurs de test (admin, manager, user, support)
+- Paramètres de l'entreprise
+- Tarifs par défaut
+- Portefeuilles
 
 ### Démarrage
 
 ```bash
-# Mode développement (avec hot reload)
+# Mode développement (avec hot reload via nodemon)
 npm run dev
 
 # Mode production
@@ -138,14 +168,20 @@ npm run build
 npm start
 ```
 
-Le serveur démarre sur `http://localhost:3000`
+Le script `start` exécute automatiquement :
+1. Build TypeScript (`npm run build`)
+2. Migration de la base de données (`prisma db push`)
+3. Seed intelligent (`npm run db:seed`)
+4. Démarrage du serveur (`node dist/server.js`)
+
+Le serveur démarre sur `http://localhost:10000`
 
 ## 📚 Documentation API (Swagger)
 
 Une fois le serveur démarré, accéder à la documentation Swagger :
 
 ```
-http://localhost:3000/api-docs
+http://localhost:10000/api-docs
 ```
 
 Swagger UI permet de :
@@ -160,20 +196,33 @@ Le backend utilise **JWT (JSON Web Tokens)** pour l'authentification.
 
 ### Workflow d'authentification
 
-1. **Inscription** : `POST /api/auth/register`
-2. **Connexion** : `POST /api/auth/login` → Retourne un token JWT
+1. **Inscription** : `POST /api/v1/auth/register`
+2. **Connexion** : `POST /api/v1/auth/login` → Retourne un token JWT
 3. **Utilisation** : Ajouter le header `Authorization: Bearer {token}` à chaque requête
+4. **Refresh** : `POST /api/v1/auth/refresh` pour renouveler le token
 
 ### Exemple de requête authentifiée
 
 ```javascript
-fetch('http://localhost:3000/api/users/me', {
+fetch('http://localhost:10000/api/v1/users/me', {
   headers: {
     'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     'Accept-Language': 'fr'
   }
 })
 ```
+
+### Système de Rôles et Permissions
+
+**Rôles disponibles** :
+- `SUPER_ADMIN` : Accès total
+- `ADMIN` : Gestion complète (sauf employés/rôles)
+- `EMPLOYEE` : Accès limité (vélos, incidents, maintenance)
+- `SUPPORT` : Support client uniquement
+- `FINANCE` : Finances uniquement
+- `MAINTENANCE` : Maintenance uniquement
+
+**Permissions** : Système granulaire avec contrôle par ressource et action (create, read, update, delete).
 
 ## 🌍 Internationalisation (i18n)
 
@@ -194,6 +243,7 @@ Les messages d'erreur, emails et notifications seront automatiquement traduits.
 
 - `src/locales/fr.json` - Traductions françaises
 - `src/locales/en.json` - Traductions anglaises
+- `src/locales/index.ts` - Configuration i18next
 
 ## 💳 Intégration My-CoolPay
 
@@ -202,8 +252,8 @@ Le backend intègre l'API **My-CoolPay** pour les paiements mobiles.
 ### Frais appliqués
 
 Lors d'une recharge de compte :
-- **Frais CoolPay** : 1.5% du montant (configurable)
-- **Frais Orange Money** : 100 FCFA fixe (configurable)
+- **Frais CoolPay** : 1.5% du montant (configurable via `COOLPAY_FEE_PERCENTAGE`)
+- **Frais Orange Money** : 100 FCFA fixe (configurable via `ORANGE_FEE_FIXED`)
 
 ### Exemple de calcul
 
@@ -235,11 +285,25 @@ Le backend envoie des emails automatiques pour :
 Utiliser Gmail, SendGrid, Mailgun ou tout autre service SMTP :
 
 ```env
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password  # Utiliser un mot de passe d'application
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password  # Utiliser un mot de passe d'application
+SMTP_FROM=FreeBike <noreply@freebike.cm>
 ```
+
+## 📱 Système de SMS (Twilio)
+
+Le backend peut envoyer des SMS via **Twilio** pour :
+- 🔐 Vérification de téléphone
+- 🔔 Notifications importantes
+- 📨 Codes de vérification
+
+### Configuration
+
+Voir [ENV_VARIABLES.md](ENV_VARIABLES.md) pour la configuration complète.
+
+**Mode développement** : Si les credentials Twilio ne sont pas configurés, le service utilise un mode mock qui affiche le code dans la console.
 
 ## 🔔 Système de Notifications
 
@@ -248,8 +312,9 @@ Le backend gère les notifications en temps réel :
 - 🔔 Notifications push
 - 📱 Notifications in-app
 - 📧 Notifications par email
+- 📱 Notifications par SMS
 
-Types de notifications :
+**Types de notifications** :
 - Nouveau trajet disponible
 - Trajet terminé
 - Solde faible
@@ -269,10 +334,11 @@ Protection contre les attaques par force brute :
 
 - ✅ Hachage bcrypt pour les mots de passe
 - ✅ Validation des entrées avec Joi
-- ✅ Protection CORS
+- ✅ Protection CORS configurable
 - ✅ Headers de sécurité (Helmet)
 - ✅ Sanitization des données
 - ✅ Gestion des erreurs sécurisée
+- ✅ Audit logs complet
 
 ## 📊 Système d'Audit
 
@@ -289,18 +355,19 @@ Toutes les actions importantes sont enregistrées :
 }
 ```
 
-Actions auditées :
+**Actions auditées** :
 - Connexions/déconnexions
 - Modifications de données sensibles
 - Transactions financières
 - Actions administratives
+- Accès aux ressources protégées
 
 ## 🏥 Health Check
 
 Vérifier l'état du serveur et de la base de données :
 
 ```bash
-GET /api/admin/health
+GET /api/v1/health
 ```
 
 Réponse :
@@ -312,7 +379,8 @@ Réponse :
   "database": "connected",
   "services": {
     "email": "operational",
-    "payment": "operational"
+    "payment": "operational",
+    "sms": "operational"
   }
 }
 ```
@@ -323,7 +391,7 @@ Réponse :
 
 ```typescript
 // Créer un code promo
-POST /api/admin/promo-codes
+POST /api/v1/admin/promo-codes
 {
   "code": "WELCOME10",
   "type": "percentage",
@@ -333,7 +401,7 @@ POST /api/admin/promo-codes
 }
 
 // Utiliser un code promo
-POST /api/rides/apply-promo
+POST /api/v1/rides/apply-promo
 {
   "code": "WELCOME10"
 }
@@ -343,7 +411,7 @@ POST /api/rides/apply-promo
 
 ```typescript
 // Noter un trajet
-POST /api/rides/{rideId}/review
+POST /api/v1/rides/{rideId}/review
 {
   "rating": 5,
   "comment": "Excellent vélo, très confortable!"
@@ -354,7 +422,7 @@ POST /api/rides/{rideId}/review
 
 ```typescript
 // Demander un remboursement
-POST /api/refunds
+POST /api/v1/refunds
 {
   "rideId": "123",
   "reason": "Vélo défectueux",
@@ -366,7 +434,7 @@ POST /api/refunds
 
 ```typescript
 // Définir une zone autorisée
-POST /api/admin/geofences
+POST /api/v1/admin/geofences
 {
   "name": "Zone Centre-ville Douala",
   "type": "service_area",
@@ -378,11 +446,30 @@ POST /api/admin/geofences
 
 ```typescript
 // Créer un ticket
-POST /api/support/tickets
+POST /api/v1/support/tickets
 {
   "subject": "Problème de paiement",
   "message": "...",
   "priority": "high"
+}
+```
+
+### 6. Chat en Temps Réel
+
+Le backend utilise **Socket.io** pour le chat en temps réel entre utilisateurs et support.
+
+## 📦 Scripts npm
+
+```json
+{
+  "dev": "Démarrage en développement (nodemon)",
+  "build": "Compilation TypeScript + création dossier uploads",
+  "start": "Build + migrate + seed + start (production)",
+  "postinstall": "Génération Prisma Client",
+  "migrate": "Migration Prisma (dev)",
+  "migrate:deploy": "Migration Prisma (production)",
+  "migrate:prod": "Push schéma Prisma (production, sans migrations)",
+  "db:seed": "Exécution du seed intelligent"
 }
 ```
 
@@ -415,38 +502,66 @@ npm run build
 NODE_ENV=production npm start
 ```
 
+Le script `start` gère automatiquement :
+- Build TypeScript
+- Migration de la base de données
+- Seed intelligent (crée uniquement les éléments manquants)
+- Démarrage du serveur
+
 ### Docker (optionnel)
 
 ```dockerfile
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
 RUN npm run build
-EXPOSE 3000
+EXPOSE 10000
 CMD ["npm", "start"]
 ```
 
-## 📦 Scripts npm
+## 📁 Structure des Routes
 
-```json
-{
-  "dev": "Démarrage en mode développement",
-  "build": "Compilation TypeScript",
-  "start": "Démarrage en production",
-  "test": "Exécution des tests",
-  "migrate": "Migration de la base de données",
-  "seed": "Remplissage de données de test"
-}
-```
+Les routes sont organisées dans `src/routes/` :
+
+- `public.routes.ts` - Routes publiques (tarifs, vélos publics)
+- `auth.routes.ts` - Authentification (login, register, refresh)
+- `user.routes.ts` - Gestion des utilisateurs
+- `bike.routes.ts` - Gestion des vélos
+- `bikeRequests.route.ts` - Demandes de vélos
+- `reservation.route.ts` - Réservations
+- `ride.routes.ts` - Trajets
+- `incident.routes.ts` - Signalements
+- `wallet.routes.ts` - Portefeuille et transactions
+- `subscription.routes.ts` - Abonnements
+- `admin.routes.ts` - Routes admin (dashboard, statistiques)
+- `chat.routes.ts` - Chat support
+- `notification.routes.ts` - Notifications
+- `monitoring.routes.ts` - Monitoring et santé
+- `document.routes.ts` - Documents
+
+Toutes les routes sont préfixées par `/api/v1`.
+
+## 🔄 Synchronisation Automatique
+
+Le backend est synchronisé automatiquement avec le dépôt `EcoMobile-backend` via GitHub Actions.
+
+Voir [.github/SYNC_SETUP.md](../.github/SYNC_SETUP.md) pour plus de détails.
+
+## 📚 Ressources
+
+- [Documentation Prisma](https://www.prisma.io/docs)
+- [Documentation Express](https://expressjs.com/)
+- [Documentation JWT](https://jwt.io/)
+- [Documentation Twilio](https://www.twilio.com/docs)
 
 ## 🤝 Support
 
 Pour toute question ou problème :
-- 📧 Email : support@freebike.cm
-- 📱 WhatsApp : +237 6XX XX XX XX
-- 🌐 Documentation complète : https://docs.freebike.cm
+- 📧 Email : wekobrayan163@gmail.com
+- 📱 WhatsApp : +237 690 37 44 20
+- 🌐 Documentation complète : [README principal](../README.md)
 
 ## 📝 Licence
 
