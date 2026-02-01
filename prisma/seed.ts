@@ -5,63 +5,58 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting database seeding...');
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (isProduction) {
+    console.log('📦 Production mode: Only creating missing elements');
+  } else {
+    console.log('🔧 Development mode: Full seed');
+  }
 
-  // Clear existing data (dans l'ordre correct pour les contraintes de clés étrangères)
-  await prisma.rolePermission.deleteMany();
-  await prisma.permission.deleteMany();
-  await prisma.activityLog.deleteMany();
-  await prisma.chatMessage.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.session.deleteMany();
-  await prisma.incident.deleteMany();
-  await prisma.maintenanceLog.deleteMany();
-  await prisma.ride.deleteMany();
-  await prisma.transaction.deleteMany();
-  await prisma.wallet.deleteMany();
-  await prisma.bike.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.settings.deleteMany();
-  await prisma.pricingConfig.deleteMany();
-
-  console.log('🗑️ Cleared existing data');
-
-  // Créer les rôles d'abord
-  const superAdminRole = await prisma.role.create({
-    data: {
+  // Créer les rôles uniquement s'ils n'existent pas
+  const superAdminRole = await prisma.role.upsert({
+    where: { name: 'SUPER_ADMIN' },
+    update: {},
+    create: {
       name: 'SUPER_ADMIN',
       description: 'Super Administrator with full access',
       isDefault: false
     }
   });
 
-  const adminRole = await prisma.role.create({
-    data: {
+  const adminRole = await prisma.role.upsert({
+    where: { name: 'ADMIN' },
+    update: {},
+    create: {
       name: 'ADMIN',
       description: 'Administrator with limited access',
       isDefault: false
     }
   });
 
-  const employeeRole = await prisma.role.create({
-    data: {
+  const employeeRole = await prisma.role.upsert({
+    where: { name: 'EMPLOYEE' },
+    update: {},
+    create: {
       name: 'EMPLOYEE',
       description: 'Employee with basic management access',
       isDefault: false
     }
   });
 
-  const userRole = await prisma.role.create({
-    data: {
+  const userRole = await prisma.role.upsert({
+    where: { name: 'USER' },
+    update: {},
+    create: {
       name: 'USER',
       description: 'Regular user with basic access',
       isDefault: true
     }
   });
 
-  console.log('✅ Created roles');
+  console.log('✅ Roles checked/created');
 
-  // Créer les permissions
+  // Créer les permissions uniquement si elles n'existent pas
   const permissions = [
     // Admin permissions
     { name: 'admin:manage', description: 'Full admin access', resource: 'admin', action: 'manage' },
@@ -153,22 +148,33 @@ async function main() {
   ];
 
   for (const permission of permissions) {
-    await prisma.permission.create({
-      data: permission
+    await prisma.permission.upsert({
+      where: { name: permission.name },
+      update: {}, // Ne pas modifier si existe
+      create: permission
     });
   }
 
-  console.log('✅ Created permissions');
+  console.log('✅ Permissions checked/created');
 
-  // Assigner toutes les permissions au SUPER_ADMIN
+  // Assigner les permissions aux rôles uniquement si elles n'existent pas déjà
   const allPermissions = await prisma.permission.findMany();
   for (const permission of allPermissions) {
-    await prisma.rolePermission.create({
-      data: {
+    const existing = await prisma.rolePermission.findFirst({
+      where: {
         roleId: superAdminRole.id,
         permissionId: permission.id
       }
     });
+    
+    if (!existing) {
+      await prisma.rolePermission.create({
+        data: {
+          roleId: superAdminRole.id,
+          permissionId: permission.id
+        }
+      });
+    }
   }
 
   // Assigner des permissions spécifiques à l'ADMIN
@@ -181,12 +187,21 @@ async function main() {
   for (const permName of adminPermissions) {
     const permission = await prisma.permission.findUnique({ where: { name: permName } });
     if (permission) {
-      await prisma.rolePermission.create({
-        data: {
+      const existing = await prisma.rolePermission.findFirst({
+        where: {
           roleId: adminRole.id,
           permissionId: permission.id
         }
       });
+      
+      if (!existing) {
+        await prisma.rolePermission.create({
+          data: {
+            roleId: adminRole.id,
+            permissionId: permission.id
+          }
+        });
+      }
     }
   }
 
@@ -198,12 +213,21 @@ async function main() {
   for (const permName of employeePermissions) {
     const permission = await prisma.permission.findUnique({ where: { name: permName } });
     if (permission) {
-      await prisma.rolePermission.create({
-        data: {
+      const existing = await prisma.rolePermission.findFirst({
+        where: {
           roleId: employeeRole.id,
           permissionId: permission.id
         }
       });
+      
+      if (!existing) {
+        await prisma.rolePermission.create({
+          data: {
+            roleId: employeeRole.id,
+            permissionId: permission.id
+          }
+        });
+      }
     }
   }
 
@@ -215,23 +239,52 @@ async function main() {
   for (const permName of userPermissions) {
     const permission = await prisma.permission.findUnique({ where: { name: permName } });
     if (permission) {
-      await prisma.rolePermission.create({
-        data: {
+      const existing = await prisma.rolePermission.findFirst({
+        where: {
           roleId: userRole.id,
           permissionId: permission.id
         }
       });
+      
+      if (!existing) {
+        await prisma.rolePermission.create({
+          data: {
+            roleId: userRole.id,
+            permissionId: permission.id
+          }
+        });
+      }
     }
   }
 
-  console.log('✅ Assigned permissions to roles');
+  console.log('✅ Permissions assigned to roles (only missing ones)');
 
-  // Create users avec roleId
+  // Créer les utilisateurs uniquement s'ils n'existent pas
+  const maskPassword = await bcrypt.hash('mask123', 10);
   const hashedPassword = await bcrypt.hash('admin123', 10);
   const userPassword = await bcrypt.hash('user123', 10);
 
-  const admin = await prisma.user.create({
-    data: {
+  await prisma.user.upsert({
+    where: { email: 'xybronix@xybronix.cm' },
+    update: {}, // Ne pas modifier si existe
+    create: {
+      email: 'xybronix@xybronix.cm',
+      password: maskPassword,
+      firstName: 'Admin',
+      lastName: 'Mask',
+      phone: '+237600000000',
+      role: 'SUPER_ADMIN',
+      roleId: superAdminRole.id,
+      emailVerified: true,
+      status: 'active',
+      isActive: true,
+    },
+  });
+
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@freebike.cm' },
+    update: {}, // Ne pas modifier si existe
+    create: {
       email: 'admin@freebike.cm',
       password: hashedPassword,
       firstName: 'Admin',
@@ -245,8 +298,10 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
-    data: {
+  await prisma.user.upsert({
+    where: { email: 'manager@freebike.cm' },
+    update: {},
+    create: {
       email: 'manager@freebike.cm',
       password: hashedPassword,
       firstName: 'Manager',
@@ -260,8 +315,10 @@ async function main() {
     },
   });
 
-  const user1 = await prisma.user.create({
-    data: {
+  const user1 = await prisma.user.upsert({
+    where: { email: 'user@freebike.cm' },
+    update: {},
+    create: {
       email: 'user@freebike.cm',
       password: userPassword,
       firstName: 'Jean',
@@ -275,8 +332,10 @@ async function main() {
     },
   });
 
-  const user2 = await prisma.user.create({
-    data: {
+  const user2 = await prisma.user.upsert({
+    where: { email: 'marie@freebike.cm' },
+    update: {},
+    create: {
       email: 'marie@freebike.cm',
       password: userPassword,
       firstName: 'Marie',
@@ -290,8 +349,10 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
-    data: {
+  await prisma.user.upsert({
+    where: { email: 'support@freebike.cm' },
+    update: {},
+    create: {
       email: 'support@freebike.cm',
       password: hashedPassword,
       firstName: 'Support',
@@ -305,9 +366,9 @@ async function main() {
     },
   });
 
-  console.log('✅ Created users');
+  console.log('✅ Users checked/created');
 
-  // Créer des paramètres par défaut
+  // Créer des paramètres par défaut uniquement s'ils n'existent pas
   const defaultSettings = [
     { key: 'companyName', value: 'FreeBike' },
     { key: 'description', value: 'Service de location de vélos électriques écologique et moderne' },
@@ -324,148 +385,198 @@ async function main() {
   ];
 
   for (const setting of defaultSettings) {
-    await prisma.settings.create({
-      data: setting
+    await prisma.settings.upsert({
+      where: { key: setting.key },
+      update: {}, // Ne pas modifier si existe
+      create: setting
     });
   }
 
-  console.log('✅ Created default settings');
+  console.log('✅ Settings checked/created');
 
-  // Create pricing configuration
-  const pricingConfig = await prisma.pricingConfig.create({
-    data: {
-      unlockFee: 100,
-      baseHourlyRate: 200,
-      isActive: true
-    }
+  // Créer la configuration de pricing uniquement si elle n'existe pas
+  let pricingConfig = await prisma.pricingConfig.findFirst({
+    where: { isActive: true }
   });
 
-  // Create only the Standard pricing plan
-  const standardPlan = await prisma.pricingPlan.create({
-    data: {
+  if (!pricingConfig) {
+    pricingConfig = await prisma.pricingConfig.create({
+      data: {
+        unlockFee: 100,
+        baseHourlyRate: 200,
+        isActive: true
+      }
+    });
+    console.log('✅ Created pricing configuration');
+  } else {
+    console.log('✅ Pricing configuration already exists, skipping');
+  }
+
+  // Créer le plan Standard uniquement s'il n'existe pas
+  let standardPlan = await prisma.pricingPlan.findFirst({
+    where: {
       pricingConfigId: pricingConfig.id,
-      name: 'Standard',
-      hourlyRate: 200,
-      dailyRate: 3000,
-      weeklyRate: 18000,
-      monthlyRate: 60000,
-      minimumHours: 1,
-      discount: 0,
-      isActive: true,
-      conditions: {}
+      name: 'Standard'
     }
   });
 
-  console.log('✅ Created pricing configuration (Standard plan only)');
+  if (!standardPlan) {
+    standardPlan = await prisma.pricingPlan.create({
+      data: {
+        pricingConfigId: pricingConfig.id,
+        name: 'Standard',
+        hourlyRate: 200,
+        dailyRate: 3000,
+        weeklyRate: 18000,
+        monthlyRate: 60000,
+        minimumHours: 1,
+        discount: 0,
+        isActive: true,
+        conditions: {}
+      }
+    });
+    console.log('✅ Created Standard pricing plan');
+  } else {
+    console.log('✅ Standard pricing plan already exists, skipping');
+  }
 
-  // Create bikes - only the first two real ones
-  await prisma.bike.create({
-    data: {
-      id: '9170123060',
-      code: 'BIKE001',
-      model: 'E-Bike Pro',
-      status: 'AVAILABLE',
-      batteryLevel: 85,
-      latitude: 4.0511,
-      longitude: 9.7679,
-      locationName: 'Douala Centre',
-      equipment: ['headlight', 'taillight', 'basket', 'lock'],
-      qrCode: 'QR000001',
-      gpsDeviceId: '9170123060',
-      pricingPlanId: standardPlan.id,
-      lastMaintenanceAt: new Date(Date.now() - 86400000),
-    },
+  // Créer les vélos uniquement s'ils n'existent pas
+  const bike1 = await prisma.bike.findUnique({
+    where: { id: '9170123060' }
   });
 
-  await prisma.bike.create({
-    data: {
-      id: '9170123061',
-      code: 'BIKE002',
-      model: 'E-Bike Sport',
-      status: 'AVAILABLE',
-      batteryLevel: 75,
-      latitude: 4.0583,
-      longitude: 9.7083,
-      locationName: 'Akwa',
-      equipment: ['headlight', 'taillight', 'lock'],
-      qrCode: 'QR000002',
-      gpsDeviceId: '9170123061',
-      pricingPlanId: standardPlan.id,
-      lastMaintenanceAt: new Date(Date.now() - 172800000),
-    },
+  if (!bike1) {
+    await prisma.bike.create({
+      data: {
+        id: '9170123060',
+        code: 'BIKE001',
+        model: 'E-Bike Pro',
+        status: 'AVAILABLE',
+        batteryLevel: 85,
+        latitude: 4.0511,
+        longitude: 9.7679,
+        locationName: 'Douala Centre',
+        equipment: ['headlight', 'taillight', 'basket', 'lock'],
+        qrCode: 'QR000001',
+        gpsDeviceId: '9170123060',
+        pricingPlanId: standardPlan.id,
+        lastMaintenanceAt: new Date(Date.now() - 86400000),
+      },
+    });
+    console.log('✅ Created bike BIKE001');
+  } else {
+    console.log('✅ Bike BIKE001 already exists, skipping');
+  }
+
+  const bike2 = await prisma.bike.findUnique({
+    where: { id: '9170123061' }
   });
 
-  console.log('✅ Created 2 real bikes with their specific IDs');
+  if (!bike2) {
+    await prisma.bike.create({
+      data: {
+        id: '9170123061',
+        code: 'BIKE002',
+        model: 'E-Bike Sport',
+        status: 'AVAILABLE',
+        batteryLevel: 75,
+        latitude: 4.0583,
+        longitude: 9.7083,
+        locationName: 'Akwa',
+        equipment: ['headlight', 'taillight', 'lock'],
+        qrCode: 'QR000002',
+        gpsDeviceId: '9170123061',
+        pricingPlanId: standardPlan.id,
+        lastMaintenanceAt: new Date(Date.now() - 172800000),
+      },
+    });
+    console.log('✅ Created bike BIKE002');
+  } else {
+    console.log('✅ Bike BIKE002 already exists, skipping');
+  }
 
-  // Create wallets (only for users, no fake transactions)
-  await prisma.wallet.create({
-    data: {
-      userId: user1.id,
-      balance: 0,
-    },
+  // Créer les wallets uniquement s'ils n'existent pas
+  const wallet1 = await prisma.wallet.findUnique({
+    where: { userId: user1.id }
   });
 
-  await prisma.wallet.create({
-    data: {
-      userId: user2.id,
-      balance: 0,
-    },
+  if (!wallet1) {
+    await prisma.wallet.create({
+      data: {
+        userId: user1.id,
+        balance: 0,
+      },
+    });
+    console.log('✅ Created wallet for user1');
+  }
+
+  const wallet2 = await prisma.wallet.findUnique({
+    where: { userId: user2.id }
   });
 
-  await prisma.wallet.create({
-    data: {
-      userId: admin.id,
-      balance: 0,
-    },
+  if (!wallet2) {
+    await prisma.wallet.create({
+      data: {
+        userId: user2.id,
+        balance: 0,
+      },
+    });
+    console.log('✅ Created wallet for user2');
+  }
+
+  const walletAdmin = await prisma.wallet.findUnique({
+    where: { userId: admin.id }
   });
 
-  console.log('✅ Created empty wallets for users');
+  if (!walletAdmin) {
+    await prisma.wallet.create({
+      data: {
+        userId: admin.id,
+        balance: 0,
+      },
+    });
+    console.log('✅ Created wallet for admin');
+  }
 
   console.log('');
   console.log('🎉 Database seeding completed successfully!');
   console.log('');
-  console.log('📝 Test Accounts:');
-  console.log('');
-  console.log('👑 Super Admin:');
-  console.log('   Email: admin@freebike.cm');
-  console.log('   Password: admin123');
-  console.log('   Permissions: Full access');
-  console.log('');
-  console.log('👨‍💼 Manager:');
-  console.log('   Email: manager@freebike.cm');
-  console.log('   Password: admin123');
-  console.log('   Permissions: Limited admin access');
-  console.log('');
-  console.log('👤 User:');
-  console.log('   Email: user@freebike.cm');
-  console.log('   Password: user123');
-  console.log('   Balance: 0 FCFA');
-  console.log('   Permissions: Basic user access');
-  console.log('');
-  console.log('👩‍💼 Support:');
-  console.log('   Email: support@freebike.cm');
-  console.log('   Password: admin123');
-  console.log('   Permissions: Employee access');
-  console.log('');
-  console.log('🚲 Bikes: 2 real bikes created with Standard pricing plan');
-  console.log('');
-  console.log('⚠️  Removed:');
-  console.log('   - Fake bikes (only kept 2 real ones with specific IDs)');
-  console.log('   - All fake incidents');
-  console.log('   - All maintenance logs');
-  console.log('   - All fake pricing rules (only kept Standard plan)');
-  console.log('   - All fake transactions');
-  console.log('   - All fake sessions');
-  console.log('   - All notifications');
-  console.log('   - All rides (including user-started ride)');
-  console.log('   - All chat messages');
-  console.log('   - All activity logs');
+  if (isProduction) {
+    console.log('📦 Production mode: Only missing elements were created');
+    console.log('   Existing data was preserved');
+  } else {
+    console.log('📝 Test Accounts:');
+    console.log('');
+    console.log('👑 Super Admin:');
+    console.log('   Email: admin@freebike.cm');
+    console.log('   Password: admin123');
+    console.log('   Permissions: Full access');
+    console.log('');
+    console.log('👨‍💼 Manager:');
+    console.log('   Email: manager@freebike.cm');
+    console.log('   Password: admin123');
+    console.log('   Permissions: Limited admin access');
+    console.log('');
+    console.log('👤 User:');
+    console.log('   Email: user@freebike.cm');
+    console.log('   Password: user123');
+    console.log('   Balance: 0 FCFA');
+    console.log('   Permissions: Basic user access');
+    console.log('');
+    console.log('👩‍💼 Support:');
+    console.log('   Email: support@freebike.cm');
+    console.log('   Password: admin123');
+    console.log('   Permissions: Employee access');
+    console.log('');
+    console.log('🚲 Bikes: 2 real bikes with Standard pricing plan');
+  }
   console.log('');
 }
 
 main()
   .catch((e) => {
     console.error('❌ Error seeding database:', e);
+    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

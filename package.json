@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
     "build": "npx tsc && mkdir -p dist/uploads",
-    "start": "npm run build && npx prisma db push --accept-data-loss && node dist/server.js",
+    "start": "npm run build && npx prisma db push --accept-data-loss && npm run db:seed && node dist/server.js",
     "postinstall": "npx prisma generate",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
