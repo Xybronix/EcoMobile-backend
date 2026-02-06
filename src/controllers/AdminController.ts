@@ -17,6 +17,175 @@ export class AdminController {
    *       200:
    *         description: Dashboard statistics retrieved
    */
+  /**
+   * OPTIMISATION: Endpoint groupé pour récupérer toutes les données du dashboard en une seule requête
+   * Inclut les stats, les courses récentes, les incidents et les positions GPS
+   */
+  async getDashboardComplete(req: AuthRequest, res: express.Response) {
+    try {
+      const [
+        dashboardStats,
+        recentTrips,
+        recentIncidents,
+        realtimePositions
+      ] = await Promise.all([
+        // Stats du dashboard (requête groupée)
+        Promise.all([
+          prisma.user.count(),
+          prisma.bike.count(),
+          prisma.ride.count(),
+          prisma.ride.count({ where: { status: 'IN_PROGRESS' } }),
+          prisma.ride.aggregate({
+            where: { status: 'COMPLETED' },
+            _sum: { cost: true }
+          }),
+          prisma.user.count({
+            where: {
+              createdAt: {
+                gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+              }
+            }
+          }),
+          prisma.ride.count({
+            where: {
+              createdAt: {
+                gte: new Date(new Date().setHours(0, 0, 0, 0))
+              }
+            }
+          }),
+          prisma.bike.groupBy({
+            by: ['status'],
+            _count: true
+          })
+        ]),
+        // Courses récentes (limitées à 10)
+        prisma.ride.findMany({
+          where: { status: 'IN_PROGRESS' },
+          take: 10,
+          orderBy: { startTime: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            },
+            bike: {
+              select: {
+                id: true,
+                code: true,
+                model: true
+              }
+            }
+          }
+        }),
+        // Incidents récents (limités à 5)
+        prisma.incident.findMany({
+          where: { status: 'OPEN' },
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true
+              }
+            },
+            bike: {
+              select: {
+                id: true,
+                code: true
+              }
+            }
+          }
+        }),
+        // Positions GPS en temps réel (limitées aux vélos actifs)
+        prisma.bike.findMany({
+          where: {
+            status: { in: ['AVAILABLE', 'IN_USE', 'MAINTENANCE'] }
+          },
+          select: {
+            id: true,
+            code: true,
+            latitude: true,
+            longitude: true,
+            status: true,
+            batteryLevel: true,
+            lastSeenAt: true
+          }
+        })
+      ]);
+
+      const [
+        totalUsers,
+        totalBikes,
+        totalRides,
+        activeRides,
+        revenueResult,
+        recentUsers,
+        recentRidesCount,
+        bikesByStatus
+      ] = dashboardStats;
+
+      const totalRevenue = revenueResult._sum?.cost || 0;
+
+      // Calculer les stats GPS
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      const gpsData = {
+        total: realtimePositions.length,
+        online: realtimePositions.filter(bike => 
+          bike.lastSeenAt && new Date(bike.lastSeenAt) > fiveMinutesAgo
+        ).length,
+        offline: realtimePositions.filter(bike => 
+          !bike.lastSeenAt || new Date(bike.lastSeenAt) <= fiveMinutesAgo
+        ).length
+      };
+
+      await logActivity(
+        req.user!.id,
+        'VIEW',
+        'DASHBOARD',
+        '',
+        'Viewed complete dashboard',
+        { totalUsers, totalBikes, totalRides },
+        req
+      );
+
+      res.json({
+        success: true,
+        message: t('admin.dashboard_retrieved', req.language || 'fr'),
+        data: {
+          stats: {
+            totalUsers,
+            totalBikes,
+            totalRides,
+            activeRides,
+            totalRevenue,
+            recentUsers,
+            recentRides: recentRidesCount,
+            bikesByStatus
+          },
+          recentTrips,
+          recentIncidents,
+          gpsData,
+          realtimePositions: realtimePositions.map(bike => ({
+            ...bike,
+            isOnline: bike.lastSeenAt && new Date(bike.lastSeenAt) > fiveMinutesAgo
+          }))
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
   async getDashboardStats(req: AuthRequest, res: express.Response) {
     try {
       const [

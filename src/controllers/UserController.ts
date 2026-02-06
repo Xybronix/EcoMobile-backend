@@ -5,6 +5,7 @@ import { AuthRequest, logActivity } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 import { t } from '../locales';
 import { prisma } from '../config/prisma';
+import { prisma } from '../config/prisma';
 
 export class UserController {
   /**
@@ -48,6 +49,106 @@ export class UserController {
         success: true,
         message: t('user.profile_retrieved', req.language),
         data: userWithoutPassword
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /users/dashboard:
+   *   get:
+   *     summary: Get user dashboard data (wallet, rides, stats) in a single request
+   *     tags: [Users]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Dashboard data retrieved
+   */
+  async getDashboard(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+
+      // Récupérer toutes les données en parallèle en une seule requête groupée
+      const [walletBalance, depositInfo, recentRides, rideStats, subscription] = await Promise.all([
+        WalletService.getBalance(userId),
+        WalletService.getDepositInfo(userId),
+        // Récupérer les 5 dernières courses complétées
+        prisma.ride.findMany({
+          where: {
+            userId,
+            status: 'COMPLETED'
+          },
+          orderBy: { startTime: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            distance: true,
+            cost: true,
+            duration: true,
+            bike: {
+              select: {
+                code: true,
+                model: true
+              }
+            }
+          }
+        }),
+        // Statistiques des courses
+        Promise.all([
+          prisma.ride.aggregate({
+            where: { userId, status: 'COMPLETED' },
+            _count: true,
+            _sum: { cost: true, distance: true }
+          }),
+          prisma.ride.findFirst({
+            where: { userId },
+            orderBy: { startTime: 'desc' },
+            select: { startTime: true }
+          })
+        ]),
+        // Abonnement actif
+        prisma.subscription.findFirst({
+          where: {
+            userId,
+            status: 'ACTIVE',
+            endDate: { gte: new Date() }
+          },
+          include: {
+            plan: {
+              select: {
+                name: true,
+                price: true
+              }
+            }
+          }
+        }).catch(() => null)
+      ]);
+
+      const [aggregateStats, lastRide] = rideStats;
+
+      res.json({
+        success: true,
+        message: t('user.dashboard_retrieved', req.language || 'fr'),
+        data: {
+          wallet: walletBalance,
+          deposit: depositInfo,
+          recentRides: recentRides || [],
+          stats: {
+            totalRides: aggregateStats._count || 0,
+            totalSpent: aggregateStats._sum.cost || 0,
+            totalDistance: aggregateStats._sum.distance || 0,
+            lastRideDate: lastRide?.startTime || null
+          },
+          subscription: subscription || null
+        }
       });
     } catch (error: any) {
       res.status(500).json({
@@ -679,27 +780,20 @@ export class UserController {
 
       const result = await UserService.getAllUsers(page, limit, role);
 
-      const enrichedUsers = await Promise.all(
-        result.users.map(async (user) => {
-          try {
-            const walletData = await WalletService.getDepositInfo(user.id);
-            const walletBalance = await WalletService.getBalance(user.id);
-            
-            return {
-              ...user,
-              depositBalance: walletData.currentDeposit,
-              accountBalance: walletBalance.balance
-            };
-          } catch (error) {
-            console.error(`Erreur pour l'utilisateur ${user.id}:`, error);
-            return {
-              ...user,
-              depositBalance: 0,
-              accountBalance: 0
-            };
-          }
-        })
-      );
+      // OPTIMISATION: Récupérer tous les wallets en une seule requête au lieu de N requêtes
+      const userIds = result.users.map(user => user.id);
+      const walletInfoMap = await WalletService.getBulkWalletInfo(userIds);
+
+      // Enrichir les utilisateurs avec les données de wallet (déjà en mémoire)
+      const enrichedUsers = result.users.map((user) => {
+        const walletInfo = walletInfoMap.get(user.id);
+        
+        return {
+          ...user,
+          depositBalance: walletInfo?.currentDeposit || 0,
+          accountBalance: walletInfo?.balance || 0
+        };
+      });
 
       await logActivity(
         req.user!.id,

@@ -33,6 +33,13 @@ router.put('/password', authenticateWithPendingVerification, UserController.upda
 router.get('/stats', authenticate, UserController.getStats);
 
 /**
+ * @route   GET /api/v1/users/dashboard
+ * @desc    Get user dashboard data (wallet, rides, stats) in a single request
+ * @access  Private
+ */
+router.get('/dashboard', authenticate, UserController.getDashboard);
+
+/**
  * @route   GET /api/v1/users/notifications
  * @desc    Get user notifications
  * @access  Private

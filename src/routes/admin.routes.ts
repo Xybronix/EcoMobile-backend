@@ -30,6 +30,13 @@ router.get('/dashboard/stats', requirePermission('admin', 'read'), AdminControll
 router.get('/dashboard', requirePermission('admin', 'read'), AdminController.getDashboardStats);
 
 /**
+ * @route   GET /api/v1/admin/dashboard/complete
+ * @desc    Get complete dashboard data (stats, trips, incidents, GPS) in a single request
+ * @access  Private/Admin
+ */
+router.get('/dashboard/complete', requirePermission('admin', 'read'), AdminController.getDashboardComplete);
+
+/**
  * @route   GET /api/v1/admin/reservations
  * @desc    Get all reservations (Admin only)
  * @access  Private/Admin

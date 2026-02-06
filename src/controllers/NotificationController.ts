@@ -1,5 +1,6 @@
 import express from 'express';
 import NotificationService from '../services/NotificationService';
+import { notificationSSEService } from '../services/NotificationSSEService';
 import { AuthRequest, logActivity } from '../middleware/auth';
 import { t } from '../locales';
 
@@ -8,6 +9,74 @@ class NotificationController {
 
   constructor() {
     this.notificationService = new NotificationService();
+  }
+
+  /**
+   * @swagger
+   * /notifications/stream:
+   *   get:
+   *     tags: [Notifications]
+   *     summary: Stream notifications in real-time using SSE
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: token
+   *         schema:
+   *           type: string
+   *         description: JWT token (alternative to Authorization header for SSE compatibility)
+   *     responses:
+   *       200:
+   *         description: SSE stream established
+   */
+  async streamNotifications(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      // Vérifier l'authentification (peut venir du header ou du query param pour SSE)
+      const token = req.query.token as string || req.headers.authorization?.substring(7);
+      
+      if (!token && !req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required'
+        });
+        return;
+      }
+
+      // Si le token vient du query param, on doit l'authentifier
+      let userId: string;
+      if (req.user) {
+        userId = req.user.id;
+      } else if (token) {
+        // Authentifier via le token du query param
+        const jwt = require('jsonwebtoken');
+        const { config } = require('../config/config');
+        const decoded = jwt.verify(token, config.jwt.secret);
+        userId = decoded.userId;
+      } else {
+        res.status(401).json({
+          success: false,
+          error: 'Authentication required'
+        });
+        return;
+      }
+      
+      // Ajouter le client au service SSE
+      notificationSSEService.addClient(userId, res);
+
+      // Envoyer le nombre initial de notifications non lues
+      await notificationSSEService.sendUnreadCount(userId);
+
+      // La connexion restera ouverte jusqu'à ce que le client se déconnecte
+      // Le service SSE gère automatiquement les heartbeats et la déconnexion
+    } catch (error) {
+      console.error('[NotificationController] Error in streamNotifications:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Error establishing SSE connection',
+        });
+      }
+    }
   }
 
   /**

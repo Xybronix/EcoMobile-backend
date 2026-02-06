@@ -1,5 +1,6 @@
 import NotificationRepository, { Notification } from '../repositories/NotificationRepository';
 import EmailService from './EmailService';
+import { notificationSSEService } from './NotificationSSEService';
 import { t } from '../locales';
 
 export interface NotificationWithEmail {
@@ -35,6 +36,16 @@ class NotificationService {
       message: data.message,
       type: data.type
     });
+
+    // Envoyer la notification via SSE en temps réel (si des clients sont connectés)
+    try {
+      await notificationSSEService.sendNotificationToUser(data.userId, notification);
+      // Mettre à jour le nombre de notifications non lues
+      await notificationSSEService.updateUnreadCountForUser(data.userId);
+    } catch (error) {
+      console.error('Failed to send notification via SSE:', error);
+      // Ne pas bloquer - la notification a été créée avec succès
+    }
 
     // Send email if requested
     if (data.sendEmail && data.emailData) {
@@ -485,14 +496,34 @@ class NotificationService {
    * Mark as read
    */
   async markAsRead(notificationId: string): Promise<Notification | null> {
-    return await NotificationRepository.markAsRead(notificationId);
+    const notification = await NotificationRepository.markAsRead(notificationId);
+    
+    // Mettre à jour le nombre de notifications non lues via SSE
+    if (notification) {
+      try {
+        await notificationSSEService.updateUnreadCountForUser(notification.userId);
+      } catch (error) {
+        console.error('Failed to update unread count via SSE:', error);
+      }
+    }
+    
+    return notification;
   }
 
   /**
    * Mark all as read
    */
   async markAllAsRead(userId: string): Promise<number> {
-    return await NotificationRepository.markAllAsRead(userId);
+    const count = await NotificationRepository.markAllAsRead(userId);
+    
+    // Mettre à jour le nombre de notifications non lues via SSE
+    try {
+      await notificationSSEService.updateUnreadCountForUser(userId);
+    } catch (error) {
+      console.error('Failed to update unread count via SSE:', error);
+    }
+    
+    return count;
   }
 
   /**

@@ -63,6 +63,84 @@ export class WalletService {
   }
 
   /**
+   * Get balances and deposit info for multiple users in a single query (optimized)
+   * This reduces N+1 queries when fetching user lists
+   */
+  async getBulkWalletInfo(userIds: string[]) {
+    if (userIds.length === 0) {
+      return new Map();
+    }
+
+    // Récupérer tous les wallets en une seule requête
+    const wallets = await prisma.wallet.findMany({
+      where: {
+        userId: { in: userIds }
+      },
+      select: {
+        userId: true,
+        balance: true,
+        deposit: true,
+        negativeBalance: true,
+      }
+    });
+
+    // Récupérer les informations d'exemption de caution en une seule requête
+    const users = await prisma.user.findMany({
+      where: {
+        id: { in: userIds }
+      },
+      select: {
+        id: true,
+        depositExemptionUntil: true,
+      }
+    });
+
+    const requiredDeposit = await this.getRequiredDeposit();
+    const now = new Date();
+
+    // Créer un Map pour un accès rapide
+    const walletMap = new Map();
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    wallets.forEach(wallet => {
+      const user = userMap.get(wallet.userId);
+      const hasActiveExemption = user?.depositExemptionUntil && new Date(user.depositExemptionUntil) > now;
+
+      walletMap.set(wallet.userId, {
+        balance: wallet.balance,
+        deposit: wallet.deposit,
+        negativeBalance: wallet.negativeBalance,
+        currentDeposit: wallet.deposit,
+        requiredDeposit,
+        canUseService: hasActiveExemption || wallet.deposit >= requiredDeposit,
+        hasDepositExemption: hasActiveExemption,
+        depositExemptionUntil: user?.depositExemptionUntil || null,
+      });
+    });
+
+    // Pour les utilisateurs sans wallet, créer des entrées par défaut
+    userIds.forEach(userId => {
+      if (!walletMap.has(userId)) {
+        const user = userMap.get(userId);
+        const hasActiveExemption = user?.depositExemptionUntil && new Date(user.depositExemptionUntil) > now;
+
+        walletMap.set(userId, {
+          balance: 0,
+          deposit: 0,
+          negativeBalance: 0,
+          currentDeposit: 0,
+          requiredDeposit,
+          canUseService: hasActiveExemption,
+          hasDepositExemption: hasActiveExemption,
+          depositExemptionUntil: user?.depositExemptionUntil || null,
+        });
+      }
+    });
+
+    return walletMap;
+  }
+
+  /**
    * Recharge deposit from wallet balance
    */
   async rechargeDeposit(userId: string, amount: number) {

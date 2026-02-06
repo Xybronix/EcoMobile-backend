@@ -19,6 +19,15 @@ router.get('/', authenticate, NotificationController.getNotifications.bind(Notif
 router.get('/unread-count', authenticate, NotificationController.getUnreadCount.bind(NotificationController));
 
 /**
+ * @route   GET /api/v1/notifications/stream
+ * @desc    Stream notifications in real-time using SSE (Server-Sent Events)
+ * @access  Private
+ * @note    This endpoint maintains a persistent connection and pushes notifications in real-time
+ *          Use this instead of polling /unread-count to reduce server load
+ */
+router.get('/stream', authenticate, NotificationController.streamNotifications.bind(NotificationController));
+
+/**
  * @route   PUT /api/v1/notifications/:id/read
  * @desc    Mark notification as read
  * @access  Private
