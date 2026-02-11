@@ -172,6 +172,113 @@ export const authenticate = async (req: AuthRequest, res: express.Response, next
   }
 };
 
+/**
+ * Authentification pour le stream SSE : accepte le token en query (?token=) ou en header Bearer.
+ * EventSource ne permet pas d'envoyer des headers personnalisés, d'où le support du token en query.
+ */
+export const authenticateSSE = async (req: AuthRequest, res: express.Response, next: express.NextFunction): Promise<void> => {
+  try {
+    const tokenFromQuery = req.query.token as string | undefined;
+    const authHeader = req.headers.authorization;
+    const token = tokenFromQuery || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined);
+
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        error: t('auth.token.missing', req.language)
+      });
+      return;
+    }
+
+    try {
+      const secret = config.jwt.secret;
+      if (!secret) {
+        throw new Error('JWT secret is not configured');
+      }
+
+      const decoded = jwt.verify(token, secret as string) as {
+        id: string;
+        email: string;
+        role: string;
+        roleId: string;
+        emailVerified?: boolean;
+      };
+
+      const userWithPermissions = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          roleId: true,
+          isActive: true,
+          status: true,
+          emailVerified: true,
+          roleRelation: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!userWithPermissions) {
+        res.status(401).json({
+          success: false,
+          error: t('auth.user.not_found', req.language)
+        });
+        return;
+      }
+
+      if (userWithPermissions.status === 'banned' || userWithPermissions.status === 'suspended') {
+        res.status(403).json({
+          success: false,
+          error: t('auth.account.deactivated', req.language)
+        });
+        return;
+      }
+
+      if (!userWithPermissions.isActive && userWithPermissions.status !== 'pending_verification') {
+        res.status(403).json({
+          success: false,
+          error: t('auth.account.deactivated', req.language)
+        });
+        return;
+      }
+
+      const permissions = userWithPermissions.roleRelation?.permissions.map(
+        (rp: { permission: { resource: string; action: string } }) => `${rp.permission.resource}:${rp.permission.action}`
+      ) || [];
+
+      req.user = {
+        id: userWithPermissions.id,
+        email: userWithPermissions.email,
+        role: userWithPermissions.role,
+        roleId: userWithPermissions.roleId,
+        permissions: permissions || [],
+        emailVerified: userWithPermissions.emailVerified
+      };
+
+      next();
+    } catch {
+      res.status(401).json({
+        success: false,
+        error: t('auth.token.invalid', req.language)
+      });
+      return;
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: t('error.server', req.language)
+    });
+  }
+};
+
 export const authorize = (...roles: string[]) => {
   return (req: AuthRequest, res: express.Response, next: express.NextFunction): void => {
     if (!req.user) {

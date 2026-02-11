@@ -1,6 +1,6 @@
 import express from 'express';
 import NotificationController from '../controllers/NotificationController';
-import { authenticate, requirePermission } from '../middleware/auth';
+import { authenticate, authenticateSSE, requirePermission } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router.get('/unread-count', authenticate, NotificationController.getUnreadCount.
  * @note    This endpoint maintains a persistent connection and pushes notifications in real-time
  *          Use this instead of polling /unread-count to reduce server load
  */
-router.get('/stream', authenticate, NotificationController.streamNotifications.bind(NotificationController));
+router.get('/stream', authenticateSSE, NotificationController.streamNotifications.bind(NotificationController));
 
 /**
  * @route   PUT /api/v1/notifications/:id/read

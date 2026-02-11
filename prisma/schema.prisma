@@ -216,6 +216,7 @@ model Bike {
   locationName      String?    
   equipment         Json?
   lastMaintenanceAt DateTime?
+  lastSeenAt        DateTime?  
   qrCode            String     @unique
   gpsDeviceId       String?    @unique
   pricingPlanId     String?

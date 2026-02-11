@@ -1,5 +1,4 @@
 import { Response } from 'express';
-import { NotificationService } from './NotificationService';
 
 interface SSEClient {
   userId: string;
@@ -12,19 +11,26 @@ interface SSEClient {
  * Évite le polling et réduit drastiquement le nombre de requêtes
  */
 export class NotificationSSEService {
-  private static instance: NotificationSSEService;
+  private static instance: NotificationSSEService | undefined;
   private clients: Map<string, SSEClient> = new Map();
-  private notificationService: NotificationService;
+  private _notificationService: InstanceType<typeof import('./NotificationService').default> | null = null;
 
-  private constructor() {
-    this.notificationService = new NotificationService();
+  /** Lazy pour éviter la dépendance circulaire avec NotificationService */
+  private get notificationService(): InstanceType<typeof import('./NotificationService').default> {
+    if (!this._notificationService) {
+      const NotificationServiceClass = require('./NotificationService').default;
+      this._notificationService = new NotificationServiceClass();
+    }
+    return this._notificationService!;
   }
+
+  private constructor() {}
 
   public static getInstance(): NotificationSSEService {
     if (!NotificationSSEService.instance) {
       NotificationSSEService.instance = new NotificationSSEService();
     }
-    return NotificationSSEService.instance;
+    return NotificationSSEService.instance as NotificationSSEService;
   }
 
   /**

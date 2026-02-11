@@ -5,7 +5,6 @@ import { AuthRequest, logActivity } from '../middleware/auth';
 import { UserRole } from '@prisma/client';
 import { t } from '../locales';
 import { prisma } from '../config/prisma';
-import { prisma } from '../config/prisma';
 
 export class UserController {
   /**
@@ -118,14 +117,17 @@ export class UserController {
         prisma.subscription.findFirst({
           where: {
             userId,
-            status: 'ACTIVE',
+            isActive: true,
             endDate: { gte: new Date() }
           },
           include: {
             plan: {
               select: {
                 name: true,
-                price: true
+                type: true,
+                hourlyRate: true,
+                dailyRate: true,
+                monthlyRate: true
               }
             }
           }

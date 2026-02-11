@@ -433,6 +433,10 @@ export const translations: Translations = {
     fr: 'Statistiques récupérées',
     en: 'Statistics retrieved'
   },
+  'admin.dashboard_retrieved': {
+    fr: 'Tableau de bord récupéré',
+    en: 'Dashboard retrieved'
+  },
   'admin.settings_updated': {
     fr: 'Paramètres mis à jour',
     en: 'Settings updated'
@@ -564,6 +568,10 @@ export const translations: Translations = {
   'error.document.invalid_image_format': {
     fr: 'Format d\'image invalide',
     en: 'Invalid image format'
+  },
+  'document.status_retrieved': {
+    fr: 'Statut des documents récupéré',
+    en: 'Document status retrieved'
   },
   'error.email_verification_failed': {
     fr: 'Échec de l\'envoi de l\'email de vérification',

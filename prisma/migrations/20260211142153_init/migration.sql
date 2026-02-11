@@ -172,6 +172,7 @@ CREATE TABLE `bikes` (
     `locationName` VARCHAR(191) NULL,
     `equipment` JSON NULL,
     `lastMaintenanceAt` DATETIME(3) NULL,
+    `lastSeenAt` DATETIME(3) NULL,
     `qrCode` VARCHAR(191) NOT NULL,
     `gpsDeviceId` VARCHAR(191) NULL,
     `pricingPlanId` VARCHAR(191) NULL,

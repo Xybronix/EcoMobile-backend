@@ -31,10 +31,7 @@ class NotificationController {
    */
   async streamNotifications(req: AuthRequest, res: express.Response): Promise<void> {
     try {
-      // Vérifier l'authentification (peut venir du header ou du query param pour SSE)
-      const token = req.query.token as string || req.headers.authorization?.substring(7);
-      
-      if (!token && !req.user) {
+      if (!req.user) {
         res.status(401).json({
           success: false,
           error: 'Authentication required'
@@ -42,24 +39,8 @@ class NotificationController {
         return;
       }
 
-      // Si le token vient du query param, on doit l'authentifier
-      let userId: string;
-      if (req.user) {
-        userId = req.user.id;
-      } else if (token) {
-        // Authentifier via le token du query param
-        const jwt = require('jsonwebtoken');
-        const { config } = require('../config/config');
-        const decoded = jwt.verify(token, config.jwt.secret);
-        userId = decoded.userId;
-      } else {
-        res.status(401).json({
-          success: false,
-          error: 'Authentication required'
-        });
-        return;
-      }
-      
+      const userId = req.user.id;
+
       // Ajouter le client au service SSE
       notificationSSEService.addClient(userId, res);
 
