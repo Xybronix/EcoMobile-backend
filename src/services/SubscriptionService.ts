@@ -70,7 +70,7 @@ class SubscriptionService {
       include: { plan: true }
     });
 
-    if (!subscription) return null;
+    if (!subscription || !subscription.plan) return null;
 
     return {
       id: subscription.id,
@@ -130,15 +130,19 @@ class SubscriptionService {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      // Créer l'abonnement
+      // Créer l'abonnement avec les champs requis
       const subscription = await tx.subscription.create({
         data: {
           userId,
           planId: data.planId,
+          packageId: '', // Placeholder pour le nouveau système
+          formulaId: '', // Placeholder pour le nouveau système
           type: data.packageType,
           startDate: data.startDate,
           endDate,
-          isActive: true
+          isActive: true,
+          dayResetTime: new Date(data.startDate),
+          currentDay: 1
         },
         include: { plan: true }
       });
@@ -174,7 +178,8 @@ class SubscriptionService {
     });
 
     // Notification
-    await NotificationService.createNotification({
+    const notificationService = new NotificationService();
+    await notificationService.createNotification({
       userId,
       title: 'Abonnement activé',
       message: `Votre abonnement ${plan.name} - ${data.packageType} est maintenant actif jusqu'au ${endDate.toLocaleDateString()}`,
@@ -198,13 +203,18 @@ class SubscriptionService {
       throw new Error('L\'abonnement est déjà inactif');
     }
 
+    if (!subscription.plan) {
+      throw new Error('Plan d\'abonnement non trouvé');
+    }
+
     await prisma.subscription.update({
       where: { id: subscriptionId },
       data: { isActive: false }
     });
 
     // Notification
-    await NotificationService.createNotification({
+    const notificationService = new NotificationService();
+    await notificationService.createNotification({
       userId,
       title: 'Abonnement annulé',
       message: `Votre abonnement ${subscription.plan.name} a été annulé`,
