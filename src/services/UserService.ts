@@ -844,7 +844,7 @@ export class UserService {
         pending: pendingUnlockRequests + pendingLockRequests
       },
       subscription: subscription ? {
-        planName: subscription.plan.name,
+        planName: subscription.plan?.name || 'Unknown',
         type: subscription.type,
         startDate: subscription.startDate,
         endDate: subscription.endDate,
@@ -910,7 +910,7 @@ export class UserService {
 
     return {
       type: 'SUBSCRIPTION',
-      planName: subscription.plan.name,
+      planName: subscription.plan?.name || 'Unknown',
       packageType: subscription.type,
       startDate: subscription.startDate,
       endDate: subscription.endDate,

@@ -1,4 +1,5 @@
 import express from 'express';
+import subscriptionPackageAdminRoutes from './subscription-package.routes';
 import AdminController from '../controllers/AdminController';
 import ReservationController from '../controllers/ReservationController';
 import { authenticate, requirePermission } from '../middleware/auth';
@@ -90,77 +91,19 @@ router.put('/settings', requirePermission('settings', 'update'), AdminController
  * @desc    Get pricing configuration
  * @access  Private/Admin
  */
+// Keep legacy pricing endpoints for compatibility (some frontend code still calls these)
 router.get('/pricing', requirePermission('pricing', 'read'), AdminController.getPricing);
-
-/**
- * @route   PUT /api/v1/admin/pricing
- * @desc    Update pricing configuration
- * @access  Private/Admin
- */
 router.put('/pricing', requirePermission('pricing', 'update'), AdminController.updatePricing);
 
-/**
- * @route   GET /api/v1/admin/promotions
- * @desc    Get all promotions (Admin only)
- * @access  Private/Admin
- */
+// Legacy promotions endpoints (kept for backward compatibility)
 router.get('/promotions', requirePermission('promotions', 'read'), AdminController.getPromotions);
-
-/**
- * @route   POST /api/v1/admin/promotions
- * @desc    Create new promotion (Admin only)
- * @access  Private/Admin
- */
 router.post('/promotions', requirePermission('promotions', 'create'), AdminController.createPromotion);
-
-/**
- * @route   PUT /api/v1/admin/promotions/:id
- * @desc    Update promotion (Admin only)
- * @access  Private/Admin
- */
 router.put('/promotions/:id', requirePermission('promotions', 'update'), AdminController.updatePromotion);
-
-/**
- * @route   PUT /api/v1/admin/promotions/:id/status
- * @desc    Toggle promotion status (Admin only)
- * @access  Private/Admin
- */
 router.put('/promotions/:id/status', requirePermission('promotions', 'update'), AdminController.togglePromotionStatus);
-
-/**
- * @route   POST /api/v1/admin/plans
- * @desc    Create new pricing plan (Admin only)
- * @access  Private/Admin
- */
-router.post('/plans', requirePermission('pricing', 'create'), AdminController.createPlan);
-
-/**
- * @route   POST /api/v1/admin/plans/:id/override
- * @desc    Create or update plan override (Admin only)
- * @access  Private/Admin
- */
-router.post('/plans/:id/override', requirePermission('pricing', 'update'), AdminController.createOrUpdatePlanOverride);
-
-/**
- * @route   DELETE /api/v1/admin/plans/:id
- * @desc    Delete pricing plan (Admin only)
- * @access  Private/Admin
- */
-router.delete('/plans/:id', requirePermission('pricing', 'delete'), AdminController.deletePlan);
-
-/**
- * @route   DELETE /api/v1/admin/rules/:id
- * @desc    Delete pricing rule (Admin only)
- * @access  Private/Admin
- */
-router.delete('/rules/:id', requirePermission('pricing', 'delete'), AdminController.deleteRule);
-
-/**
- * @route   DELETE /api/v1/admin/promotions/:id
- * @desc    Delete promotion (Admin only)
- * @access  Private/Admin
- */
 router.delete('/promotions/:id', requirePermission('promotions', 'delete'), AdminController.deletePromotion);
+
+// Mount new subscription package admin routes (CRUD for packages/formulas/promotions)
+router.use('/pricing', subscriptionPackageAdminRoutes);
 
 /**
  * @route   GET /api/v1/admin/financial/stats
@@ -296,3 +239,4 @@ router.get('/permissions', requirePermission('permissions', 'read'), AdminContro
 router.put('/roles/:id/permissions', requirePermission('roles', 'update'), AdminController.updateRolePermissions);
 
 export default router;
+// (subscription-package routes are mounted earlier at /pricing)

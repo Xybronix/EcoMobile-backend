@@ -475,14 +475,80 @@ CREATE TABLE `lock_requests` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `subscription_packages` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `subscription_formulas` (
+    `id` VARCHAR(191) NOT NULL,
+    `packageId` VARCHAR(36) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `numberOfDays` INTEGER NOT NULL,
+    `price` DOUBLE NOT NULL,
+    `dayStartHour` INTEGER NOT NULL DEFAULT 0,
+    `dayEndHour` INTEGER NOT NULL DEFAULT 23,
+    `chargeAfterHours` BOOLEAN NOT NULL DEFAULT false,
+    `afterHoursPrice` DOUBLE NULL,
+    `afterHoursType` VARCHAR(191) NULL DEFAULT 'FIXED_PRICE',
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `subscription_promotion_rules` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `discountType` VARCHAR(191) NOT NULL DEFAULT 'PERCENTAGE',
+    `discountValue` DOUBLE NOT NULL,
+    `startDate` DATETIME(3) NOT NULL,
+    `endDate` DATETIME(3) NOT NULL,
+    `usageLimit` INTEGER NULL,
+    `usageCount` INTEGER NOT NULL DEFAULT 0,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `promotion_package_relations` (
+    `id` VARCHAR(191) NOT NULL,
+    `promotionId` VARCHAR(36) NOT NULL,
+    `packageId` VARCHAR(36) NULL,
+    `formulaId` VARCHAR(36) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    UNIQUE INDEX `promotion_package_relations_promotionId_packageId_formulaId_key`(`promotionId`, `packageId`, `formulaId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `subscriptions` (
     `id` VARCHAR(191) NOT NULL,
-    `userId` VARCHAR(191) NOT NULL,
-    `planId` VARCHAR(191) NOT NULL,
-    `type` ENUM('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY') NOT NULL,
+    `userId` VARCHAR(36) NOT NULL,
+    `packageId` VARCHAR(36) NOT NULL,
+    `formulaId` VARCHAR(36) NOT NULL,
+    `planId` VARCHAR(36) NULL,
+    `type` ENUM('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY') NOT NULL DEFAULT 'DAILY',
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `startDate` DATETIME(3) NOT NULL,
     `endDate` DATETIME(3) NOT NULL,
+    `dayResetTime` DATETIME(3) NULL,
+    `currentDay` INTEGER NOT NULL DEFAULT 1,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 

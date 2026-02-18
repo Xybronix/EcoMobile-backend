@@ -328,7 +328,7 @@ export class WalletService {
 
       return {
         id: activeSubscription.id,
-        planName: activeSubscription.plan.name,
+        planName: activeSubscription.plan?.name || 'Unknown',
         packageType: activeSubscription.type,
         startDate: activeSubscription.startDate,
         endDate: activeSubscription.endDate,

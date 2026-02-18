@@ -575,20 +575,102 @@ model LockRequest {
   @@map("lock_requests")
 }
 
-model Subscription {
-  id        String           @id @default(uuid())
-  userId    String
-  planId    String
-  type      SubscriptionType
-  isActive  Boolean          @default(true)
-  startDate DateTime
-  endDate   DateTime
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+model SubscriptionPackage {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan      PricingPlan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  formulas    SubscriptionFormula[]
+  subscriptions Subscription[]
+  promotions  PromotionPackageRelation[]
+
+  @@map("subscription_packages")
+}
+
+model SubscriptionFormula {
+  id                String   @id @default(uuid())
+  packageId         String   @db.VarChar(36)
+  name              String
+  description       String?
+  numberOfDays      Int
+  price             Float
+  dayStartHour      Int      @default(0)
+  dayEndHour        Int      @default(23)
+  chargeAfterHours  Boolean  @default(false)
+  afterHoursPrice   Float?
+  afterHoursType    String?  @default("FIXED_PRICE")
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  package      SubscriptionPackage   @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+  promotions   PromotionPackageRelation[]
+
+  @@map("subscription_formulas")
+}
+
+model SubscriptionPromotionRule {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  discountType  String   @default("PERCENTAGE")
+  discountValue Float
+  startDate     DateTime
+  endDate       DateTime
+  usageLimit    Int?
+  usageCount    Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  promotions PromotionPackageRelation[]
+
+  @@map("subscription_promotion_rules")
+}
+
+model PromotionPackageRelation {
+  id           String   @id @default(uuid())
+  promotionId  String   @db.VarChar(36)
+  packageId    String?  @db.VarChar(36)
+  formulaId    String?  @db.VarChar(36)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  promotion    SubscriptionPromotionRule @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  package      SubscriptionPackage?      @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  formula      SubscriptionFormula?      @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, packageId, formulaId])
+  @@map("promotion_package_relations")
+}
+
+model Subscription {
+  id            String               @id @default(uuid())
+  userId        String               @db.VarChar(36)
+  packageId     String               @db.VarChar(36)
+  formulaId     String               @db.VarChar(36)
+  planId        String?              @db.VarChar(36) // Kept for backward compatibility
+  type          SubscriptionType     @default(DAILY)
+  isActive      Boolean              @default(true)
+  startDate     DateTime
+  endDate       DateTime
+  dayResetTime  DateTime?            // Heure à laquelle la journée se réinitialise
+  currentDay    Int                  @default(1) // Numéro du jour actuel dans l'abonnement
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  // Relations
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package       SubscriptionPackage  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  formula       SubscriptionFormula  @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+  plan          PricingPlan?         @relation(fields: [planId], references: [id], onDelete: SetNull)
 
   @@map("subscriptions")
 }

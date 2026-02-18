@@ -1,31 +1,65 @@
 import express from 'express';
 import { AuthRequest, logActivity } from '../middleware/auth';
-import SubscriptionService from '../services/SubscriptionService';
-import { SubscriptionType } from '@prisma/client';
+import SubscriptionPackageService from '../services/SubscriptionPackageService';
 
 class SubscriptionController {
   /**
    * @swagger
-   * /subscriptions/plans:
+   * /subscriptions/packages:
    *   get:
-   *     summary: Get available subscription plans
+   *     summary: Get available subscription packages
    *     tags: [Subscriptions]
-   *     security:
-   *       - bearerAuth: []
    *     responses:
    *       200:
-   *         description: List of available subscription plans
+   *         description: List of available subscription packages
    */
-  async getAvailablePlans(_req: AuthRequest, res: express.Response) {
+  async getAvailablePackages(_req: AuthRequest, res: express.Response) {
     try {
-      const plans = await SubscriptionService.getAvailablePlans();
+      const packages = await SubscriptionPackageService.getAvailablePackages();
       
       res.json({
         success: true,
-        data: { plans }
+        data: { packages }
       });
     } catch (error: any) {
       res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /subscriptions/packages/{id}:
+   *   get:
+   *     summary: Get package details with formulas
+   *     tags: [Subscriptions]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   */
+  async getPackageDetails(req: AuthRequest, res: express.Response) {
+    try {
+      const { id } = req.params;
+      const pkg = await SubscriptionPackageService.getPackageDetails(id);
+
+      if (!pkg) {
+        return res.status(404).json({
+          success: false,
+          message: 'Forfait non trouvé'
+        });
+      }
+
+      return res.json({
+        success: true,
+        data: pkg
+      });
+    } catch (error: any) {
+      return res.status(500).json({
         success: false,
         message: error.message
       });
@@ -47,7 +81,7 @@ class SubscriptionController {
   async getCurrentSubscription(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
-      const subscription = await SubscriptionService.getCurrentSubscription(userId);
+      const subscription = await SubscriptionPackageService.getCurrentSubscription(userId);
 
       if (!subscription) {
         return res.status(404).json({
@@ -71,9 +105,9 @@ class SubscriptionController {
 
   /**
    * @swagger
-   * /subscriptions/subscribe:
+   * /subscriptions:
    *   post:
-   *     summary: Subscribe to a plan
+   *     summary: Subscribe to a formula
    *     tags: [Subscriptions]
    *     security:
    *       - bearerAuth: []
@@ -84,54 +118,29 @@ class SubscriptionController {
    *           schema:
    *             type: object
    *             required:
-   *               - planId
-   *               - packageType
+   *               - formulaId
    *             properties:
-   *               planId:
+   *               formulaId:
    *                 type: string
-   *                 description: ID of the plan to subscribe to
-   *                 example: "plan_123456789"
-   *               packageType:
-   *                 type: string
-   *                 enum: [daily, weekly, monthly]
-   *                 description: Subscription frequency
-   *                 example: "monthly"
    *               startDate:
    *                 type: string
    *                 format: date-time
-   *                 description: Optional start date (defaults to now)
-   *                 example: "2024-01-01T00:00:00.000Z"
-   *     responses:
-   *       201:
-   *         description: Subscription created successfully
    */
   async subscribe(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
-      const { planId, packageType, startDate } = req.body;
+      const { formulaId, startDate } = req.body;
 
-      let subscriptionType: SubscriptionType;
-      switch (packageType?.toLowerCase()) {
-        case 'daily':
-          subscriptionType = SubscriptionType.DAILY;
-          break;
-        case 'weekly':
-          subscriptionType = SubscriptionType.WEEKLY;
-          break;
-        case 'monthly':
-          subscriptionType = SubscriptionType.MONTHLY;
-          break;
-        default:
-          return res.status(400).json({
-            success: false,
-            message: 'Type d\'abonnement invalide. Doit être: daily, weekly ou monthly'
-          });
+      if (!formulaId) {
+        return res.status(400).json({
+          success: false,
+          message: 'formulaId est requis'
+        });
       }
-      
-      const subscription = await SubscriptionService.subscribe(userId, {
-        planId,
-        packageType: subscriptionType,
-        startDate: new Date(startDate)
+
+      const subscription = await SubscriptionPackageService.subscribeToFormula(userId, {
+        formulaId,
+        startDate: startDate ? new Date(startDate) : undefined
       });
 
       await logActivity(
@@ -139,8 +148,8 @@ class SubscriptionController {
         'CREATE',
         'SUBSCRIPTION',
         subscription.id,
-        `Subscribed to ${packageType} plan`,
-        { planId, packageType },
+        `Subscribed to formula ${subscription.formula.name}`,
+        { formulaId },
         req
       );
 
@@ -171,17 +180,13 @@ class SubscriptionController {
    *         required: true
    *         schema:
    *           type: string
-   *         description: Subscription ID to cancel
-   *     responses:
-   *       200:
-   *         description: Subscription cancelled successfully
    */
   async cancelSubscription(req: AuthRequest, res: express.Response) {
     try {
       const userId = req.user!.id;
       const { id } = req.params;
 
-      await SubscriptionService.cancelSubscription(id, userId);
+      await SubscriptionPackageService.cancelSubscription(id, userId);
 
       await logActivity(
         userId,
@@ -199,6 +204,70 @@ class SubscriptionController {
       });
     } catch (error: any) {
       res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
+
+  /**
+   * @swagger
+   * /subscriptions/{id}/change:
+   *   post:
+   *     summary: Change subscription to a different formula
+   *     tags: [Subscriptions]
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - newFormulaId
+   *             properties:
+   *               newFormulaId:
+   *                 type: string
+   */
+  async changeSubscription(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      const { newFormulaId } = req.body;
+
+      if (!newFormulaId) {
+        return res.status(400).json({
+          success: false,
+          message: 'newFormulaId est requis'
+        });
+      }
+
+      const newSubscription = await SubscriptionPackageService.changeSubscription(id, userId, newFormulaId);
+
+      await logActivity(
+        userId,
+        'UPDATE',
+        'SUBSCRIPTION',
+        id,
+        `Changed subscription to formula ${newSubscription.formula.name}`,
+        { subscriptionId: id, newFormulaId },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: 'Abonnement modifié avec succès',
+        data: newSubscription
+      });
+    } catch (error: any) {
+      return res.status(400).json({
         success: false,
         message: error.message
       });

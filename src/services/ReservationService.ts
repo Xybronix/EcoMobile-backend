@@ -185,19 +185,6 @@ export class ReservationService {
       }
     });
 
-    // Créer l'abonnement si c'est mensuel
-    if (data.packageType === 'monthly') {
-      await prisma.subscription.create({
-        data: {
-          userId: data.userId,
-          planId: data.planId,
-          type: 'MONTHLY',
-          startDate: startDateTime,
-          endDate: endDateTime
-        }
-      });
-    }
-
     // Notification pour l'utilisateur
     await this.notificationService.createNotification({
       userId: data.userId,
@@ -525,13 +512,13 @@ export class ReservationService {
       if (coveredDays >= reservationDays) {
         // Entièrement couvert
         finalPrice = 0;
-        message = `Entièrement inclus dans votre abonnement ${subscription.plan.name}`;
+        message = `Entièrement inclus dans votre abonnement ${subscription.plan?.name}`;
       } else {
         // Partiellement couvert
         const remainingDays = reservationDays - coveredDays;
         const dailyRate = this.calculateDailyRate(plan, packageType);
         finalPrice = remainingDays * dailyRate;
-        message = `${coveredDays} jour(s) inclus, ${remainingDays} jour(s) à ${finalPrice.toLocaleString()} XOF`;
+        message = `${coveredDays} jour(s) inclus, ${remainingDays} jour(s) à ${finalPrice.toLocaleString()} XOF (abonnement: ${subscription.plan?.name})`;
       }
     }
 

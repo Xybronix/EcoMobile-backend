@@ -506,10 +506,10 @@ export class BikeRequestService {
 
     if (activeSubscription) {
       hasActiveSubscription = true;
-      isOvertime = await this.checkIfOvertime(startTime, activeSubscription.packageType, activeSubscription.planId);
+      isOvertime = await this.checkIfOvertime(startTime, activeSubscription.packageType, activeSubscription?.planId || undefined);
       
       if (isOvertime) {
-        const overrideRule = await this.getOverrideRule(activeSubscription.planId);
+        const overrideRule = activeSubscription.planId ? await this.getOverrideRule(activeSubscription.planId) : null;
         
         if (overrideRule) {
           if (overrideRule.overTimeType === 'FIXED_PRICE') {
@@ -655,7 +655,7 @@ export class BikeRequestService {
       return {
         id: activeSubscription.id,
         planId: activeSubscription.planId,
-        planName: activeSubscription.plan.name,
+        planName: activeSubscription.plan?.name || 'Unknown',
         packageType: activeSubscription.type,
         type: 'SUBSCRIPTION'
       };

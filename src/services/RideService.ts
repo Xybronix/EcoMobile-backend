@@ -597,7 +597,7 @@ export class RideService {
       return {
         id: activeReservation.id,
         planId: activeReservation.planId,
-        planName: activeReservation.plan.name,
+        planName: activeReservation.plan?.name || 'Unknown',
         packageType: activeReservation.packageType,
         type: 'RESERVATION'
       };
@@ -618,7 +618,7 @@ export class RideService {
       return {
         id: activeSubscription.id,
         planId: activeSubscription.planId,
-        planName: activeSubscription.plan.name,
+        planName: activeSubscription.plan?.name || 'Unknown',
         packageType: activeSubscription.type,
         type: 'SUBSCRIPTION'
       };
