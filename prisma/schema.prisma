@@ -654,15 +654,15 @@ model PromotionPackageRelation {
 model Subscription {
   id            String               @id @default(uuid())
   userId        String               @db.VarChar(36)
-  packageId     String               @db.VarChar(36)
-  formulaId     String               @db.VarChar(36)
-  planId        String?              @db.VarChar(36) // Kept for backward compatibility
+  packageId     String?               @db.VarChar(36) @default("")
+  formulaId     String?               @db.VarChar(36) @default("")
+  planId        String?              @db.VarChar(36)
   type          SubscriptionType     @default(DAILY)
   isActive      Boolean              @default(true)
   startDate     DateTime
   endDate       DateTime
-  dayResetTime  DateTime?            // Heure à laquelle la journée se réinitialise
-  currentDay    Int                  @default(1) // Numéro du jour actuel dans l'abonnement
+  dayResetTime  DateTime?            
+  currentDay    Int                  @default(1)
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
