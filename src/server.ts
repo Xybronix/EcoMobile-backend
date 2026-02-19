@@ -25,9 +25,15 @@ const app = express();
 // Security Middleware
 app.use(helmet());
 
-// CORS Configuration pour production
+// CORS Configuration dynamique selon .env
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // autorise les requêtes non cross-origin (ex: Postman)
+    if (config.cors.origin.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Accept-Language', 'Origin', 'X-Requested-With']
