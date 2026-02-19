@@ -148,7 +148,7 @@ class SubscriptionController {
         'CREATE',
         'SUBSCRIPTION',
         subscription.id,
-        `Subscribed to formula ${subscription.formula.name}`,
+        `Subscribed to formula ${subscription.formula?.name ?? ''}`,
         { formulaId },
         req
       );
@@ -256,7 +256,7 @@ class SubscriptionController {
         'UPDATE',
         'SUBSCRIPTION',
         id,
-        `Changed subscription to formula ${newSubscription.formula.name}`,
+        `Changed subscription to formula ${newSubscription.formula?.name ?? ''}`,
         { subscriptionId: id, newFormulaId },
         req
       );

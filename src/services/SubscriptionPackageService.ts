@@ -52,16 +52,16 @@ class SubscriptionPackageService {
 
     return {
       id: subscription.id,
-      packageName: subscription.package.name,
-      formulaName: subscription.formula.name,
+      packageName: subscription.package?.name ?? '',
+      formulaName: subscription.formula?.name ?? '',
       startDate: subscription.startDate,
       endDate: subscription.endDate,
       dayResetTime: subscription.dayResetTime,
       currentDay: subscription.currentDay,
-      numberOfDays: subscription.formula.numberOfDays,
-      dayStartHour: subscription.formula.dayStartHour,
-      dayEndHour: subscription.formula.dayEndHour,
-      chargeAfterHours: subscription.formula.chargeAfterHours,
+      numberOfDays: subscription.formula?.numberOfDays ?? 0,
+      dayStartHour: subscription.formula?.dayStartHour ?? 0,
+      dayEndHour: subscription.formula?.dayEndHour ?? 0,
+      chargeAfterHours: subscription.formula?.chargeAfterHours ?? false,
       status: 'ACTIVE',
       remainingDays: Math.ceil(
         (subscription.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
@@ -189,7 +189,7 @@ class SubscriptionPackageService {
       data: { isActive: false }
     });
 
-    const pkg = await SubscriptionPackageRepository.getPackageById(subscription.packageId);
+    const pkg = await SubscriptionPackageRepository.getPackageById(subscription.packageId ?? '');
     
     await this.notificationService.createNotification({
       userId,
@@ -304,7 +304,7 @@ class SubscriptionPackageService {
     }
 
     const currentDay = subscription.currentDay + 1;
-    const formula = await SubscriptionPackageRepository.getFormulaById(subscription.formulaId);
+    const formula = await SubscriptionPackageRepository.getFormulaById(subscription.formulaId ?? '');
 
     // If we've reached the end of days, mark as complete
     if (formula && currentDay > formula.numberOfDays) {
