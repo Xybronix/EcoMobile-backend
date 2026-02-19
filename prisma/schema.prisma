@@ -668,8 +668,8 @@ model Subscription {
 
   // Relations
   user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  package       SubscriptionPackage  @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  formula       SubscriptionFormula  @relation(fields: [formulaId], references: [id], onDelete: Cascade)
+  package       SubscriptionPackage? @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  formula       SubscriptionFormula? @relation(fields: [formulaId], references: [id], onDelete: Cascade)
   plan          PricingPlan?         @relation(fields: [planId], references: [id], onDelete: SetNull)
 
   @@map("subscriptions")
