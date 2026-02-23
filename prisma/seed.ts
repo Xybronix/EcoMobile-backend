@@ -58,93 +58,164 @@ async function main() {
 
   // Créer les permissions uniquement si elles n'existent pas
   const permissions = [
-    // Admin permissions
-    { name: 'admin:manage', description: 'Full admin access', resource: 'admin', action: 'manage' },
-    { name: 'admin:read', description: 'View admin dashboard', resource: 'admin', action: 'read' },
-    
-    // User permissions
-    { name: 'users:create', description: 'Create users', resource: 'users', action: 'create' },
-    { name: 'users:read', description: 'View users', resource: 'users', action: 'read' },
-    { name: 'users:update', description: 'Update users', resource: 'users', action: 'update' },
-    { name: 'users:delete', description: 'Delete users', resource: 'users', action: 'delete' },
-    { name: 'users:manage', description: 'Full user management', resource: 'users', action: 'manage' },
-    
-    // Bike permissions
-    { name: 'bikes:create', description: 'Create bikes', resource: 'bikes', action: 'create' },
-    { name: 'bikes:read', description: 'View bikes', resource: 'bikes', action: 'read' },
-    { name: 'bikes:update', description: 'Update bikes', resource: 'bikes', action: 'update' },
-    { name: 'bikes:delete', description: 'Delete bikes', resource: 'bikes', action: 'delete' },
-    { name: 'bikes:manage', description: 'Full bike management', resource: 'bikes', action: 'manage' },
+    // ===== ADMIN GLOBAL =====
+    { name: 'admin:manage', description: 'Accès administrateur complet', resource: 'admin', action: 'manage' },
+    { name: 'admin:read', description: 'Voir le tableau de bord admin', resource: 'admin', action: 'read' },
 
-    // Reservations permissions
-    { name: 'reservations:create', description: 'Create reservations', resource: 'reservations', action: 'create' },
-    { name: 'reservations:read', description: 'View reservations', resource: 'reservations', action: 'read' },
-    { name: 'reservations:update', description: 'Update reservations', resource: 'reservations', action: 'update' },
-    { name: 'reservations:delete', description: 'Delete reservations', resource: 'reservations', action: 'delete' },
-    { name: 'reservations:manage', description: 'Full reservation management', resource: 'reservations', action: 'manage' },
-    
-    // Ride permissions
-    { name: 'rides:create', description: 'Create rides', resource: 'rides', action: 'create' },
-    { name: 'rides:read', description: 'View rides', resource: 'rides', action: 'read' },
-    { name: 'rides:update', description: 'Update rides', resource: 'rides', action: 'update' },
-    { name: 'rides:delete', description: 'Delete rides', resource: 'rides', action: 'delete' },
-    
-    // Maintenance permissions
-    { name: 'maintenance:create', description: 'Add maintenance logs', resource: 'maintenance', action: 'create' },
-    { name: 'maintenance:read', description: 'View maintenance logs', resource: 'maintenance', action: 'read' },
-    { name: 'maintenance:update', description: 'Update maintenance logs', resource: 'maintenance', action: 'update' },
-    { name: 'maintenance:delete', description: 'Delete maintenance logs', resource: 'maintenance', action: 'delete' },
-    { name: 'maintenance:manage', description: 'Full maintenance management', resource: 'maintenance', action: 'manage' },
-    
-    // Chat permissions
-    { name: 'chat:create', description: 'Send messages', resource: 'chat', action: 'create' },
-    { name: 'chat:read', description: 'View conversations', resource: 'chat', action: 'read' },
-    { name: 'chat:update', description: 'Update messages', resource: 'chat', action: 'update' },
-    { name: 'chat:delete', description: 'Delete messages', resource: 'chat', action: 'delete' },
-    { name: 'chat:manage', description: 'Full chat management', resource: 'chat', action: 'manage' },
-    
-    // Notification permissions
-    { name: 'notifications:create', description: 'Send notifications', resource: 'notifications', action: 'create' },
-    { name: 'notifications:read', description: 'View notifications', resource: 'notifications', action: 'read' },
-    { name: 'notifications:update', description: 'Update notifications', resource: 'notifications', action: 'update' },
-    { name: 'notifications:delete', description: 'Delete notifications', resource: 'notifications', action: 'delete' },
-    { name: 'notifications:manage', description: 'Full notification management', resource: 'notifications', action: 'manage' },
-    
-    // Wallet permissions
-    { name: 'wallet:read', description: 'View wallet data', resource: 'wallet', action: 'read' },
-    { name: 'wallet:update', description: 'Update wallet', resource: 'wallet', action: 'update' },
-    { name: 'wallet:manage', description: 'Full wallet management', resource: 'wallet', action: 'manage' },
-    
-    // Settings permissions
-    { name: 'settings:read', description: 'View settings', resource: 'settings', action: 'read' },
-    { name: 'settings:update', description: 'Update settings', resource: 'settings', action: 'update' },
-    
-    // Pricing permissions
-    { name: 'pricing:read', description: 'View pricing', resource: 'pricing', action: 'read' },
-    { name: 'pricing:update', description: 'Update pricing', resource: 'pricing', action: 'update' },
-    
-    // Incident permissions
-    { name: 'incidents:read', description: 'View incidents', resource: 'incidents', action: 'read' },
-    { name: 'incidents:update', description: 'Update incidents', resource: 'incidents', action: 'update' },
+    // ===== DASHBOARD =====
+    { name: 'dashboard:read', description: 'Voir le tableau de bord', resource: 'dashboard', action: 'read' },
+    { name: 'dashboard:export', description: 'Exporter les données du tableau de bord', resource: 'dashboard', action: 'export' },
 
-    // Reviews permissions
-    { name: 'reviews:create', description: 'Create reviews', resource: 'reviews', action: 'create' },
-    { name: 'reviews:read', description: 'View reviews', resource: 'reviews', action: 'read' },
-    { name: 'reviews:update', description: 'Update reviews', resource: 'reviews', action: 'update' },
-    { name: 'reviews:delete', description: 'Delete reviews', resource: 'reviews', action: 'delete' },
-    { name: 'reviews:manage', description: 'Full reviews management', resource: 'reviews', action: 'manage' },
-    
-    // Logs permissions
-    { name: 'logs:read', description: 'View activity logs', resource: 'logs', action: 'read' },
-    
-    // Roles permissions
-    { name: 'roles:create', description: 'Create roles', resource: 'roles', action: 'create' },
-    { name: 'roles:read', description: 'View roles', resource: 'roles', action: 'read' },
-    { name: 'roles:update', description: 'Update roles', resource: 'roles', action: 'update' },
-    { name: 'roles:delete', description: 'Delete roles', resource: 'roles', action: 'delete' },
-    
-    // Permissions permissions
-    { name: 'permissions:read', description: 'View permissions', resource: 'permissions', action: 'read' },
+    // ===== UTILISATEURS =====
+    { name: 'users:create', description: 'Créer des utilisateurs', resource: 'users', action: 'create' },
+    { name: 'users:read', description: 'Voir les utilisateurs', resource: 'users', action: 'read' },
+    { name: 'users:update', description: 'Modifier les utilisateurs', resource: 'users', action: 'update' },
+    { name: 'users:delete', description: 'Supprimer des utilisateurs', resource: 'users', action: 'delete' },
+    { name: 'users:export', description: 'Exporter la liste des utilisateurs', resource: 'users', action: 'export' },
+    { name: 'users:manage', description: 'Gestion complète des utilisateurs', resource: 'users', action: 'manage' },
+    { name: 'users:ban', description: 'Bloquer/débloquer des utilisateurs', resource: 'users', action: 'ban' },
+    { name: 'users:verify', description: 'Vérifier manuellement les comptes utilisateurs', resource: 'users', action: 'verify' },
+    { name: 'users:reset_password', description: 'Réinitialiser le mot de passe d\'un utilisateur', resource: 'users', action: 'reset_password' },
+    { name: 'users:manage_deposit', description: 'Gérer la caution des utilisateurs', resource: 'users', action: 'manage_deposit' },
+    { name: 'users:manage_wallet', description: 'Gérer le portefeuille des utilisateurs', resource: 'users', action: 'manage_wallet' },
+    { name: 'users:view_documents', description: 'Voir les documents des utilisateurs', resource: 'users', action: 'view_documents' },
+    { name: 'users:validate_documents', description: 'Valider les documents des utilisateurs', resource: 'users', action: 'validate_documents' },
+
+    // ===== VÉLOS =====
+    { name: 'bikes:create', description: 'Ajouter des vélos', resource: 'bikes', action: 'create' },
+    { name: 'bikes:read', description: 'Voir les vélos', resource: 'bikes', action: 'read' },
+    { name: 'bikes:update', description: 'Modifier les vélos', resource: 'bikes', action: 'update' },
+    { name: 'bikes:delete', description: 'Supprimer des vélos', resource: 'bikes', action: 'delete' },
+    { name: 'bikes:export', description: 'Exporter la liste des vélos', resource: 'bikes', action: 'export' },
+    { name: 'bikes:manage', description: 'Gestion complète des vélos', resource: 'bikes', action: 'manage' },
+    { name: 'bikes:view_map', description: 'Voir la carte des vélos', resource: 'bikes', action: 'view_map' },
+    { name: 'bikes:view_trips', description: 'Voir l\'historique des trajets d\'un vélo', resource: 'bikes', action: 'view_trips' },
+    { name: 'bikes:view_maintenance', description: 'Voir l\'historique de maintenance d\'un vélo', resource: 'bikes', action: 'view_maintenance' },
+    { name: 'bikes:manage_actions', description: 'Gérer les actions sur les vélos (verrouillage, déverrouillage)', resource: 'bikes', action: 'manage_actions' },
+
+    // ===== RÉSERVATIONS =====
+    { name: 'reservations:create', description: 'Créer des réservations', resource: 'reservations', action: 'create' },
+    { name: 'reservations:read', description: 'Voir les réservations', resource: 'reservations', action: 'read' },
+    { name: 'reservations:update', description: 'Modifier les réservations', resource: 'reservations', action: 'update' },
+    { name: 'reservations:delete', description: 'Supprimer des réservations', resource: 'reservations', action: 'delete' },
+    { name: 'reservations:export', description: 'Exporter les réservations', resource: 'reservations', action: 'export' },
+    { name: 'reservations:manage', description: 'Gestion complète des réservations', resource: 'reservations', action: 'manage' },
+    { name: 'reservations:cancel', description: 'Annuler des réservations', resource: 'reservations', action: 'cancel' },
+
+    // ===== TRAJETS =====
+    { name: 'rides:create', description: 'Créer des trajets', resource: 'rides', action: 'create' },
+    { name: 'rides:read', description: 'Voir les trajets', resource: 'rides', action: 'read' },
+    { name: 'rides:update', description: 'Modifier les trajets', resource: 'rides', action: 'update' },
+    { name: 'rides:delete', description: 'Supprimer des trajets', resource: 'rides', action: 'delete' },
+    { name: 'rides:export', description: 'Exporter les trajets', resource: 'rides', action: 'export' },
+    { name: 'rides:manage', description: 'Gestion complète des trajets', resource: 'rides', action: 'manage' },
+
+    // ===== MAINTENANCE =====
+    { name: 'maintenance:create', description: 'Ajouter des entrées de maintenance', resource: 'maintenance', action: 'create' },
+    { name: 'maintenance:read', description: 'Voir les entrées de maintenance', resource: 'maintenance', action: 'read' },
+    { name: 'maintenance:update', description: 'Modifier les entrées de maintenance', resource: 'maintenance', action: 'update' },
+    { name: 'maintenance:delete', description: 'Supprimer des entrées de maintenance', resource: 'maintenance', action: 'delete' },
+    { name: 'maintenance:export', description: 'Exporter les données de maintenance', resource: 'maintenance', action: 'export' },
+    { name: 'maintenance:manage', description: 'Gestion complète de la maintenance', resource: 'maintenance', action: 'manage' },
+
+    // ===== CHAT =====
+    { name: 'chat:create', description: 'Envoyer des messages', resource: 'chat', action: 'create' },
+    { name: 'chat:read', description: 'Voir les conversations', resource: 'chat', action: 'read' },
+    { name: 'chat:update', description: 'Modifier des messages', resource: 'chat', action: 'update' },
+    { name: 'chat:delete', description: 'Supprimer des messages', resource: 'chat', action: 'delete' },
+    { name: 'chat:manage', description: 'Gestion complète du chat', resource: 'chat', action: 'manage' },
+
+    // ===== NOTIFICATIONS =====
+    { name: 'notifications:create', description: 'Envoyer des notifications', resource: 'notifications', action: 'create' },
+    { name: 'notifications:read', description: 'Voir les notifications', resource: 'notifications', action: 'read' },
+    { name: 'notifications:update', description: 'Modifier des notifications', resource: 'notifications', action: 'update' },
+    { name: 'notifications:delete', description: 'Supprimer des notifications', resource: 'notifications', action: 'delete' },
+    { name: 'notifications:manage', description: 'Gestion complète des notifications', resource: 'notifications', action: 'manage' },
+    { name: 'notifications:send_bulk', description: 'Envoyer des notifications en masse', resource: 'notifications', action: 'send_bulk' },
+
+    // ===== PORTEFEUILLE / FINANCES =====
+    { name: 'wallet:read', description: 'Voir les données du portefeuille', resource: 'wallet', action: 'read' },
+    { name: 'wallet:update', description: 'Modifier le portefeuille', resource: 'wallet', action: 'update' },
+    { name: 'wallet:manage', description: 'Gestion complète du portefeuille', resource: 'wallet', action: 'manage' },
+    { name: 'wallet:export', description: 'Exporter les données financières', resource: 'wallet', action: 'export' },
+    { name: 'wallet:refund', description: 'Effectuer des remboursements', resource: 'wallet', action: 'refund' },
+    { name: 'wallet:charge', description: 'Débiter un compte utilisateur', resource: 'wallet', action: 'charge' },
+    { name: 'wallet:view_transactions', description: 'Voir les transactions', resource: 'wallet', action: 'view_transactions' },
+
+    // ===== PARAMÈTRES =====
+    { name: 'settings:read', description: 'Voir les paramètres', resource: 'settings', action: 'read' },
+    { name: 'settings:update', description: 'Modifier les paramètres', resource: 'settings', action: 'update' },
+    { name: 'settings:manage', description: 'Gestion complète des paramètres', resource: 'settings', action: 'manage' },
+
+    // ===== TARIFICATION =====
+    { name: 'pricing:read', description: 'Voir la tarification', resource: 'pricing', action: 'read' },
+    { name: 'pricing:create', description: 'Créer des plans tarifaires', resource: 'pricing', action: 'create' },
+    { name: 'pricing:update', description: 'Modifier la tarification', resource: 'pricing', action: 'update' },
+    { name: 'pricing:delete', description: 'Supprimer des plans tarifaires', resource: 'pricing', action: 'delete' },
+    { name: 'pricing:manage', description: 'Gestion complète de la tarification', resource: 'pricing', action: 'manage' },
+    { name: 'pricing:manage_free_days', description: 'Gérer les règles de jours gratuits', resource: 'pricing', action: 'manage_free_days' },
+
+    // ===== INCIDENTS =====
+    { name: 'incidents:create', description: 'Créer des incidents', resource: 'incidents', action: 'create' },
+    { name: 'incidents:read', description: 'Voir les incidents', resource: 'incidents', action: 'read' },
+    { name: 'incidents:update', description: 'Modifier les incidents', resource: 'incidents', action: 'update' },
+    { name: 'incidents:delete', description: 'Supprimer des incidents', resource: 'incidents', action: 'delete' },
+    { name: 'incidents:export', description: 'Exporter les incidents', resource: 'incidents', action: 'export' },
+    { name: 'incidents:manage', description: 'Gestion complète des incidents', resource: 'incidents', action: 'manage' },
+    { name: 'incidents:resolve', description: 'Résoudre des incidents', resource: 'incidents', action: 'resolve' },
+
+    // ===== AVIS / REVIEWS =====
+    { name: 'reviews:create', description: 'Créer des avis', resource: 'reviews', action: 'create' },
+    { name: 'reviews:read', description: 'Voir les avis', resource: 'reviews', action: 'read' },
+    { name: 'reviews:update', description: 'Modifier des avis', resource: 'reviews', action: 'update' },
+    { name: 'reviews:delete', description: 'Supprimer des avis', resource: 'reviews', action: 'delete' },
+    { name: 'reviews:export', description: 'Exporter les avis', resource: 'reviews', action: 'export' },
+    { name: 'reviews:manage', description: 'Gestion complète des avis', resource: 'reviews', action: 'manage' },
+    { name: 'reviews:moderate', description: 'Modérer les avis (approuver/rejeter)', resource: 'reviews', action: 'moderate' },
+
+    // ===== JOURNAUX D'ACTIVITÉ =====
+    { name: 'logs:read', description: 'Voir les journaux d\'activité', resource: 'logs', action: 'read' },
+    { name: 'logs:export', description: 'Exporter les journaux d\'activité', resource: 'logs', action: 'export' },
+    { name: 'logs:delete', description: 'Supprimer des journaux d\'activité', resource: 'logs', action: 'delete' },
+
+    // ===== RÔLES =====
+    { name: 'roles:create', description: 'Créer des rôles', resource: 'roles', action: 'create' },
+    { name: 'roles:read', description: 'Voir les rôles', resource: 'roles', action: 'read' },
+    { name: 'roles:update', description: 'Modifier des rôles', resource: 'roles', action: 'update' },
+    { name: 'roles:delete', description: 'Supprimer des rôles', resource: 'roles', action: 'delete' },
+    { name: 'roles:manage', description: 'Gestion complète des rôles', resource: 'roles', action: 'manage' },
+    { name: 'roles:assign', description: 'Assigner des rôles aux employés', resource: 'roles', action: 'assign' },
+
+    // ===== PERMISSIONS =====
+    { name: 'permissions:read', description: 'Voir les permissions', resource: 'permissions', action: 'read' },
+    { name: 'permissions:manage', description: 'Gérer les permissions', resource: 'permissions', action: 'manage' },
+
+    // ===== EMPLOYÉS =====
+    { name: 'employees:create', description: 'Créer des employés', resource: 'employees', action: 'create' },
+    { name: 'employees:read', description: 'Voir les employés', resource: 'employees', action: 'read' },
+    { name: 'employees:update', description: 'Modifier des employés', resource: 'employees', action: 'update' },
+    { name: 'employees:delete', description: 'Supprimer des employés', resource: 'employees', action: 'delete' },
+    { name: 'employees:manage', description: 'Gestion complète des employés', resource: 'employees', action: 'manage' },
+    { name: 'employees:reset_password', description: 'Réinitialiser le mot de passe d\'un employé', resource: 'employees', action: 'reset_password' },
+
+    // ===== ABONNEMENTS =====
+    { name: 'subscriptions:read', description: 'Voir les abonnements', resource: 'subscriptions', action: 'read' },
+    { name: 'subscriptions:create', description: 'Créer des abonnements', resource: 'subscriptions', action: 'create' },
+    { name: 'subscriptions:update', description: 'Modifier des abonnements', resource: 'subscriptions', action: 'update' },
+    { name: 'subscriptions:delete', description: 'Supprimer des abonnements', resource: 'subscriptions', action: 'delete' },
+    { name: 'subscriptions:export', description: 'Exporter les abonnements', resource: 'subscriptions', action: 'export' },
+    { name: 'subscriptions:manage', description: 'Gestion complète des abonnements', resource: 'subscriptions', action: 'manage' },
+
+    // ===== MONITORING / SÉCURITÉ =====
+    { name: 'monitoring:read', description: 'Voir le monitoring de sécurité', resource: 'monitoring', action: 'read' },
+    { name: 'monitoring:manage', description: 'Gérer le monitoring de sécurité', resource: 'monitoring', action: 'manage' },
+
+    // ===== DOCUMENTS =====
+    { name: 'documents:read', description: 'Voir les documents', resource: 'documents', action: 'read' },
+    { name: 'documents:update', description: 'Modifier les documents', resource: 'documents', action: 'update' },
+    { name: 'documents:delete', description: 'Supprimer des documents', resource: 'documents', action: 'delete' },
+    { name: 'documents:manage', description: 'Gestion complète des documents', resource: 'documents', action: 'manage' },
+    { name: 'documents:validate', description: 'Valider des documents', resource: 'documents', action: 'validate' },
   ];
 
   for (const permission of permissions) {
@@ -179,10 +250,47 @@ async function main() {
 
   // Assigner des permissions spécifiques à l'ADMIN
   const adminPermissions = [
-    'admin:read', 'users:read', 'users:update', 'bikes:manage', 'reservations:manage', 'rides:read', 
-    'incidents:read', 'incidents:update', 'logs:read', 'maintenance:manage',
-    'chat:read', 'chat:create', 'notifications:create', 'wallet:read',
-    'reviews:read', 'reviews:update', 'reviews:manage'
+    // Dashboard
+    'admin:read', 'dashboard:read', 'dashboard:export',
+    // Utilisateurs
+    'users:read', 'users:update', 'users:export', 'users:ban', 'users:verify',
+    'users:reset_password', 'users:manage_deposit', 'users:manage_wallet',
+    'users:view_documents', 'users:validate_documents',
+    // Vélos
+    'bikes:create', 'bikes:read', 'bikes:update', 'bikes:delete', 'bikes:export',
+    'bikes:view_map', 'bikes:view_trips', 'bikes:view_maintenance', 'bikes:manage_actions',
+    // Réservations
+    'reservations:read', 'reservations:update', 'reservations:export', 'reservations:cancel',
+    // Trajets
+    'rides:read', 'rides:export',
+    // Maintenance
+    'maintenance:create', 'maintenance:read', 'maintenance:update', 'maintenance:delete', 'maintenance:export',
+    // Incidents
+    'incidents:read', 'incidents:update', 'incidents:export', 'incidents:resolve',
+    // Avis
+    'reviews:read', 'reviews:update', 'reviews:delete', 'reviews:export', 'reviews:moderate',
+    // Finances
+    'wallet:read', 'wallet:export', 'wallet:view_transactions',
+    // Chat
+    'chat:read', 'chat:create', 'chat:delete',
+    // Notifications
+    'notifications:create', 'notifications:read', 'notifications:send_bulk',
+    // Journaux
+    'logs:read', 'logs:export',
+    // Rôles
+    'roles:read', 'roles:assign',
+    // Permissions
+    'permissions:read',
+    // Employés
+    'employees:read',
+    // Abonnements
+    'subscriptions:read', 'subscriptions:export',
+    // Documents
+    'documents:read', 'documents:validate',
+    // Monitoring
+    'monitoring:read',
+    // Tarification
+    'pricing:read',
   ];
   for (const permName of adminPermissions) {
     const permission = await prisma.permission.findUnique({ where: { name: permName } });
@@ -207,8 +315,26 @@ async function main() {
 
   // Assigner des permissions spécifiques à l'EMPLOYEE
   const employeePermissions = [
-    'bikes:read', 'bikes:update', 'reservations:read', 'rides:read', 'incidents:read', 'incidents:update',
-    'maintenance:create', 'maintenance:read', 'chat:read', 'reviews:read'
+    // Dashboard
+    'admin:read', 'dashboard:read',
+    // Vélos
+    'bikes:read', 'bikes:update', 'bikes:view_map', 'bikes:view_trips', 'bikes:view_maintenance',
+    // Réservations
+    'reservations:read',
+    // Trajets
+    'rides:read',
+    // Maintenance
+    'maintenance:create', 'maintenance:read', 'maintenance:update',
+    // Incidents
+    'incidents:read', 'incidents:update', 'incidents:resolve',
+    // Avis
+    'reviews:read',
+    // Chat
+    'chat:read', 'chat:create',
+    // Notifications
+    'notifications:read',
+    // Documents
+    'documents:read',
   ];
   for (const permName of employeePermissions) {
     const permission = await prisma.permission.findUnique({ where: { name: permName } });

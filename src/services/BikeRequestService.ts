@@ -112,6 +112,18 @@ export class BikeRequestService {
    * Créer une demande de verrouillage
    */
   async createLockRequest(userId: string, bikeId: string, rideId?: string, location?: { lat: number; lng: number }, metadata?: any, req?: any): Promise<any> {
+    // Vérifier si une demande de verrouillage existe déjà pour ce vélo
+    const existingLockRequest = await prisma.lockRequest.findFirst({
+      where: {
+        bikeId,
+        status: RequestStatus.PENDING
+      }
+    });
+
+    if (existingLockRequest) {
+      throw new Error('Une demande de verrouillage est déjà en attente pour ce vélo');
+    }
+
     // Traiter les images si présentes
     let processedMetadata = metadata;
     if (metadata?.inspection?.photos) {
@@ -302,7 +314,7 @@ export class BikeRequestService {
   async approveLockRequest(requestId: string, adminId: string): Promise<any> {
     const request = await prisma.lockRequest.findUnique({
       where: { id: requestId },
-      include: { bike: true, user: { include: { wallet: true } }, ride: { include: { plan: { include: { overrides: true } } } } }
+      include: { bike: { include: { pricingPlan: { include: { overrides: true } } } }, user: { include: { wallet: true } }, ride: { include: { plan: { include: { overrides: true } } } } }
     });
 
     if (!request || request.status !== RequestStatus.PENDING) {
@@ -341,12 +353,15 @@ export class BikeRequestService {
           const now = new Date();
           const duration = Math.floor((now.getTime() - ride.startTime.getTime()) / 1000 / 60);
           
+          // Utiliser le plan du vélo si le plan de la course n'est pas défini
+          const ridePlan = ride.plan || request.bike?.pricingPlan;
+          
           // Calculer le coût avec la logique avancée
           const costCalculation = await this.calculateAdvancedRideCost(
             request.userId,
             duration,
             ride.startTime,
-            ride.plan
+            ridePlan
           );
 
           // Mettre à jour le trajet

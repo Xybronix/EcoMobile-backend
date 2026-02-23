@@ -238,5 +238,11 @@ router.get('/permissions', requirePermission('permissions', 'read'), AdminContro
  */
 router.put('/roles/:id/permissions', requirePermission('roles', 'update'), AdminController.updateRolePermissions);
 
+/**
+ * @route   POST /api/v1/admin/users/:userId/reset-password
+ * @desc    Reset user password
+ * @access  Private/Admin
+ */
+router.post('/users/:userId/reset-password', requirePermission('users', 'update'), AdminController.resetUserPassword);
+
 export default router;
-// (subscription-package routes are mounted earlier at /pricing)

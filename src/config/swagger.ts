@@ -923,6 +923,225 @@ const options = {
               format: 'date-time'
             }
           }
+        },
+        SubscriptionPackage: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            name: {
+              type: 'string'
+            },
+            description: {
+              type: 'string',
+              nullable: true
+            },
+            isActive: {
+              type: 'boolean'
+            },
+            formulas: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/SubscriptionFormula'
+              }
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        SubscriptionFormula: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            packageId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            name: {
+              type: 'string'
+            },
+            description: {
+              type: 'string',
+              nullable: true
+            },
+            numberOfDays: {
+              type: 'integer'
+            },
+            price: {
+              type: 'number',
+              format: 'float'
+            },
+            dayStartHour: {
+              type: 'integer'
+            },
+            dayEndHour: {
+              type: 'integer'
+            },
+            chargeAfterHours: {
+              type: 'boolean'
+            },
+            afterHoursPrice: {
+              type: 'number',
+              format: 'float',
+              nullable: true
+            },
+            afterHoursType: {
+              type: 'string',
+              nullable: true
+            },
+            isActive: {
+              type: 'boolean'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        FreeDaysRule: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            name: {
+              type: 'string'
+            },
+            description: {
+              type: 'string',
+              nullable: true
+            },
+            numberOfDays: {
+              type: 'integer',
+              description: 'Nombre de jours gratuits accordés'
+            },
+            startType: {
+              type: 'string',
+              enum: ['IMMEDIATE', 'ON_USE'],
+              description: "IMMEDIATE = commence tout de suite, ON_USE = commence à l'utilisation"
+            },
+            targetType: {
+              type: 'string',
+              enum: ['NEW_USERS', 'EXISTING_BY_DAYS', 'EXISTING_BY_SPEND', 'MANUAL'],
+              description: 'Type de cible pour la règle'
+            },
+            targetDaysSinceRegistration: {
+              type: 'integer',
+              nullable: true,
+              description: "Nombre de jours depuis l'inscription (pour EXISTING_BY_DAYS)"
+            },
+            targetMinSpend: {
+              type: 'number',
+              format: 'float',
+              nullable: true,
+              description: 'Montant minimum dépensé (pour EXISTING_BY_SPEND)'
+            },
+            applyAfterSubscription: {
+              type: 'boolean',
+              description: "Appliquer après l'abonnement en cours ou mettre en pause"
+            },
+            isActive: {
+              type: 'boolean'
+            },
+            validFrom: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            validUntil: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            maxBeneficiaries: {
+              type: 'integer',
+              nullable: true,
+              description: 'Nombre maximum de bénéficiaires (null = illimité)'
+            },
+            currentBeneficiaries: {
+              type: 'integer'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
+        },
+        FreeDaysBeneficiary: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid'
+            },
+            ruleId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            userId: {
+              type: 'string',
+              format: 'uuid'
+            },
+            daysGranted: {
+              type: 'integer'
+            },
+            daysRemaining: {
+              type: 'integer'
+            },
+            startDate: {
+              type: 'string',
+              format: 'date-time'
+            },
+            expiresAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            isActive: {
+              type: 'boolean'
+            },
+            appliedAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            subscriptionPausedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            subscriptionResumedAt: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time'
+            }
+          }
         }
       }
     },
@@ -987,6 +1206,14 @@ const options = {
       {
         name: 'Notifications',
         description: 'Gestion des notifications'
+      },
+      {
+        name: 'FreeDaysRules',
+        description: 'Gestion des règles de jours gratuits'
+      },
+      {
+        name: 'Subscriptions',
+        description: 'Gestion des abonnements et forfaits'
       }
     ]
   },

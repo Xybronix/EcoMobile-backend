@@ -62,7 +62,9 @@ class SubscriptionPackageRepository {
   async getAllPackages(includeInactive: boolean = false) {
     return await prisma.subscriptionPackage.findMany({
       where: includeInactive ? {} : { isActive: true },
-      include: { formulas: true },
+      include: { 
+        formulas: includeInactive ? true : { where: { isActive: true } }
+      },
       orderBy: { createdAt: 'asc' }
     });
   }

@@ -28,10 +28,19 @@ app.use(helmet());
 // CORS Configuration dynamique selon .env
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // autorise les requêtes non cross-origin (ex: Postman)
-    if (config.cors.origin.includes(origin)) {
+    // Permettre les requêtes sans origine (applications mobiles, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // En développement, tout permettre
+    if (config.env === 'development') {
       return callback(null, true);
     }
+    
+    // En production, vérifier l'origine
+    if (config.cors.origin.includes(origin) || config.cors.origin.includes('*')) {
+      return callback(null, true);
+    }
+    
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,

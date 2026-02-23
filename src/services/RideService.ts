@@ -156,13 +156,16 @@ export class RideService {
     // Vérifier l'abonnement actif
     const activeSubscription = await this.getActiveSubscriptionForRide(ride.userId);
     
+    // Utiliser le plan du vélo si le plan de la course n'est pas défini
+    const ridePlan = ride.plan || ride.bike?.pricingPlan;
+    
     // Calculer le coût avec la logique avancée
     const costCalculation = await this.calculateAdvancedRideCost(
       ride.userId,
       duration,
       ride.startTime,
       activeSubscription,
-      ride.plan
+      ridePlan
     );
 
     // Vérifier la capacité de paiement

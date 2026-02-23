@@ -43,25 +43,26 @@ model User {
   updatedAt                 DateTime @updatedAt
 
   // Relations
-wallet            Wallet?
-rides             Ride[]
-notifications     Notification[]
-chatMessages      ChatMessage[]
-incidents         Incident[]
-reservations      Reservation[]
-unlockRequests    UnlockRequest[]
-lockRequests      LockRequest[]
-sessions          Session[]
-activityLogs      ActivityLog[]
-reviews           Review[]
-preferences       UserPreferences?
-pushTokens        PushToken[]
-subscriptions     Subscription[]
+  wallet            Wallet?
+  rides             Ride[]
+  notifications     Notification[]
+  chatMessages      ChatMessage[]
+  incidents         Incident[]
+  reservations      Reservation[]
+  unlockRequests    UnlockRequest[]
+  lockRequests      LockRequest[]
+  sessions          Session[]
+  activityLogs      ActivityLog[]
+  reviews           Review[]
+  preferences       UserPreferences?
+  pushTokens        PushToken[]
+  subscriptions     Subscription[]
   roleId            String?
   roleRelation      Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
   identityDocuments IdentityDocument[]
   residenceProofs   ResidenceProof[]
   activityLocationProofs ActivityLocationProof[]
+  freeDaysBeneficiaries FreeDaysBeneficiary[]
 
   @@map("users")
 }
@@ -635,11 +636,59 @@ model SubscriptionPromotionRule {
   @@map("subscription_promotion_rules")
 }
 
+// Règles de jours gratuits
+model FreeDaysRule {
+  id                          String    @id @default(uuid())
+  name                        String    @db.VarChar(36)
+  description                 String?
+  numberOfDays                Int
+  startType                   String    @default("ON_USE")
+  targetType                  String    @default("NEW_USERS") // "NEW_USERS" = nouveaux utilisateurs, "EXISTING_BY_DAYS" = par jours depuis inscription, "EXISTING_BY_SPEND" = par montant dépensé, "MANUAL" = manuel
+  targetDaysSinceRegistration Int?
+  targetMinSpend              Float?
+  applyAfterSubscription      Boolean   @default(false)
+  isActive                    Boolean   @default(true)
+  validFrom                   DateTime?
+  validUntil                  DateTime?
+  maxBeneficiaries            Int?
+  currentBeneficiaries        Int       @default(0)
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+
+  // Relations
+  beneficiaries        FreeDaysBeneficiary[]
+
+  @@map("free_days_rules")
+}
+
+model FreeDaysBeneficiary {
+  id                    String    @id @default(uuid())
+  ruleId                String    @db.VarChar(36)
+  userId                String    @db.VarChar(191)
+  daysGranted           Int
+  daysRemaining         Int
+  startDate             DateTime
+  expiresAt             DateTime
+  isActive              Boolean   @default(true)
+  appliedAt             DateTime  @default(now())
+  subscriptionPausedAt  DateTime?
+  subscriptionResumedAt DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  rule                FreeDaysRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, userId])
+  @@map("free_days_beneficiaries")
+}
+
 model PromotionPackageRelation {
   id           String   @id @default(uuid())
-  promotionId  String   @db.VarChar(191)
-  packageId    String?  @db.VarChar(191)
-  formulaId    String?  @db.VarChar(191)
+  promotionId  String   @db.VarChar(36)
+  packageId    String?  @db.VarChar(36)
+  formulaId    String?  @db.VarChar(36)
   createdAt    DateTime @default(now())
 
   // Relations
@@ -748,9 +797,9 @@ model IdentityDocument {
   id                String              @id @default(uuid())
   userId            String
   documentType      DocumentType
-  frontImage        String
-  backImage         String?
-  selfieImage       String?             // Photo/vidéo selfie de l'utilisateur
+  frontImage        String              @db.Text
+  backImage         String?             @db.Text
+  selfieImage       String?             @db.Text // Photo/vidéo selfie de l'utilisateur
   status            DocumentStatus      @default(PENDING)
   rejectionReason   String?             @db.Text
   reviewedBy        String?
@@ -771,7 +820,7 @@ model ResidenceProof {
   id                String              @id @default(uuid())
   userId            String
   proofType         ResidenceProofType
-  documentFile      String?
+  documentFile      String?             @db.Text
   latitude          Float?
   longitude         Float?
   address           String?             @db.Text
@@ -812,7 +861,7 @@ model ActivityLocationProof {
   id                String              @id @default(uuid())
   userId            String
   proofType         ActivityLocationProofType
-  documentFile      String?             // Photo du document
+  documentFile      String?             @db.Text // Photo du document
   latitude          Float?              // Coordonnées GPS
   longitude         Float?
   address           String?             @db.Text

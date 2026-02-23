@@ -489,7 +489,7 @@ CREATE TABLE `subscription_packages` (
 -- CreateTable
 CREATE TABLE `subscription_formulas` (
     `id` VARCHAR(191) NOT NULL,
-    `packageId` VARCHAR(36) NOT NULL,
+    `packageId` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `description` VARCHAR(191) NULL,
     `numberOfDays` INTEGER NOT NULL,
@@ -525,6 +525,48 @@ CREATE TABLE `subscription_promotion_rules` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `free_days_rules` (
+    `id` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(36) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `numberOfDays` INTEGER NOT NULL,
+    `startType` VARCHAR(191) NOT NULL DEFAULT 'ON_USE',
+    `targetType` VARCHAR(191) NOT NULL DEFAULT 'NEW_USERS',
+    `targetDaysSinceRegistration` INTEGER NULL,
+    `targetMinSpend` DOUBLE NULL,
+    `applyAfterSubscription` BOOLEAN NOT NULL DEFAULT false,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `validFrom` DATETIME(3) NULL,
+    `validUntil` DATETIME(3) NULL,
+    `maxBeneficiaries` INTEGER NULL,
+    `currentBeneficiaries` INTEGER NOT NULL DEFAULT 0,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `free_days_beneficiaries` (
+    `id` VARCHAR(191) NOT NULL,
+    `ruleId` VARCHAR(36) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `daysGranted` INTEGER NOT NULL,
+    `daysRemaining` INTEGER NOT NULL,
+    `startDate` DATETIME(3) NOT NULL,
+    `expiresAt` DATETIME(3) NOT NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `appliedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `subscriptionPausedAt` DATETIME(3) NULL,
+    `subscriptionResumedAt` DATETIME(3) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `free_days_beneficiaries_ruleId_userId_key`(`ruleId`, `userId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `promotion_package_relations` (
     `id` VARCHAR(191) NOT NULL,
     `promotionId` VARCHAR(36) NOT NULL,
@@ -539,10 +581,10 @@ CREATE TABLE `promotion_package_relations` (
 -- CreateTable
 CREATE TABLE `subscriptions` (
     `id` VARCHAR(191) NOT NULL,
-    `userId` VARCHAR(36) NOT NULL,
-    `packageId` VARCHAR(36) NOT NULL,
-    `formulaId` VARCHAR(36) NOT NULL,
-    `planId` VARCHAR(36) NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `packageId` VARCHAR(191) NULL DEFAULT '',
+    `formulaId` VARCHAR(191) NULL DEFAULT '',
+    `planId` VARCHAR(191) NULL,
     `type` ENUM('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY') NOT NULL DEFAULT 'DAILY',
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `startDate` DATETIME(3) NOT NULL,
@@ -560,9 +602,9 @@ CREATE TABLE `identity_documents` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
     `documentType` ENUM('CNI', 'RECEPISSE') NOT NULL,
-    `frontImage` VARCHAR(191) NOT NULL,
-    `backImage` VARCHAR(191) NULL,
-    `selfieImage` VARCHAR(191) NULL,
+    `frontImage` TEXT NOT NULL,
+    `backImage` TEXT NULL,
+    `selfieImage` TEXT NULL,
     `status` ENUM('PENDING', 'APPROVED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
     `rejectionReason` TEXT NULL,
     `reviewedBy` VARCHAR(191) NULL,
@@ -581,7 +623,7 @@ CREATE TABLE `residence_proofs` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
     `proofType` ENUM('DOCUMENT', 'MAP_COORDINATES') NOT NULL,
-    `documentFile` VARCHAR(191) NULL,
+    `documentFile` TEXT NULL,
     `latitude` DOUBLE NULL,
     `longitude` DOUBLE NULL,
     `address` TEXT NULL,
@@ -604,7 +646,7 @@ CREATE TABLE `activity_location_proofs` (
     `id` VARCHAR(191) NOT NULL,
     `userId` VARCHAR(191) NOT NULL,
     `proofType` ENUM('DOCUMENT', 'MAP_COORDINATES') NOT NULL,
-    `documentFile` VARCHAR(191) NULL,
+    `documentFile` TEXT NULL,
     `latitude` DOUBLE NULL,
     `longitude` DOUBLE NULL,
     `address` TEXT NULL,

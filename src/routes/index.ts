@@ -14,6 +14,7 @@ import chatRoutes from './chat.routes';
 import notificationRoutes from './notification.routes';
 import monitoringRoutes from './monitoring.routes';
 import documentRoutes from './document.routes';
+import freeDaysRoutes from './free-days.routes';
 
 const router = express.Router();
 
@@ -54,5 +55,6 @@ router.use('/chat', chatRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/monitoring', monitoringRoutes);
 router.use('/documents', documentRoutes);
+router.use('/free-days', freeDaysRoutes);
 
 export default router;

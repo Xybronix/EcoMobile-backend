@@ -8,6 +8,7 @@ import { t } from '../locales';
 import NotificationService from './NotificationService';
 import { EmailVerificationService } from './EmailVerificationService';
 import { SmsVerificationService } from './SmsVerificationService';
+import FreeDaysRuleService from './FreeDaysRuleService';
 
 export class AuthService {
   private userRepository: UserRepository;
@@ -84,6 +85,14 @@ export class AuthService {
       );
     } catch (error) {
       console.error(t('error.welcome_notification_failed', language), error);
+      // Don't throw - registration was successful
+    }
+
+    // Apply automatic free days rules for new users
+    try {
+      await FreeDaysRuleService.applyAutoRulesToNewUser(user.id);
+    } catch (error) {
+      console.error('Failed to apply free days rules:', error);
       // Don't throw - registration was successful
     }
 

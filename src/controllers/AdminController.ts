@@ -3666,6 +3666,89 @@ export class AdminController {
       });
     }
   }
+
+  /**
+   * Réinitialiser le mot de passe d'un utilisateur ou employé
+   */
+  async resetUserPassword(req: AuthRequest, res: express.Response) {
+    try {
+      const { userId } = req.params;
+      const { newPassword, generateNew } = req.body;
+
+      if (!newPassword && !generateNew) {
+        return res.status(400).json({
+          success: false,
+          message: 'Soit newPassword soit generateNew est requis'
+        });
+      }
+
+      // Vérifier que l'utilisateur existe
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Utilisateur non trouvé'
+        });
+      }
+
+      // Générer un nouveau mot de passe ou utiliser celui fourni
+      let passwordToHash = newPassword;
+      if (generateNew) {
+        // Générer un mot de passe aléatoire
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+        let password = '';
+        for (let i = 0; i < 12; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        passwordToHash = password;
+      }
+
+      // Hasher le mot de passe
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(passwordToHash, 12);
+
+      // Mettre à jour le mot de passe
+      await prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword }
+      });
+
+      // Logger l'activité
+      await logActivity(
+        req.user!.id,
+        'RESET_PASSWORD',
+        'USER',
+        userId,
+        `Mot de passe réinitialisé pour ${user.email}`,
+        { 
+          userId, 
+          userEmail: user.email,
+          generated: generateNew 
+        },
+        req
+      );
+
+      return res.json({
+        success: true,
+        message: generateNew 
+          ? 'Mot de passe réinitialisé avec succès. Le nouveau mot de passe sera communiqué à l\'utilisateur.'
+          : 'Mot de passe mis à jour avec succès',
+        data: {
+          userId,
+          email: user.email,
+          generated: generateNew
+        }
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 export default new AdminController();
