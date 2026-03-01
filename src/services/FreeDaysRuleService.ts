@@ -2,15 +2,18 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Date sentinelle = forfait non encore activé par l'utilisateur
+const NOT_YET_ACTIVATED = new Date('2099-01-01T00:00:00.000Z');
+
 export interface CreateFreeDaysRuleData {
   name: string;
   description?: string;
   numberOfDays: number;
-  startType?: string;
   targetType?: string;
   targetDaysSinceRegistration?: number;
   targetMinSpend?: number;
-  applyAfterSubscription?: boolean;
+  startHour?: number;
+  endHour?: number;
   validFrom?: Date;
   validUntil?: Date;
   maxBeneficiaries?: number;
@@ -20,11 +23,11 @@ export interface UpdateFreeDaysRuleData {
   name?: string;
   description?: string;
   numberOfDays?: number;
-  startType?: string;
   targetType?: string;
   targetDaysSinceRegistration?: number;
   targetMinSpend?: number;
-  applyAfterSubscription?: boolean;
+  startHour?: number;
+  endHour?: number;
   isActive?: boolean;
   validFrom?: Date;
   validUntil?: Date;
@@ -41,11 +44,11 @@ class FreeDaysRuleService {
         name: data.name,
         description: data.description,
         numberOfDays: data.numberOfDays,
-        startType: data.startType || 'ON_USE',
         targetType: data.targetType || 'NEW_USERS',
         targetDaysSinceRegistration: data.targetDaysSinceRegistration,
         targetMinSpend: data.targetMinSpend,
-        applyAfterSubscription: data.applyAfterSubscription || false,
+        startHour: data.startHour,
+        endHour: data.endHour,
         validFrom: data.validFrom,
         validUntil: data.validUntil,
         maxBeneficiaries: data.maxBeneficiaries,
@@ -94,12 +97,25 @@ class FreeDaysRuleService {
   }
 
   /**
-   * Mettre à jour une règle
+   * Mettre à jour une règle (on ne touche pas startType)
    */
   async updateRule(id: string, data: UpdateFreeDaysRuleData) {
     return await prisma.freeDaysRule.update({
       where: { id },
-      data,
+      data: {
+        name: data.name,
+        description: data.description,
+        numberOfDays: data.numberOfDays,
+        targetType: data.targetType,
+        targetDaysSinceRegistration: data.targetDaysSinceRegistration,
+        targetMinSpend: data.targetMinSpend,
+        startHour: data.startHour,
+        endHour: data.endHour,
+        isActive: data.isActive,
+        validFrom: data.validFrom,
+        validUntil: data.validUntil,
+        maxBeneficiaries: data.maxBeneficiaries,
+      },
     });
   }
 
@@ -114,6 +130,7 @@ class FreeDaysRuleService {
 
   /**
    * Ajouter un bénéficiaire manuel à une règle
+   * Le forfait créé est en attente d'activation par l'utilisateur (startDate dans le futur)
    */
   async addManualBeneficiary(ruleId: string, userId: string) {
     const rule = await prisma.freeDaysRule.findUnique({ where: { id: ruleId } });
@@ -137,38 +154,19 @@ class FreeDaysRuleService {
       throw new Error('Le nombre maximum de bénéficiaires a été atteint');
     }
 
-    // Vérifier si l'utilisateur a un abonnement actif
-    const activeSubscription = await prisma.subscription.findFirst({
-      where: {
-        userId,
-        isActive: true,
-        endDate: { gt: new Date() },
-      },
-    });
-
-    let subscriptionPausedAt = null;
-    if (activeSubscription && rule.applyAfterSubscription) {
-      // Mettre en pause l'abonnement
-      subscriptionPausedAt = new Date();
-      await prisma.subscription.update({
-        where: { id: activeSubscription.id },
-        data: { isActive: false },
-      });
-    }
-
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + rule.numberOfDays);
 
-    // Créer le bénéficiaire
+    // Créer le bénéficiaire — en attente d'activation par l'utilisateur
     const beneficiary = await prisma.freeDaysBeneficiary.create({
       data: {
         ruleId,
         userId,
         daysGranted: rule.numberOfDays,
         daysRemaining: rule.numberOfDays,
-        startDate: rule.startType === 'IMMEDIATE' ? new Date() : new Date(0), // Si startType est IMMEDIATE, commence maintenant
+        startDate: NOT_YET_ACTIVATED,
         expiresAt,
-        subscriptionPausedAt,
+        subscriptionPausedAt: null,
       },
     });
 
@@ -179,6 +177,28 @@ class FreeDaysRuleService {
     });
 
     return beneficiary;
+  }
+
+  /**
+   * Activer un forfait gratuit — l'utilisateur décide de l'utiliser
+   */
+  async activateBeneficiary(beneficiaryId: string, userId: string) {
+    const beneficiary = await prisma.freeDaysBeneficiary.findFirst({
+      where: { id: beneficiaryId, userId, isActive: true },
+    });
+
+    if (!beneficiary) {
+      throw new Error('Forfait gratuit introuvable');
+    }
+
+    if (beneficiary.startDate <= new Date()) {
+      throw new Error('Ce forfait est déjà activé');
+    }
+
+    return await prisma.freeDaysBeneficiary.update({
+      where: { id: beneficiaryId },
+      data: { startDate: new Date() },
+    });
   }
 
   /**
@@ -193,24 +213,6 @@ class FreeDaysRuleService {
 
     if (!beneficiary) {
       throw new Error('Bénéficiaire non trouvé');
-    }
-
-    // Réactiver l'abonnement si nécessaire
-    if (beneficiary.subscriptionPausedAt) {
-      const activeSubscription = await prisma.subscription.findFirst({
-        where: {
-          userId,
-          isActive: false,
-          endDate: { gt: new Date() },
-        },
-      });
-
-      if (activeSubscription) {
-        await prisma.subscription.update({
-          where: { id: activeSubscription.id },
-          data: { isActive: true },
-        });
-      }
     }
 
     await prisma.freeDaysBeneficiary.delete({
@@ -228,6 +230,7 @@ class FreeDaysRuleService {
 
   /**
    * Appliquer automatiquement les règles aux nouveaux utilisateurs
+   * Le forfait est créé en attente — l'utilisateur devra l'activer
    */
   async applyAutoRulesToNewUser(userId: string) {
     const rules = await prisma.freeDaysRule.findMany({
@@ -238,27 +241,19 @@ class FreeDaysRuleService {
     });
 
     for (const rule of rules) {
-      // Vérifier si le'utilisateur est déjà bénéficiaire
       const existingBeneficiary = await prisma.freeDaysBeneficiary.findFirst({
-        where: {
-          ruleId: rule.id,
-          userId,
-          isActive: true,
-        },
+        where: { ruleId: rule.id, userId, isActive: true },
       });
 
       if (existingBeneficiary) continue;
 
-      // Vérifier le nombre maximum de bénéficiaires
       if (rule.maxBeneficiaries && rule.currentBeneficiaries >= rule.maxBeneficiaries) {
         continue;
       }
 
-      // Vérifier si la règle est valide
       if (rule.validFrom && rule.validFrom > new Date()) continue;
       if (rule.validUntil && rule.validUntil < new Date()) continue;
 
-      // Créer le bénéficiaire
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + rule.numberOfDays);
 
@@ -268,7 +263,7 @@ class FreeDaysRuleService {
           userId,
           daysGranted: rule.numberOfDays,
           daysRemaining: rule.numberOfDays,
-          startDate: rule.startType === 'IMMEDIATE' ? new Date() : new Date(0),
+          startDate: NOT_YET_ACTIVATED,
           expiresAt,
         },
       });
@@ -294,7 +289,6 @@ class FreeDaysRuleService {
     for (const rule of rules) {
       if (!rule.targetDaysSinceRegistration) continue;
 
-      // Trouver les utilisateurs qui correspondent
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() - rule.targetDaysSinceRegistration);
 
@@ -306,18 +300,12 @@ class FreeDaysRuleService {
       });
 
       for (const user of users) {
-        // Vérifier si déjà bénéficiaire
         const existingBeneficiary = await prisma.freeDaysBeneficiary.findFirst({
-          where: {
-            ruleId: rule.id,
-            userId: user.id,
-            isActive: true,
-          },
+          where: { ruleId: rule.id, userId: user.id, isActive: true },
         });
 
         if (existingBeneficiary) continue;
 
-        // Vérifier le nombre maximum
         if (rule.maxBeneficiaries && rule.currentBeneficiaries >= rule.maxBeneficiaries) break;
 
         const expiresAt = new Date();
@@ -329,7 +317,7 @@ class FreeDaysRuleService {
             userId: user.id,
             daysGranted: rule.numberOfDays,
             daysRemaining: rule.numberOfDays,
-            startDate: rule.startType === 'IMMEDIATE' ? new Date() : new Date(0),
+            startDate: NOT_YET_ACTIVATED,
             expiresAt,
           },
         });
@@ -343,7 +331,7 @@ class FreeDaysRuleService {
   }
 
   /**
-   * Utiliser un jour gratuit
+   * Utiliser un jour gratuit (uniquement sur les forfaits activés par l'utilisateur)
    */
   async useFreeDay(userId: string): Promise<boolean> {
     const beneficiary = await prisma.freeDaysBeneficiary.findFirst({
@@ -351,10 +339,7 @@ class FreeDaysRuleService {
         userId,
         isActive: true,
         daysRemaining: { gt: 0 },
-        OR: [
-          { startDate: { lte: new Date() } },
-          { startDate: new Date(0) },
-        ],
+        startDate: { lte: new Date() }, // Seulement les forfaits activés par l'utilisateur
         expiresAt: { gt: new Date() },
       },
       orderBy: { expiresAt: 'asc' },
@@ -377,30 +362,11 @@ class FreeDaysRuleService {
     });
 
     if (updated && updated.daysRemaining <= 0) {
-      // Réactiver l'abonnement si nécessaire
-      if (updated.subscriptionPausedAt) {
-        const activeSubscription = await prisma.subscription.findFirst({
-          where: {
-            userId,
-            isActive: false,
-            endDate: { gt: new Date() },
-          },
-        });
-
-        if (activeSubscription) {
-          await prisma.subscription.update({
-            where: { id: activeSubscription.id },
-            data: { isActive: true },
-          });
-        }
-      }
-
-      // Désactiver le bénéficiaire
       await prisma.freeDaysBeneficiary.update({
         where: { id: beneficiary.id },
         data: {
           isActive: false,
-          subscriptionResumedAt: updated.subscriptionPausedAt ? new Date() : null,
+          subscriptionResumedAt: null,
         },
       });
     }
@@ -409,28 +375,27 @@ class FreeDaysRuleService {
   }
 
   /**
-   * Obtenir les jours gratuits disponibles pour un utilisateur
+   * Obtenir tous les forfaits gratuits d'un utilisateur (activés ET en attente d'activation)
    */
   async getUserFreeDays(userId: string) {
+    const now = new Date();
     return await prisma.freeDaysBeneficiary.findMany({
       where: {
         userId,
         isActive: true,
         daysRemaining: { gt: 0 },
-        OR: [
-          { startDate: { lte: new Date() } },
-          { startDate: new Date(0) },
-        ],
-        expiresAt: { gt: new Date() },
+        expiresAt: { gt: now },
       },
       include: {
         rule: {
           select: {
             name: true,
-            startType: true,
+            startHour: true,
+            endHour: true,
           },
         },
       },
+      orderBy: { expiresAt: 'asc' },
     });
   }
 }

@@ -1302,43 +1302,17 @@ export class BikeService {
    */
   private async calculateCurrentPricing(bike: any): Promise<any | null> {
     if (!bike.pricingPlan) {
-      // Récupérer un plan par défaut si le vélo n'en a pas
-      const defaultPlan = await prisma.pricingPlan.findFirst({
-        where: { 
-          isActive: true,
-          pricingConfig: { isActive: true }
-        },
-        include: {
-          pricingConfig: true,
-          promotions: {
-            where: {
-              promotion: {
-                isActive: true,
-                startDate: { lte: new Date() },
-                endDate: { gte: new Date() }
-              }
-            },
-            include: {
-              promotion: true
-            }
-          }
-        }
-      });
-      
-      if (!defaultPlan) {
-        // Aucun PricingPlan actif → utiliser le tarif de base de la PricingConfig
-        const pricingConfig = await prisma.pricingConfig.findFirst({ where: { isActive: true } });
-        if (!pricingConfig) return null;
-        return {
-          hourlyRate: pricingConfig.baseHourlyRate,
-          originalHourlyRate: pricingConfig.baseHourlyRate,
-          unlockFee: pricingConfig.unlockFee,
-          appliedRule: null,
-          appliedPromotions: [],
-          pricingPlan: null,
-        };
-      }
-      bike.pricingPlan = defaultPlan;
+      // Pas de plan assigné au vélo → toujours utiliser le tarif de base de la PricingConfig
+      const pricingConfig = await prisma.pricingConfig.findFirst({ where: { isActive: true } });
+      if (!pricingConfig) return null;
+      return {
+        hourlyRate: pricingConfig.baseHourlyRate,
+        originalHourlyRate: pricingConfig.baseHourlyRate,
+        unlockFee: pricingConfig.unlockFee,
+        appliedRule: null,
+        appliedPromotions: [],
+        pricingPlan: null,
+      };
     }
 
     const now = new Date();

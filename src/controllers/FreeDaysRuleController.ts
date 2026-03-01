@@ -70,11 +70,11 @@ class FreeDaysRuleController {
         name,
         description,
         numberOfDays,
-        startType,
         targetType,
         targetDaysSinceRegistration,
         targetMinSpend,
-        applyAfterSubscription,
+        startHour,
+        endHour,
         validFrom,
         validUntil,
         maxBeneficiaries,
@@ -91,11 +91,11 @@ class FreeDaysRuleController {
         name,
         description,
         numberOfDays,
-        startType,
         targetType,
         targetDaysSinceRegistration,
         targetMinSpend,
-        applyAfterSubscription,
+        startHour: startHour !== undefined ? Number(startHour) : undefined,
+        endHour: endHour !== undefined ? Number(endHour) : undefined,
         validFrom: validFrom ? new Date(validFrom) : undefined,
         validUntil: validUntil ? new Date(validUntil) : undefined,
         maxBeneficiaries,
@@ -270,11 +270,11 @@ class FreeDaysRuleController {
         name,
         description,
         numberOfDays,
-        startType,
         targetType,
         targetDaysSinceRegistration,
         targetMinSpend,
-        applyAfterSubscription,
+        startHour,
+        endHour,
         isActive,
         validFrom,
         validUntil,
@@ -285,11 +285,11 @@ class FreeDaysRuleController {
         name,
         description,
         numberOfDays,
-        startType,
         targetType,
         targetDaysSinceRegistration,
         targetMinSpend,
-        applyAfterSubscription,
+        startHour: startHour !== undefined ? Number(startHour) : undefined,
+        endHour: endHour !== undefined ? Number(endHour) : undefined,
         isActive,
         validFrom: validFrom ? new Date(validFrom) : undefined,
         validUntil: validUntil ? new Date(validUntil) : undefined,
@@ -525,6 +525,58 @@ class FreeDaysRuleController {
    *       200:
    *         description: Liste des utilisateurs correspondants
    */
+  /**
+   * @swagger
+   * /free-days/me:
+   *   get:
+   *     summary: Récupérer les forfaits gratuits disponibles pour l'utilisateur connecté
+   *     tags: [FreeDaysRules]
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Liste des bénéfices de jours gratuits actifs
+   */
+  async getMyFreePlans(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const freeDays = await FreeDaysRuleService.getUserFreeDays(userId);
+
+      return res.json({
+        success: true,
+        data: freeDays,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Activer un forfait gratuit (l'utilisateur choisit de l'utiliser)
+   */
+  async activateMyFreePlan(req: AuthRequest, res: express.Response) {
+    try {
+      const userId = req.user!.id;
+      const { beneficiaryId } = req.params;
+
+      const beneficiary = await FreeDaysRuleService.activateBeneficiary(beneficiaryId, userId);
+
+      return res.json({
+        success: true,
+        message: 'Forfait gratuit activé avec succès',
+        data: beneficiary,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
   async searchUsers(req: AuthRequest, res: express.Response) {
     try {
       const { q } = req.query;

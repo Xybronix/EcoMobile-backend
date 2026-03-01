@@ -19,6 +19,20 @@ router.post('/', authenticate, requirePermission('admin', 'read'), FreeDaysRuleC
 router.get('/', authenticate, requirePermission('admin', 'read'), FreeDaysRuleController.getAllRules);
 
 /**
+ * @route   GET /api/v1/free-days/me
+ * @desc    Get free day benefits for the authenticated user
+ * @access  Private/User
+ */
+router.get('/me', authenticate, FreeDaysRuleController.getMyFreePlans);
+
+/**
+ * @route   PATCH /api/v1/free-days/me/activate/:beneficiaryId
+ * @desc    Activate a free plan (user explicitly subscribes to it)
+ * @access  Private/User
+ */
+router.patch('/me/activate/:beneficiaryId', authenticate, FreeDaysRuleController.activateMyFreePlan);
+
+/**
  * @route   GET /api/v1/free-days/users/search
  * @desc    Search users to manually add to a free days rule (admin only)
  * @access  Private/Admin

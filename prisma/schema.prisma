@@ -646,7 +646,8 @@ model FreeDaysRule {
   targetType                  String    @default("NEW_USERS") // "NEW_USERS" = nouveaux utilisateurs, "EXISTING_BY_DAYS" = par jours depuis inscription, "EXISTING_BY_SPEND" = par montant dépensé, "MANUAL" = manuel
   targetDaysSinceRegistration Int?
   targetMinSpend              Float?
-  applyAfterSubscription      Boolean   @default(false)
+  startHour                   Int?      // Heure de début d'application de la règle (0-23)
+  endHour                     Int?      // Heure de fin d'application de la règle (0-23)
   isActive                    Boolean   @default(true)
   validFrom                   DateTime?
   validUntil                  DateTime?

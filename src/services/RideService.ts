@@ -455,11 +455,9 @@ export class RideService {
     activeSubscription: any,
     ridePlan: any
   ) {
-    let hourlyRate = ridePlan?.hourlyRate;
-    if (!hourlyRate) {
-      const pricingConfig = await prisma.pricingConfig.findFirst({ where: { isActive: true } });
-      hourlyRate = pricingConfig?.baseHourlyRate || 200;
-    }
+    // Priorité : tarif configuré par l'admin (PricingConfig), fallback sur le plan du vélo, puis 200
+    const pricingConfig = await prisma.pricingConfig.findFirst({ where: { isActive: true } });
+    let hourlyRate = pricingConfig?.baseHourlyRate ?? ridePlan?.hourlyRate ?? 200;
     // Appliquer le multiplicateur de règle tarifaire (PricingRule) selon le jour/heure du trajet
     const rideDay = startTime.getDay();
     const rideHour = startTime.getHours();
