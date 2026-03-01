@@ -302,8 +302,7 @@ export class BikeService {
   async getAvailableBikes(filter?: BikeFilter, page: number = 1, limit: number = 20) {
     const where: any = {
       status: BikeStatus.AVAILABLE,
-      isActive: true,
-      pricingPlanId: { not: null }
+      isActive: true
     };
 
     // Exclure les vélos réservés
@@ -1326,7 +1325,19 @@ export class BikeService {
         }
       });
       
-      if (!defaultPlan) return null;
+      if (!defaultPlan) {
+        // Aucun PricingPlan actif → utiliser le tarif de base de la PricingConfig
+        const pricingConfig = await prisma.pricingConfig.findFirst({ where: { isActive: true } });
+        if (!pricingConfig) return null;
+        return {
+          hourlyRate: pricingConfig.baseHourlyRate,
+          originalHourlyRate: pricingConfig.baseHourlyRate,
+          unlockFee: pricingConfig.unlockFee,
+          appliedRule: null,
+          appliedPromotions: [],
+          pricingPlan: null,
+        };
+      }
       bike.pricingPlan = defaultPlan;
     }
 

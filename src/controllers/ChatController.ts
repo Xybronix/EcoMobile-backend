@@ -338,6 +338,22 @@ export class ChatController {
       });
     }
   }
+
+  async uploadAttachment(req: AuthRequest, res: express.Response): Promise<void> {
+    try {
+      const { base64 } = req.body;
+      if (!base64) {
+        res.status(400).json({ success: false, error: 'Données image manquantes' });
+        return;
+      }
+      const { ImageService } = require('../services/ImageService');
+      const imageService = new ImageService();
+      const url = await imageService.saveBase64Image(base64);
+      res.json({ success: true, data: { url } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message || 'Erreur lors de l\'upload' });
+    }
+  }
 }
 
 export default new ChatController();

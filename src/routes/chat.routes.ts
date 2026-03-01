@@ -29,6 +29,13 @@ router.get('/messages', ChatController.getMessages);
 router.delete('/messages/:id', ChatController.deleteMessage);
 
 /**
+ * @route   POST /api/v1/chat/attachments
+ * @desc    Upload a file/image attachment for chat
+ * @access  Private
+ */
+router.post('/attachments', ChatController.uploadAttachment);
+
+/**
  * @route   GET /api/v1/chat/conversations
  * @desc    Get all conversations (Admin only)
  * @access  Private/Admin

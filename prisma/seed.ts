@@ -195,6 +195,7 @@ async function main() {
     { name: 'employees:read', description: 'Voir les employés', resource: 'employees', action: 'read' },
     { name: 'employees:update', description: 'Modifier des employés', resource: 'employees', action: 'update' },
     { name: 'employees:delete', description: 'Supprimer des employés', resource: 'employees', action: 'delete' },
+    { name: 'employees:export', description: 'Exporter la liste des employés', resource: 'employees', action: 'export' },
     { name: 'employees:manage', description: 'Gestion complète des employés', resource: 'employees', action: 'manage' },
     { name: 'employees:reset_password', description: 'Réinitialiser le mot de passe d\'un employé', resource: 'employees', action: 'reset_password' },
 
@@ -253,7 +254,7 @@ async function main() {
     // Dashboard
     'admin:read', 'dashboard:read', 'dashboard:export',
     // Utilisateurs
-    'users:read', 'users:update', 'users:export', 'users:ban', 'users:verify',
+    'users:create', 'users:read', 'users:update', 'users:export', 'users:ban', 'users:verify',
     'users:reset_password', 'users:manage_deposit', 'users:manage_wallet',
     'users:view_documents', 'users:validate_documents',
     // Vélos
@@ -266,31 +267,34 @@ async function main() {
     // Maintenance
     'maintenance:create', 'maintenance:read', 'maintenance:update', 'maintenance:delete', 'maintenance:export',
     // Incidents
-    'incidents:read', 'incidents:update', 'incidents:export', 'incidents:resolve',
+    'incidents:create', 'incidents:read', 'incidents:update', 'incidents:delete', 'incidents:export', 'incidents:resolve',
     // Avis
-    'reviews:read', 'reviews:update', 'reviews:delete', 'reviews:export', 'reviews:moderate',
+    'reviews:create', 'reviews:read', 'reviews:update', 'reviews:delete', 'reviews:export', 'reviews:moderate',
     // Finances
-    'wallet:read', 'wallet:export', 'wallet:view_transactions',
+    'wallet:read', 'wallet:update', 'wallet:export', 'wallet:refund', 'wallet:charge', 'wallet:view_transactions',
     // Chat
     'chat:read', 'chat:create', 'chat:delete',
     // Notifications
-    'notifications:create', 'notifications:read', 'notifications:send_bulk',
+    'notifications:create', 'notifications:read', 'notifications:send_bulk', 'notifications:delete',
     // Journaux
-    'logs:read', 'logs:export',
+    'logs:read', 'logs:export', 'logs:delete',
     // Rôles
-    'roles:read', 'roles:assign',
+    'roles:create', 'roles:read', 'roles:update', 'roles:delete', 'roles:assign',
     // Permissions
-    'permissions:read',
+    'permissions:read', 'permissions:manage',
     // Employés
-    'employees:read',
+    'employees:create', 'employees:read', 'employees:update', 'employees:delete',
+    'employees:export', 'employees:reset_password',
     // Abonnements
-    'subscriptions:read', 'subscriptions:export',
+    'subscriptions:create', 'subscriptions:read', 'subscriptions:update', 'subscriptions:delete', 'subscriptions:export',
     // Documents
-    'documents:read', 'documents:validate',
+    'documents:read', 'documents:update', 'documents:delete', 'documents:validate',
     // Monitoring
-    'monitoring:read',
+    'monitoring:read', 'monitoring:manage',
     // Tarification
-    'pricing:read',
+    'pricing:read', 'pricing:create', 'pricing:update', 'pricing:delete', 'pricing:manage_free_days',
+    // Paramètres
+    'settings:read', 'settings:update',
   ];
   for (const permName of adminPermissions) {
     const permission = await prisma.permission.findUnique({ where: { name: permName } });
@@ -317,8 +321,11 @@ async function main() {
   const employeePermissions = [
     // Dashboard
     'admin:read', 'dashboard:read',
+    // Utilisateurs (lecture seulement)
+    'users:read',
     // Vélos
     'bikes:read', 'bikes:update', 'bikes:view_map', 'bikes:view_trips', 'bikes:view_maintenance',
+    'bikes:manage_actions',
     // Réservations
     'reservations:read',
     // Trajets
@@ -335,6 +342,10 @@ async function main() {
     'notifications:read',
     // Documents
     'documents:read',
+    // Tarification (lecture seulement)
+    'pricing:read',
+    // Abonnements (lecture seulement)
+    'subscriptions:read',
   ];
   for (const permName of employeePermissions) {
     const permission = await prisma.permission.findUnique({ where: { name: permName } });

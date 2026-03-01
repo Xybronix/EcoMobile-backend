@@ -73,8 +73,13 @@ export class SessionRepository extends BaseRepository<Session> {
   }
 
   async getUserSessionsWithDetails(userId: string): Promise<any[]> {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    // Paramètre 1 = userId (WHERE), paramètre 2 = fiveMinutesAgo (CASE)
+    // Attention : pour MySQL/SQLite les ? sont positionnels dans l'ordre du SQL.
+    // On met d'abord la sous-requête WHERE (userId) puis le CASE (fiveMinutesAgo)
+    // en passant les params dans l'ordre d'apparition des ? dans le texte SQL.
     const sql = `
-      SELECT 
+      SELECT
         id,
         device,
         location,
@@ -82,18 +87,24 @@ export class SessionRepository extends BaseRepository<Session> {
         userAgent,
         updatedAt,
         createdAt,
-        CASE 
-          WHEN updatedAt > ${this.getPlaceholder(2)} THEN true 
-          ELSE false 
+        CASE
+          WHEN updatedAt > ${this.getPlaceholder(2)} THEN true
+          ELSE false
         END as current
-      FROM ${this.tableName} 
-      WHERE userId = ${this.getPlaceholder(1)} 
-        AND isActive = true 
+      FROM ${this.tableName}
+      WHERE userId = ${this.getPlaceholder(1)}
+        AND isActive = true
       ORDER BY updatedAt DESC
     `;
-    
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const sessions = await this.executeQuery(sql, [userId, fiveMinutesAgo]);
+
+    // Pour PostgreSQL : $1=userId, $2=fiveMinutesAgo → ordre params [userId, fiveMinutesAgo] ✓
+    // Pour MySQL/SQLite : 1er ? apparaît dans CASE, 2e ? dans WHERE
+    //   → on doit passer [fiveMinutesAgo, userId] pour respecter l'ordre positionnel
+    const params = this.db.type === 'postgres'
+      ? [userId, fiveMinutesAgo]
+      : [fiveMinutesAgo, userId];
+
+    const sessions = await this.executeQuery(sql, params);
     
     return sessions.map((session: { id: any; userAgent: string | undefined; location: any; updatedAt: Date; current: any; ipAddress: any; }) => ({
       id: session.id,

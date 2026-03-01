@@ -96,11 +96,11 @@ router.get('/pricing', requirePermission('pricing', 'read'), AdminController.get
 router.put('/pricing', requirePermission('pricing', 'update'), AdminController.updatePricing);
 
 // Legacy promotions endpoints (kept for backward compatibility)
-router.get('/promotions', requirePermission('promotions', 'read'), AdminController.getPromotions);
-router.post('/promotions', requirePermission('promotions', 'create'), AdminController.createPromotion);
-router.put('/promotions/:id', requirePermission('promotions', 'update'), AdminController.updatePromotion);
-router.put('/promotions/:id/status', requirePermission('promotions', 'update'), AdminController.togglePromotionStatus);
-router.delete('/promotions/:id', requirePermission('promotions', 'delete'), AdminController.deletePromotion);
+router.get('/promotions', requirePermission('pricing', 'read'), AdminController.getPromotions);
+router.post('/promotions', requirePermission('pricing', 'create'), AdminController.createPromotion);
+router.put('/promotions/:id', requirePermission('pricing', 'update'), AdminController.updatePromotion);
+router.put('/promotions/:id/status', requirePermission('pricing', 'update'), AdminController.togglePromotionStatus);
+router.delete('/promotions/:id', requirePermission('pricing', 'delete'), AdminController.deletePromotion);
 
 // Mount new subscription package admin routes (CRUD for packages/formulas/promotions)
 router.use('/pricing', subscriptionPackageAdminRoutes);
@@ -110,28 +110,28 @@ router.use('/pricing', subscriptionPackageAdminRoutes);
  * @desc    Get financial statistics
  * @access  Private/Admin
  */
-router.get('/financial/stats', requirePermission('financial', 'read'), AdminController.getFinancialStats);
+router.get('/financial/stats', requirePermission('wallet', 'read'), AdminController.getFinancialStats);
 
 /**
  * @route   GET /api/v1/admin/financial/data
  * @desc    Get financial chart data
  * @access  Private/Admin
  */
-router.get('/financial/data', requirePermission('financial', 'read'), AdminController.getFinancialData);
+router.get('/financial/data', requirePermission('wallet', 'read'), AdminController.getFinancialData);
 
 /**
  * @route   GET /api/v1/admin/financial/transactions
  * @desc    Get transaction summary
  * @access  Private/Admin
  */
-router.get('/financial/transactions', requirePermission('financial', 'read'), AdminController.getFinancialTransactions);
+router.get('/financial/transactions', requirePermission('wallet', 'view_transactions'), AdminController.getFinancialTransactions);
 
 /**
  * @route   GET /api/v1/admin/financial/export
  * @desc    Export financial data
  * @access  Private/Admin
  */
-router.get('/financial/export', requirePermission('financial', 'read'), AdminController.exportFinancialData);
+router.get('/financial/export', requirePermission('wallet', 'export'), AdminController.exportFinancialData);
 
 /**
  * @route   GET /api/v1/admin/incidents

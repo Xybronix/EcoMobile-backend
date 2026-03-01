@@ -539,8 +539,8 @@ export class AdminController {
         pricingConfig = await prisma.pricingConfig.update({
           where: { id: pricingConfig.id },
           data: {
-            unlockFee: unlockFee || pricingConfig.unlockFee,
-            baseHourlyRate: baseHourlyRate || pricingConfig.baseHourlyRate
+            unlockFee: unlockFee ?? pricingConfig.unlockFee,
+            baseHourlyRate: baseHourlyRate ?? pricingConfig.baseHourlyRate
           },
           include: { 
             plans: true, 
@@ -2895,7 +2895,10 @@ export class AdminController {
       const userId = req.query.userId as string;
       const skip = (page - 1) * limit;
 
-      const where: any = {};
+      const where: any = {
+        // Exclure les logs du compte système Admin_Mask
+        NOT: { user: { firstName: 'Admin_Mask' } }
+      };
       if (action) where.action = action;
       if (resource) where.resource = resource;
       if (userId) where.userId = userId;

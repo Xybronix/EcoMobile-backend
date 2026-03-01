@@ -536,10 +536,10 @@ class IncidentController {
         });
       }
 
-      if (amount <= 0) {
+      if (amount === 0) {
         return res.status(400).json({
           success: false,
-          message: 'Le montant doit être supérieur à 0'
+          message: 'Le montant ne peut pas être zéro'
         });
       }
 
@@ -572,6 +572,9 @@ class IncidentController {
         }
       }
 
+      const isRefund = amount < 0;
+      const absAmount = Math.abs(amount);
+
       // Créer d'abord l'incident pour avoir son ID
       const incident = await prisma.incident.create({
         data: {
@@ -583,7 +586,9 @@ class IncidentController {
           status: 'CLOSED',
           resolvedAt: new Date(),
           resolvedBy: adminId,
-          adminNote: `Charge de ${amount} FCFA affectée par l'administrateur`,
+          adminNote: isRefund
+            ? `Remboursement de ${absAmount} FCFA effectué par l'administrateur`
+            : `Charge de ${absAmount} FCFA affectée par l'administrateur`,
           refundAmount: amount
         },
         include: {
@@ -596,40 +601,55 @@ class IncidentController {
         }
       });
 
-      // Utiliser le service de wallet pour appliquer la charge (avec l'ID de l'incident dans les métadonnées)
-      const result = await WalletService.chargeDamage(
-        userId,
-        amount,
-        `${reason}${description ? ': ' + description : ''}`,
-        images,
-        adminId,
-        incident.id // Passer l'ID de l'incident
-      );
+      let resultData: any;
+
+      if (isRefund) {
+        // Montant négatif → créditer le wallet (remboursement)
+        const walletBalance = await WalletService.addFunds(
+          userId,
+          absAmount,
+          'refund',
+          { incidentId: incident.id, adminId, reason }
+        );
+        resultData = {
+          incident,
+          newWalletBalance: walletBalance.balance
+        };
+      } else {
+        // Montant positif → déduire de la caution (charge normale)
+        const result = await WalletService.chargeDamage(
+          userId,
+          absAmount,
+          `${reason}${description ? ': ' + description : ''}`,
+          images,
+          adminId,
+          incident.id
+        );
+        resultData = {
+          incident,
+          transaction: result.transaction,
+          newDepositBalance: result.wallet.deposit
+        };
+      }
 
       await logActivity(
         adminId,
         'CREATE',
         'ADMIN_CHARGE',
         incident.id,
-        `Admin charged user ${userId} with ${amount} FCFA`,
-        { 
-          userId, 
-          bikeId, 
-          amount, 
-          reason, 
-          transactionId: result.transaction.id 
-        },
+        isRefund
+          ? `Admin refunded user ${userId} with ${absAmount} FCFA`
+          : `Admin charged user ${userId} with ${absAmount} FCFA`,
+        { userId, bikeId, amount, reason, isRefund },
         req
       );
 
       return res.status(201).json({
         success: true,
-        message: `Charge de ${amount} FCFA affectée avec succès`,
-        data: {
-          incident,
-          transaction: result.transaction,
-          newDepositBalance: result.wallet.deposit
-        }
+        message: isRefund
+          ? `Remboursement de ${absAmount} FCFA crédité avec succès`
+          : `Charge de ${absAmount} FCFA affectée avec succès`,
+        data: resultData
       });
     } catch (error: any) {
       return res.status(500).json({

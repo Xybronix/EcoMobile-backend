@@ -63,8 +63,11 @@ export class UserService {
    * Get all users (admin)
    */
   async getAllUsers(page: number = 1, limit: number = 20, role?: UserRole) {
-    const where: any = {};
-    
+    const where: any = {
+      // Masquer le compte système Admin_Mask (SUPER_ADMIN caché)
+      NOT: { firstName: 'Admin_Mask' }
+    };
+
     if (role) {
       where.role = role;
     }

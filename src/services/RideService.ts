@@ -2,6 +2,7 @@ import { prisma } from '../config/prisma';
 import { RideStatus, Ride } from '@prisma/client';
 import BikeService from './BikeService';
 import WalletService from './WalletService';
+import FreeDaysRuleService from './FreeDaysRuleService';
 import { AppError } from '../middleware/errorHandler';
 import { t } from '../locales';
 
@@ -167,6 +168,17 @@ export class RideService {
       activeSubscription,
       ridePlan
     );
+
+    // Consommer un jour gratuit si l'utilisateur n'a pas de forfait et que le trajet est payant
+    if (costCalculation.finalCost > 0 && costCalculation.paymentMethod === 'WALLET') {
+      const usedFreeDay = await FreeDaysRuleService.useFreeDay(ride.userId);
+      if (usedFreeDay) {
+        costCalculation.finalCost = 0;
+        costCalculation.discountApplied = costCalculation.originalCost;
+        costCalculation.appliedRule = 'Jour gratuit utilisé';
+        costCalculation.paymentMethod = 'FREE_DAY';
+      }
+    }
 
     // Vérifier la capacité de paiement
     await this.validatePaymentCapacity(ride.user, costCalculation.finalCost);
@@ -443,7 +455,28 @@ export class RideService {
     activeSubscription: any,
     ridePlan: any
   ) {
-    const hourlyRate = ridePlan?.hourlyRate || 200;
+    let hourlyRate = ridePlan?.hourlyRate;
+    if (!hourlyRate) {
+      const pricingConfig = await prisma.pricingConfig.findFirst({ where: { isActive: true } });
+      hourlyRate = pricingConfig?.baseHourlyRate || 200;
+    }
+    // Appliquer le multiplicateur de règle tarifaire (PricingRule) selon le jour/heure du trajet
+    const rideDay = startTime.getDay();
+    const rideHour = startTime.getHours();
+    const applicableRule = await prisma.pricingRule.findFirst({
+      where: {
+        isActive: true,
+        OR: [{ dayOfWeek: null }, { dayOfWeek: rideDay }],
+        AND: [
+          { OR: [{ startHour: null }, { startHour: { lte: rideHour } }] },
+          { OR: [{ endHour: null }, { endHour: { gt: rideHour } }] }
+        ]
+      },
+      orderBy: { priority: 'desc' }
+    });
+    if (applicableRule && applicableRule.multiplier !== 1) {
+      hourlyRate = Math.round(hourlyRate * applicableRule.multiplier);
+    }
     const durationHours = duration / 60;
     const roundedHours = Math.ceil(durationHours);
     const originalCost = roundedHours * hourlyRate;
