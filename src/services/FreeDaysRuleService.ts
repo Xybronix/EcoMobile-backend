@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/prisma';
 
 // Date sentinelle = forfait non encore activé par l'utilisateur
 const NOT_YET_ACTIVATED = new Date('2099-01-01T00:00:00.000Z');
+// Placeholder expiresAt tant que le forfait n'est pas activé (sera recalculé à l'activation)
+const EXPIRES_PLACEHOLDER = new Date('2099-12-31T23:59:59.999Z');
 
 export interface CreateFreeDaysRuleData {
   name: string;
@@ -97,10 +97,10 @@ class FreeDaysRuleService {
   }
 
   /**
-   * Mettre à jour une règle (on ne touche pas startType)
+   * Mettre à jour une règle et propager le changement de numberOfDays aux bénéficiaires
    */
   async updateRule(id: string, data: UpdateFreeDaysRuleData) {
-    return await prisma.freeDaysRule.update({
+    const rule = await prisma.freeDaysRule.update({
       where: { id },
       data: {
         name: data.name,
@@ -117,6 +117,39 @@ class FreeDaysRuleService {
         maxBeneficiaries: data.maxBeneficiaries,
       },
     });
+
+    // Propager le changement de numberOfDays aux bénéficiaires existants
+    if (data.numberOfDays !== undefined) {
+      const beneficiaries = await prisma.freeDaysBeneficiary.findMany({
+        where: { ruleId: id },
+      });
+
+      for (const b of beneficiaries) {
+        const daysUsed = b.daysGranted - b.daysRemaining;
+
+        if (daysUsed >= data.numberOfDays) {
+          // L'utilisateur a déjà consommé autant ou plus que le nouveau plafond
+          // On ne facture pas rétroactivement — on marque juste le forfait comme épuisé
+          await prisma.freeDaysBeneficiary.update({
+            where: { id: b.id },
+            data: { daysGranted: data.numberOfDays, daysRemaining: 0, isActive: false },
+          });
+        } else {
+          const newRemaining = data.numberOfDays - daysUsed;
+          await prisma.freeDaysBeneficiary.update({
+            where: { id: b.id },
+            data: {
+              daysGranted: data.numberOfDays,
+              daysRemaining: newRemaining,
+              // Réactiver si le forfait était épuisé et que le nouveau nombre est plus grand
+              isActive: newRemaining > 0,
+            },
+          });
+        }
+      }
+    }
+
+    return rule;
   }
 
   /**
@@ -154,9 +187,7 @@ class FreeDaysRuleService {
       throw new Error('Le nombre maximum de bénéficiaires a été atteint');
     }
 
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + rule.numberOfDays);
-
+    // expiresAt sera recalculé à l'activation par l'utilisateur
     // Créer le bénéficiaire — en attente d'activation par l'utilisateur
     const beneficiary = await prisma.freeDaysBeneficiary.create({
       data: {
@@ -165,7 +196,7 @@ class FreeDaysRuleService {
         daysGranted: rule.numberOfDays,
         daysRemaining: rule.numberOfDays,
         startDate: NOT_YET_ACTIVATED,
-        expiresAt,
+        expiresAt: EXPIRES_PLACEHOLDER,
         subscriptionPausedAt: null,
       },
     });
@@ -195,9 +226,14 @@ class FreeDaysRuleService {
       throw new Error('Ce forfait est déjà activé');
     }
 
+    // Recalculer expiresAt depuis la date d'activation (pas de création)
+    const activationDate = new Date();
+    const expiresAt = new Date(activationDate);
+    expiresAt.setDate(expiresAt.getDate() + beneficiary.daysGranted);
+
     return await prisma.freeDaysBeneficiary.update({
       where: { id: beneficiaryId },
-      data: { startDate: new Date() },
+      data: { startDate: activationDate, expiresAt },
     });
   }
 
@@ -254,9 +290,6 @@ class FreeDaysRuleService {
       if (rule.validFrom && rule.validFrom > new Date()) continue;
       if (rule.validUntil && rule.validUntil < new Date()) continue;
 
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + rule.numberOfDays);
-
       await prisma.freeDaysBeneficiary.create({
         data: {
           ruleId: rule.id,
@@ -264,7 +297,7 @@ class FreeDaysRuleService {
           daysGranted: rule.numberOfDays,
           daysRemaining: rule.numberOfDays,
           startDate: NOT_YET_ACTIVATED,
-          expiresAt,
+          expiresAt: EXPIRES_PLACEHOLDER,
         },
       });
 
@@ -308,9 +341,6 @@ class FreeDaysRuleService {
 
         if (rule.maxBeneficiaries && rule.currentBeneficiaries >= rule.maxBeneficiaries) break;
 
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + rule.numberOfDays);
-
         await prisma.freeDaysBeneficiary.create({
           data: {
             ruleId: rule.id,
@@ -318,7 +348,7 @@ class FreeDaysRuleService {
             daysGranted: rule.numberOfDays,
             daysRemaining: rule.numberOfDays,
             startDate: NOT_YET_ACTIVATED,
-            expiresAt,
+            expiresAt: EXPIRES_PLACEHOLDER,
           },
         });
 
@@ -331,60 +361,97 @@ class FreeDaysRuleService {
   }
 
   /**
-   * Utiliser un jour gratuit (uniquement sur les forfaits activés par l'utilisateur)
+   * Appliquer un jour gratuit pour un trajet terminé.
+   * - Vérifie si le trajet a commencé dans la plage horaire de la règle (lue dynamiquement).
+   * - Calcule l'éventuel overtime : heures après la fin de la plage → facturées au taux horaire.
+   * - Décrémente daysRemaining et désactive le bénéficiaire si épuisé.
+   *
+   * @param userId
+   * @param rideStartTime  heure de début du trajet (datetime complet)
+   * @param rideEndTime    heure de fin du trajet (datetime complet)
+   * @param hourlyRate     tarif horaire (XAF/h) pour calculer l'overtime
    */
-  async useFreeDay(userId: string): Promise<boolean> {
-    const beneficiary = await prisma.freeDaysBeneficiary.findFirst({
+  async applyFreeDay(
+    userId: string,
+    rideStartTime: Date,
+    rideEndTime: Date,
+    hourlyRate: number,
+  ): Promise<{ applied: boolean; overtimeCost: number; ruleName: string }> {
+    const beneficiaries = await prisma.freeDaysBeneficiary.findMany({
       where: {
         userId,
         isActive: true,
         daysRemaining: { gt: 0 },
-        startDate: { lte: new Date() }, // Seulement les forfaits activés par l'utilisateur
-        expiresAt: { gt: new Date() },
+        startDate: { lte: rideEndTime },     // forfait activé avant la fin du trajet
+        expiresAt: { gt: rideStartTime },    // pas encore expiré au début du trajet
+      },
+      include: {
+        rule: { select: { name: true, startHour: true, endHour: true } },
       },
       orderBy: { expiresAt: 'asc' },
     });
 
+    // Chercher un bénéficiaire dont la plage couvre l'heure de début du trajet
+    // La plage est lue dynamiquement → un changement admin s'applique immédiatement
+    const rideStartHour = rideStartTime.getHours();
+    const beneficiary = beneficiaries.find((b) => {
+      const { startHour, endHour } = b.rule;
+      if (startHour == null || endHour == null) return true; // pas de restriction horaire
+      return rideStartHour >= startHour && rideStartHour < endHour;
+    }) ?? null;
+
     if (!beneficiary) {
-      return false;
+      return { applied: false, overtimeCost: 0, ruleName: '' };
     }
 
+    // Calculer l'overtime : temps après la fin de la plage gratuite
+    const { endHour } = beneficiary.rule;
+    let overtimeCost = 0;
+    if (endHour != null) {
+      // Construire la datetime "fin de plage" le même jour que le trajet
+      const endOfFreeWindow = new Date(rideStartTime);
+      endOfFreeWindow.setHours(endHour, 0, 0, 0);
+      // Si la borne de fin est déjà dépassée au moment du départ (ne devrait pas arriver
+      // car on a vérifié rideStartHour < endHour, mais garde-fou par sécurité)
+      if (endOfFreeWindow <= rideStartTime) {
+        endOfFreeWindow.setDate(endOfFreeWindow.getDate() + 1);
+      }
+      if (rideEndTime > endOfFreeWindow) {
+        const overtimeMs = rideEndTime.getTime() - endOfFreeWindow.getTime();
+        const overtimeHours = overtimeMs / (1000 * 60 * 60);
+        overtimeCost = Math.ceil(overtimeHours) * hourlyRate;
+      }
+    }
+
+    // Décrémenter le compteur de jours
     await prisma.freeDaysBeneficiary.update({
       where: { id: beneficiary.id },
-      data: {
-        daysRemaining: { decrement: 1 },
-      },
+      data: { daysRemaining: { decrement: 1 } },
     });
 
-    // Vérifier si tous les jours sont utilisés
+    // Désactiver si épuisé
     const updated = await prisma.freeDaysBeneficiary.findUnique({
       where: { id: beneficiary.id },
     });
-
     if (updated && updated.daysRemaining <= 0) {
       await prisma.freeDaysBeneficiary.update({
         where: { id: beneficiary.id },
-        data: {
-          isActive: false,
-          subscriptionResumedAt: null,
-        },
+        data: { isActive: false, subscriptionResumedAt: null },
       });
     }
 
-    return true;
+    return { applied: true, overtimeCost, ruleName: beneficiary.rule.name };
   }
 
   /**
    * Obtenir tous les forfaits gratuits d'un utilisateur (activés ET en attente d'activation)
    */
   async getUserFreeDays(userId: string) {
-    const now = new Date();
     return await prisma.freeDaysBeneficiary.findMany({
       where: {
         userId,
         isActive: true,
         daysRemaining: { gt: 0 },
-        expiresAt: { gt: now },
       },
       include: {
         rule: {
@@ -392,6 +459,8 @@ class FreeDaysRuleService {
             name: true,
             startHour: true,
             endHour: true,
+            validFrom: true,
+            validUntil: true,
           },
         },
       },

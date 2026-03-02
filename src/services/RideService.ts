@@ -169,14 +169,23 @@ export class RideService {
       ridePlan
     );
 
-    // Consommer un jour gratuit si l'utilisateur n'a pas de forfait et que le trajet est payant
-    if (costCalculation.finalCost > 0 && costCalculation.paymentMethod === 'WALLET') {
-      const usedFreeDay = await FreeDaysRuleService.useFreeDay(ride.userId);
-      if (usedFreeDay) {
-        costCalculation.finalCost = 0;
-        costCalculation.discountApplied = costCalculation.originalCost;
-        costCalculation.appliedRule = 'Jour gratuit utilisé';
-        costCalculation.paymentMethod = 'FREE_DAY';
+    // Appliquer un jour gratuit si l'utilisateur n'a pas de forfait payant
+    // La règle est lue dynamiquement → un changement admin s'applique immédiatement
+    if (costCalculation.paymentMethod === 'WALLET') {
+      const rideEndTime = new Date();
+      const freeDayResult = await FreeDaysRuleService.applyFreeDay(
+        ride.userId,
+        ride.startTime,
+        rideEndTime,
+        costCalculation.hourlyRate,
+      );
+      if (freeDayResult.applied) {
+        costCalculation.finalCost = freeDayResult.overtimeCost;
+        costCalculation.discountApplied = costCalculation.originalCost - freeDayResult.overtimeCost;
+        costCalculation.appliedRule = freeDayResult.overtimeCost > 0
+          ? `Jour gratuit (${freeDayResult.ruleName}) + overtime`
+          : `Jour gratuit (${freeDayResult.ruleName})`;
+        costCalculation.paymentMethod = freeDayResult.overtimeCost > 0 ? 'FREE_DAY_OVERTIME' : 'FREE_DAY';
       }
     }
 
@@ -247,11 +256,17 @@ export class RideService {
       await BikeService.updateBikeLocation(ride.bikeId, endLocation.latitude, endLocation.longitude);
 
       // Notification avec détails du pricing
-      const notificationMessage = costCalculation.finalCost === 0
-        ? `Trajet terminé (${duration} min, ${distance.toFixed(2)} km). Inclus dans votre forfait ${activeSubscription?.planName}!`
-        : costCalculation.discountApplied > 0
-        ? `Trajet terminé (${duration} min, ${distance.toFixed(2)} km). Coût: ${costCalculation.finalCost} XAF (économie: ${costCalculation.discountApplied} XAF)`
-        : `Trajet terminé (${duration} min, ${distance.toFixed(2)} km). Coût: ${costCalculation.finalCost} XAF`;
+      const rideInfo = `${duration} min, ${distance.toFixed(2)} km`;
+      const notificationMessage =
+        costCalculation.paymentMethod === 'FREE_DAY'
+          ? `Trajet terminé (${rideInfo}). Trajet gratuit — jour gratuit utilisé.`
+          : costCalculation.paymentMethod === 'FREE_DAY_OVERTIME'
+          ? `Trajet terminé (${rideInfo}). Jour gratuit utilisé + ${costCalculation.finalCost} XAF d'overtime (dépassement de la plage horaire).`
+          : costCalculation.finalCost === 0
+          ? `Trajet terminé (${rideInfo}). Inclus dans votre forfait ${activeSubscription?.planName}!`
+          : costCalculation.discountApplied > 0
+          ? `Trajet terminé (${rideInfo}). Coût: ${costCalculation.finalCost} XAF (économie: ${costCalculation.discountApplied} XAF)`
+          : `Trajet terminé (${rideInfo}). Coût: ${costCalculation.finalCost} XAF`;
 
       await prisma.notification.create({
         data: {
@@ -530,7 +545,8 @@ export class RideService {
       paymentMethod,
       hasActiveSubscription: !!activeSubscription,
       roundedHours,
-      extraHours: activeSubscription ? Math.max(0, roundedHours - 1) : roundedHours
+      extraHours: activeSubscription ? Math.max(0, roundedHours - 1) : roundedHours,
+      hourlyRate,
     };
   }
 
