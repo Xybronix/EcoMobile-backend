@@ -758,14 +758,15 @@ class IncidentController {
       }
 
       // Récupérer la transaction associée pour mettre à jour le montant si nécessaire
+      // Les charges positives sont DAMAGE_CHARGE, les remboursements (négatifs) sont REFUND
       const allTransactions = await prisma.transaction.findMany({
         where: {
           wallet: { userId: incident.userId },
-          type: 'DAMAGE_CHARGE' as any
+          type: { in: ['DAMAGE_CHARGE', 'REFUND'] as any }
         },
         orderBy: { createdAt: 'desc' }
       });
-      
+
       // Trouver la transaction avec l'incidentId dans les métadonnées
       const transaction = allTransactions.find(t => {
         const metadata = t.metadata as any;
@@ -774,37 +775,60 @@ class IncidentController {
 
       // Si le montant change, mettre à jour la transaction et le wallet
       if (amount && transaction) {
-        const oldAmount = Math.abs(transaction.amount);
         const newAmount = parseFloat(amount);
-        const difference = newAmount - oldAmount;
+        const isRefundTransaction = (transaction.type as string) === 'REFUND';
+        // Pour DAMAGE_CHARGE : amount stocké est négatif (déduction), oldAmount = abs(amount)
+        // Pour REFUND : amount stocké est positif (ajout au balance), oldAmount = amount
+        const oldAmount = isRefundTransaction ? transaction.amount : Math.abs(transaction.amount);
+        const newAbsAmount = Math.abs(newAmount);
+        const newIsRefund = newAmount < 0;
 
-        if (difference !== 0) {
+        if (oldAmount !== newAbsAmount || isRefundTransaction !== newIsRefund) {
           const wallet = await prisma.wallet.findUnique({
             where: { userId: incident.userId }
           });
 
           if (wallet) {
+            // Annuler l'effet de l'ancienne transaction sur le wallet
+            if (isRefundTransaction) {
+              // Ancienne transaction était un remboursement → annuler en déduisant du balance
+              await prisma.wallet.update({
+                where: { id: wallet.id },
+                data: { balance: { increment: -oldAmount } }
+              });
+            } else {
+              // Ancienne transaction était une charge → annuler en remboursant la caution
+              await prisma.wallet.update({
+                where: { id: wallet.id },
+                data: { deposit: { increment: oldAmount } }
+              });
+            }
+
+            // Appliquer le nouvel effet
+            if (newIsRefund) {
+              await prisma.wallet.update({
+                where: { id: wallet.id },
+                data: { balance: { increment: newAbsAmount } }
+              });
+            } else {
+              await prisma.wallet.update({
+                where: { id: wallet.id },
+                data: { deposit: { increment: -newAbsAmount } }
+              });
+            }
+
             // Mettre à jour la transaction
             await prisma.transaction.update({
               where: { id: transaction.id },
               data: {
-                amount: -newAmount,
-                totalAmount: -newAmount,
+                type: newIsRefund ? 'REFUND' as any : 'DAMAGE_CHARGE' as any,
+                amount: newIsRefund ? newAbsAmount : -newAbsAmount,
+                totalAmount: newIsRefund ? newAbsAmount : -newAbsAmount,
                 metadata: {
                   ...(transaction.metadata as any),
                   amount: newAmount,
                   reason: reason || (transaction.metadata as any)?.reason,
                   description: description || (transaction.metadata as any)?.description
-                }
-              }
-            });
-
-            // Ajuster le solde de la caution
-            await prisma.wallet.update({
-              where: { id: wallet.id },
-              data: {
-                deposit: {
-                  increment: -difference // Si différence positive, on déduit plus, sinon on rembourse
                 }
               }
             });

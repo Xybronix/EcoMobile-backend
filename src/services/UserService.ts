@@ -299,10 +299,28 @@ export class UserService {
   /**
    * Activate/Deactivate user (admin only)
    */
-  async toggleUserStatus(userId: string, isActive: boolean): Promise<User> {
+  async toggleUserStatus(userId: string, isActive: boolean, adminId?: string): Promise<User> {
+    const data: any = { isActive, status: isActive ? 'active' : 'blocked' };
+    
+    if (isActive) {
+      // Déblocage avec durée illimitée (100 ans dans le futur)
+      const distantFutureDate = new Date();
+      distantFutureDate.setFullYear(distantFutureDate.getFullYear() + 100);
+      data.depositExemptionUntil = distantFutureDate;
+      if (adminId) {
+        data.depositExemptionGrantedBy = adminId;
+      }
+      data.depositExemptionGrantedAt = new Date();
+    } else {
+      // Annulation de l'exemption quand on bloque
+      data.depositExemptionUntil = null;
+      data.depositExemptionGrantedBy = null;
+      data.depositExemptionGrantedAt = null;
+    }
+
     return await prisma.user.update({
       where: { id: userId },
-      data: { isActive, status: isActive ? 'active' : 'blocked' }
+      data
     });
   }
 

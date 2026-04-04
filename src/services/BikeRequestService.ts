@@ -3,6 +3,7 @@ import { RequestStatus, BikeStatus } from '@prisma/client';
 import NotificationService from './NotificationService';
 import { imageService } from './ImageService';
 import PricingTierService from './PricingTierService';
+import FreeDaysRuleService from './FreeDaysRuleService';
 
 export class BikeRequestService {
   private notificationService: NotificationService;
@@ -365,6 +366,30 @@ export class BikeRequestService {
             ridePlan
           );
 
+          // Appliquer un jour gratuit si l'utilisateur n'a pas de forfait payant
+          // (même logique que RideService.endRide)
+          if (costCalculation.paymentMethod === 'WALLET') {
+            const rideEndTime = new Date();
+            const pricingConfig = await prisma.pricingConfig.findFirst({ where: { isActive: true } });
+            if (pricingConfig) {
+              const freeDayResult = await FreeDaysRuleService.applyFreeDay(
+                request.userId,
+                ride.startTime,
+                rideEndTime,
+                pricingConfig.baseHourlyRate,
+              );
+              if (freeDayResult.applied) {
+                costCalculation.finalCost = freeDayResult.overtimeCost;
+                costCalculation.discountApplied = costCalculation.originalCost - freeDayResult.overtimeCost;
+                costCalculation.appliedRule = freeDayResult.overtimeCost > 0
+                  ? `Jour gratuit (${freeDayResult.ruleName}) + overtime`
+                  : `Jour gratuit (${freeDayResult.ruleName})`;
+                costCalculation.paymentMethod = freeDayResult.overtimeCost > 0 ? 'FREE_DAY_OVERTIME' : 'FREE_DAY';
+              }
+            }
+          }
+          console.log(`[BILLING] ══ COÛT FINAL approveLockRequest: finalCost=${costCalculation.finalCost} paymentMethod=${costCalculation.paymentMethod} appliedRule="${costCalculation.appliedRule}"`);
+
           // Mettre à jour le trajet
           rideResult = await tx.ride.update({
             where: { id: request.rideId },
@@ -524,7 +549,31 @@ export class BikeRequestService {
 
     if (activeSubscription) {
       hasActiveSubscription = true;
-      isOvertime = await this.checkIfOvertime(startTime, activeSubscription.packageType, activeSubscription?.planId || undefined);
+      const hour = startTime.getHours();
+
+      if (activeSubscription.hasFormula) {
+        // Nouveau système SubscriptionFormula :
+        // - dayStartHour/dayEndHour null → pas de restriction horaire → jamais overtime
+        // - dayStartHour/dayEndHour définis → vérifier la plage
+        if (activeSubscription.dayStartHour !== null && activeSubscription.dayStartHour !== undefined) {
+          const start = activeSubscription.dayStartHour as number;
+          const end = activeSubscription.dayEndHour as number;
+          if (start <= end) {
+            isOvertime = !(hour >= start && hour < end);
+          } else { // plage qui traverse minuit (ex: 22h-06h)
+            isOvertime = !(hour >= start || hour < end);
+          }
+          console.log(`[BILLING]   overtime via formule dayStartHour=${start} dayEndHour=${end} hour=${hour} → isOvertime=${isOvertime}`);
+        } else {
+          // Formule sans restriction horaire = toujours couvert
+          isOvertime = false;
+          console.log(`[BILLING]   formule sans restriction horaire (dayStartHour=null) → isOvertime=false`);
+        }
+      } else {
+        // Ancien système PricingPlan → PlanOverride ou valeurs par défaut
+        isOvertime = await this.checkIfOvertime(startTime, activeSubscription.packageType, activeSubscription?.planId || undefined);
+        console.log(`[BILLING]   overtime via checkIfOvertime (ancien système) → isOvertime=${isOvertime}`);
+      }
 
       if (isOvertime) {
         const overrideRule = activeSubscription.planId ? await this.getOverrideRule(activeSubscription.planId) : null;
@@ -657,7 +706,10 @@ export class BikeRequestService {
         planId: activeReservation.planId,
         planName: activeReservation.plan.name,
         packageType: activeReservation.packageType,
-        type: 'RESERVATION'
+        type: 'RESERVATION',
+        formulaType: 'TIME_WINDOW',
+        dayStartHour: null as number | null,
+        dayEndHour: null as number | null,
       };
     }
 
@@ -668,16 +720,27 @@ export class BikeRequestService {
         startDate: { lte: new Date() },
         endDate: { gte: new Date() }
       },
-      include: { plan: { include: { overrides: true } } }
+      include: {
+        plan: { include: { overrides: true } },
+        formula: true,
+        package: true,
+      }
     });
 
     if (activeSubscription) {
+      const formula = activeSubscription.formula as any;
       return {
         id: activeSubscription.id,
         planId: activeSubscription.planId,
-        planName: activeSubscription.plan?.name || 'Unknown',
+        planName: activeSubscription.plan?.name || (activeSubscription.package as any)?.name || 'Unknown',
         packageType: activeSubscription.type,
-        type: 'SUBSCRIPTION'
+        type: 'SUBSCRIPTION',
+        hasFormula: !!formula,                              // true si nouveau système SubscriptionFormula
+        formulaType: formula?.formulaType ?? 'TIME_WINDOW',
+        dayStartHour: (formula?.dayStartHour ?? null) as number | null,
+        dayEndHour: (formula?.dayEndHour ?? null) as number | null,
+        maxRideDurationHours: formula?.maxRideDurationHours ?? null,
+        usedRideMinutes: (activeSubscription as any).usedRideMinutes ?? 0,
       };
     }
 

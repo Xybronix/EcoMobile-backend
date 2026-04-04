@@ -693,6 +693,7 @@ model FreeDaysBeneficiary {
   expiresAt             DateTime
   isActive              Boolean   @default(true)
   appliedAt             DateTime  @default(now())
+  lastFreeDayUsedAt     DateTime? // Date de la dernière journée gratuite consommée (pour éviter plusieurs décréments le même jour)
   subscriptionPausedAt  DateTime?
   subscriptionResumedAt DateTime?
   createdAt             DateTime  @default(now())

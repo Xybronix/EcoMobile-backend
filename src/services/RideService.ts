@@ -572,7 +572,26 @@ export class RideService {
       const calc = await PricingTierService.calculateRideCost(duration, startTime, endTime);
       originalCost = calc.totalCost;
 
-      isOvertime = await this.checkIfOvertime(startTime, activeSubscription.packageType, activeSubscription.planId);
+      // Priorité : plage horaire de la formule (nouveau système SubscriptionFormula)
+      // Fallback : PlanOverride ou valeurs par défaut (ancien système PricingPlan)
+      const sub = activeSubscription as any;
+      if (sub.hasFormula) {
+        if (sub.dayStartHour !== null && sub.dayStartHour !== undefined) {
+          const hour = startTime.getHours();
+          const start = sub.dayStartHour as number;
+          const end = sub.dayEndHour as number;
+          if (start <= end) {
+            isOvertime = !(hour >= start && hour < end);
+          } else {
+            isOvertime = !(hour >= start || hour < end);
+          }
+        } else {
+          // Formule sans restriction horaire = toujours couvert
+          isOvertime = false;
+        }
+      } else {
+        isOvertime = await this.checkIfOvertime(startTime, activeSubscription.packageType, activeSubscription.planId);
+      }
 
       if (isOvertime) {
         const overrideRule = await this.getOverrideRule(activeSubscription.planId);
@@ -742,7 +761,7 @@ export class RideService {
         planName: activeSubscription.plan?.name || activeSubscription.package?.name || 'Unknown',
         packageType: activeSubscription.type,
         type: 'SUBSCRIPTION',
-        // Champs formule nouveau système
+        hasFormula: !!formula,
         formulaType: formula?.formulaType ?? 'TIME_WINDOW',
         maxRideDurationHours: formula?.maxRideDurationHours ?? null,
         dayStartHour: formula?.dayStartHour ?? null,

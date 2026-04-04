@@ -377,11 +377,32 @@ class FreeDaysRuleService {
     rideEndTime: Date,
     hourlyRate: number,
   ): Promise<{ applied: boolean; overtimeCost: number; ruleName: string }> {
+    // Début du jour calendaire du trajet (pour la logique "un jour = une journée, pas un trajet")
+    const todayStart = new Date(rideStartTime);
+    todayStart.setHours(0, 0, 0, 0);
+
+    // Désactivation paresseuse : nettoyer les bénéficiaires épuisés dont la dernière journée
+    // gratuite date d'avant aujourd'hui (ils sont visibles ce jour-là mais doivent être fermés après)
+    await prisma.freeDaysBeneficiary.updateMany({
+      where: {
+        userId,
+        isActive: true,
+        daysRemaining: { lte: 0 },
+        lastFreeDayUsedAt: { lt: todayStart },
+      },
+      data: { isActive: false },
+    });
+
     const beneficiaries = await prisma.freeDaysBeneficiary.findMany({
       where: {
         userId,
         isActive: true,
-        daysRemaining: { gt: 0 },
+        // Un bénéficiaire est éligible s'il lui reste des jours OU s'il a déjà été utilisé aujourd'hui
+        // (un jour gratuit = toute la journée, pas un seul trajet)
+        OR: [
+          { daysRemaining: { gt: 0 } },
+          { lastFreeDayUsedAt: { gte: todayStart } },
+        ],
         startDate: { lte: rideEndTime },     // forfait activé avant la fin du trajet
         expiresAt: { gt: rideStartTime },    // pas encore expiré au début du trajet
       },
@@ -423,20 +444,22 @@ class FreeDaysRuleService {
       }
     }
 
-    // Décrémenter le compteur de jours
-    await prisma.freeDaysBeneficiary.update({
-      where: { id: beneficiary.id },
-      data: { daysRemaining: { decrement: 1 } },
-    });
+    // Ne décrémenter qu'une seule fois par jour calendaire :
+    // si le bénéficiaire a déjà été utilisé aujourd'hui, on couvre le trajet sans consommer un jour supplémentaire
+    const rideDate = new Date(rideStartTime);
+    rideDate.setHours(0, 0, 0, 0);
+    const lastUsed = beneficiary.lastFreeDayUsedAt ? new Date(beneficiary.lastFreeDayUsedAt) : null;
+    if (lastUsed) lastUsed.setHours(0, 0, 0, 0);
+    const alreadyUsedToday = lastUsed !== null && lastUsed.getTime() === rideDate.getTime();
 
-    // Désactiver si épuisé
-    const updated = await prisma.freeDaysBeneficiary.findUnique({
-      where: { id: beneficiary.id },
-    });
-    if (updated && updated.daysRemaining <= 0) {
+    if (!alreadyUsedToday) {
+      // Première utilisation aujourd'hui : décrémenter et enregistrer la date
+      // On ne désactive PAS ici même si daysRemaining tombe à 0 :
+      // le forfait reste actif pour le reste de la journée (trajets suivants couverts).
+      // La désactivation paresseuse (updateMany en début de fonction) s'en chargera demain.
       await prisma.freeDaysBeneficiary.update({
         where: { id: beneficiary.id },
-        data: { isActive: false, subscriptionResumedAt: null },
+        data: { daysRemaining: { decrement: 1 }, lastFreeDayUsedAt: rideStartTime },
       });
     }
 
@@ -447,11 +470,18 @@ class FreeDaysRuleService {
    * Obtenir tous les forfaits gratuits d'un utilisateur (activés ET en attente d'activation)
    */
   async getUserFreeDays(userId: string) {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
     return await prisma.freeDaysBeneficiary.findMany({
       where: {
         userId,
         isActive: true,
-        daysRemaining: { gt: 0 },
+        // Afficher si jours restants > 0 OU si utilisé aujourd'hui (la journée en cours reste valide)
+        OR: [
+          { daysRemaining: { gt: 0 } },
+          { lastFreeDayUsedAt: { gte: todayStart } },
+        ],
       },
       include: {
         rule: {

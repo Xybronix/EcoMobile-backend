@@ -1231,7 +1231,7 @@ export class UserController {
       const { isActive } = req.body;
 
       const oldUser = await UserService.getUserById(id);
-      const user = await UserService.toggleUserStatus(id, isActive);
+      const user = await UserService.toggleUserStatus(id, isActive, req.user?.id);
       const { password, ...userWithoutPassword } = user;
 
       await logActivity(
