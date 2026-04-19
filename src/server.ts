@@ -22,30 +22,58 @@ import { i18nMiddleware } from './middleware/i18n';
 
 const app = express();
 
-// Trust Cloudflare Proxy
-app.set('trust proxy', 1);
+// Trust Cloudflare Proxy (Plus permissif)
+app.set('trust proxy', true);
+
+// 1. Log Interceptor (Pour debugger en production via Docker logs)
+app.use((req, _res, next) => {
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Proto: ${req.protocol} - Host: ${req.get('host')}`);
+  }
+  next();
+});
+
+// 2. Intercepteur manuel de requêtes OPTIONS (CORS Preflight)
+// On répond tout de suite 200 OK pour éviter toute redirection
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Accept-Language, Origin, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
 
 // CORS Configuration dynamique selon .env
 app.use(cors({
   origin: (origin, callback) => {
     // Permettre les requêtes sans origine (applications mobiles, Postman, etc.)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
     
     // En développement, tout permettre
     if (config.env === 'development') {
-      return callback(null, true);
+      callback(null, true);
+      return;
     }
     
     // En production, vérifier l'origine
     if (config.cors.origin.includes(origin) || config.cors.origin.includes('*')) {
-      return callback(null, true);
+      callback(null, true);
+      return;
     }
     
-    return callback(new Error('Not allowed by CORS'));
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Accept-Language', 'Origin', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Accept-Language', 'Origin', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Certains navigateurs anciens pourraient en avoir besoin
 }));
 
 // Security Middleware (Après CORS pour éviter de bloquer les OPTIONS)
