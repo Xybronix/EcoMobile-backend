@@ -200,7 +200,7 @@ export const paginationValidator = [
     .withMessage('Numéro de page invalide'),
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 100 })
+    .isInt({ min: 1, max: 5000 })
     .withMessage('Limite invalide'),
   query('sortOrder')
     .optional()
