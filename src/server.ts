@@ -29,23 +29,21 @@ app.set('trust proxy', true);
 app.set('strict routing', true);
 
 // 1. Log Interceptor (Pour debugger en production via Docker logs)
-app.use((req, _res, next) => {
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Accept-Language, Origin, X-Requested-With');
+  res.header('Access-Control-Allow-Credentials', 'true');
+
   if (process.env.NODE_ENV === 'production') {
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Proto: ${req.protocol} - Host: ${req.get('host')}`);
   }
-  next();
-});
-
-// 2. Intercepteur manuel de requêtes OPTIONS (CORS Preflight)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
   
+  // Répondre immédiatement aux requêtes OPTIONS
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Accept-Language, Origin, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
     res.sendStatus(200);
     return;
   }
