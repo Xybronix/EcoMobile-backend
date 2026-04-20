@@ -25,6 +25,9 @@ const app = express();
 // Trust Cloudflare Proxy (Plus permissif)
 app.set('trust proxy', true);
 
+// Empêcher Express de rediriger pour ajouter/enlever des slashs (évite les 301 sur les preflights)
+app.set('strict routing', true);
+
 // 1. Log Interceptor (Pour debugger en production via Docker logs)
 app.use((req, _res, next) => {
   if (process.env.NODE_ENV === 'production') {
