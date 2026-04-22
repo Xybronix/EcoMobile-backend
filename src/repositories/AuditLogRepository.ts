@@ -79,7 +79,6 @@ export class AuditLogRepository extends BaseRepository<AuditLog> {
       params.push(period.start, period.end);
     }
 
-    const nextParamIndex = params.length + 1;
     const quotedTableName = this.quoteIdentifier(this.tableName);
 
     const countQuery = `
