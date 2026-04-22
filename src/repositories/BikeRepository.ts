@@ -34,23 +34,27 @@ export class BikeRepository extends BaseRepository<Bike> {
   }
 
   async updateStatus(bikeId: string, status: Bike['status']): Promise<void> {
-    const sql = `UPDATE ${this.tableName} SET status = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('status')} = ${this.getPlaceholder(1)}, ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
     await this.executeNonQuery(sql, [status, new Date(), bikeId]);
   }
 
   async updateLocation(bikeId: string, latitude: number, longitude: number, address?: string): Promise<void> {
     const location = JSON.stringify({ latitude, longitude, address });
-    const sql = `UPDATE ${this.tableName} SET location = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('location')} = ${this.getPlaceholder(1)}, ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
     await this.executeNonQuery(sql, [location, new Date(), bikeId]);
   }
 
   async updateBatteryLevel(bikeId: string, batteryLevel: number): Promise<void> {
-    const sql = `UPDATE ${this.tableName} SET batteryLevel = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('batteryLevel')} = ${this.getPlaceholder(1)}, ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
     await this.executeNonQuery(sql, [batteryLevel, new Date(), bikeId]);
   }
 
   async incrementRideStats(bikeId: string, distance: number): Promise<void> {
-    const sql = `UPDATE ${this.tableName} SET totalRides = totalRides + 1, totalDistance = totalDistance + ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('totalRides')} = ${this.quoteIdentifier('totalRides')} + 1, ${this.quoteIdentifier('totalDistance')} = ${this.quoteIdentifier('totalDistance')} + ${this.getPlaceholder(1)}, ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
     await this.executeNonQuery(sql, [distance, new Date(), bikeId]);
   }
 

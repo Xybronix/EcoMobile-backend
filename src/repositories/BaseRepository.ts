@@ -22,6 +22,18 @@ export abstract class BaseRepository<T> {
     return randomUUID();
   }
 
+  protected quoteIdentifier(name: string): string {
+    switch (this.db.type) {
+      case 'mysql':
+        return `\`${name}\``;
+      case 'postgres':
+      case 'sqlite':
+        return `"${name}"`;
+      default:
+        return name;
+    }
+  }
+
   protected buildWhereClause(where: Record<string, any>): { clause: string; params: any[] } {
     if (!where || Object.keys(where).length === 0) {
       return { clause: '', params: [] };
@@ -32,39 +44,40 @@ export abstract class BaseRepository<T> {
     let paramIndex = 1;
 
     for (const [key, value] of Object.entries(where)) {
+      const quotedKey = this.quoteIdentifier(key);
       if (value === null || value === undefined) {
-        conditions.push(`${key} IS NULL`);
+        conditions.push(`${quotedKey} IS NULL`);
       } else if (typeof value === 'object' && !Array.isArray(value)) {
         for (const [operator, opValue] of Object.entries(value)) {
           switch (operator) {
             case 'gte':
-              conditions.push(`${key} >= ${this.getPlaceholder(paramIndex++)}`);
+              conditions.push(`${quotedKey} >= ${this.getPlaceholder(paramIndex++)}`);
               params.push(Number(opValue));
               break;
             case 'lte':
-              conditions.push(`${key} <= ${this.getPlaceholder(paramIndex++)}`);
+              conditions.push(`${quotedKey} <= ${this.getPlaceholder(paramIndex++)}`);
               params.push(Number(opValue));
               break;
             case 'gt':
-              conditions.push(`${key} > ${this.getPlaceholder(paramIndex++)}`);
+              conditions.push(`${quotedKey} > ${this.getPlaceholder(paramIndex++)}`);
               params.push(Number(opValue));
               break;
             case 'lt':
-              conditions.push(`${key} < ${this.getPlaceholder(paramIndex++)}`);
+              conditions.push(`${quotedKey} < ${this.getPlaceholder(paramIndex++)}`);
               params.push(Number(opValue));
               break;
             case 'contains':
-              conditions.push(`${key} LIKE ${this.getPlaceholder(paramIndex++)}`);
+              conditions.push(`${quotedKey} LIKE ${this.getPlaceholder(paramIndex++)}`);
               params.push(`%${opValue}%`);
               break;
           }
         }
       } else if (Array.isArray(value)) {
         const placeholders = value.map(() => this.getPlaceholder(paramIndex++)).join(', ');
-        conditions.push(`${key} IN (${placeholders})`);
+        conditions.push(`${quotedKey} IN (${placeholders})`);
         params.push(...value);
       } else {
-        conditions.push(`${key} = ${this.getPlaceholder(paramIndex++)}`);
+        conditions.push(`${quotedKey} = ${this.getPlaceholder(paramIndex++)}`);
         if (typeof value === 'string' && !isNaN(Number(value)) && value.trim() !== '') {
           params.push(Number(value));
         } else {
@@ -114,8 +127,10 @@ export abstract class BaseRepository<T> {
     const offset = (page - 1) * limit;
 
     const { clause, params } = this.buildWhereClause(where || {});
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const quotedSortBy = this.quoteIdentifier(sortBy);
 
-    let sql = `SELECT * FROM ${this.tableName} ${clause} ORDER BY ${sortBy} ${sortOrder}`;
+    let sql = `SELECT * FROM ${quotedTableName} ${clause} ORDER BY ${quotedSortBy} ${sortOrder}`;
 
     if (this.db.type === 'postgres') {
       sql += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
@@ -129,21 +144,24 @@ export abstract class BaseRepository<T> {
   }
 
   async findById(id: string): Promise<T | null> {
-    const sql = `SELECT * FROM ${this.tableName} WHERE id = ${this.getPlaceholder(1)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `SELECT * FROM ${quotedTableName} WHERE id = ${this.getPlaceholder(1)}`;
     const rows = await this.executeQuery(sql, [id]);
     return rows.length > 0 ? (rows[0] as T) : null;
   }
 
   async findOne(where: Record<string, any>): Promise<T | null> {
     const { clause, params } = this.buildWhereClause(where);
-    const sql = `SELECT * FROM ${this.tableName} ${clause} LIMIT 1`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `SELECT * FROM ${quotedTableName} ${clause} LIMIT 1`;
     const rows = await this.executeQuery(sql, params);
     return rows.length > 0 ? (rows[0] as T) : null;
   }
 
   async count(where?: Record<string, any>): Promise<number> {
     const { clause, params } = this.buildWhereClause(where || {});
-    const sql = `SELECT COUNT(*) as count FROM ${this.tableName} ${clause}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `SELECT COUNT(*) as count FROM ${quotedTableName} ${clause}`;
     const rows = await this.executeQuery(sql, params);
     return rows[0].count;
   }
@@ -157,13 +175,15 @@ export abstract class BaseRepository<T> {
       ...data,
       createdAt: now,
       updatedAt: now
-    };
+    } as any;
 
     const columns = Object.keys(fullData);
     const values = Object.values(fullData);
+    const quotedColumns = columns.map(col => this.quoteIdentifier(col));
     const placeholders = columns.map((_, i) => this.getPlaceholder(i + 1)).join(', ');
 
-    const sql = `INSERT INTO ${this.tableName} (${columns.join(', ')}) VALUES (${placeholders})`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `INSERT INTO ${quotedTableName} (${quotedColumns.join(', ')}) VALUES (${placeholders})`;
     await this.executeNonQuery(sql, values);
 
     return fullData as T;
@@ -173,20 +193,22 @@ export abstract class BaseRepository<T> {
     const updateData = {
       ...data,
       updatedAt: new Date()
-    };
+    } as any;
 
     const columns = Object.keys(updateData);
     const values = Object.values(updateData);
     
-    const setClause = columns.map((col, i) => `${col} = ${this.getPlaceholder(i + 1)}`).join(', ');
-    const sql = `UPDATE ${this.tableName} SET ${setClause} WHERE id = ${this.getPlaceholder(columns.length + 1)}`;
+    const setClause = columns.map((col, i) => `${this.quoteIdentifier(col)} = ${this.getPlaceholder(i + 1)}`).join(', ');
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET ${setClause} WHERE id = ${this.getPlaceholder(columns.length + 1)}`;
     
     await this.executeNonQuery(sql, [...values, id]);
     return this.findById(id);
   }
 
   async delete(id: string): Promise<boolean> {
-    const sql = `DELETE FROM ${this.tableName} WHERE id = ${this.getPlaceholder(1)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `DELETE FROM ${quotedTableName} WHERE id = ${this.getPlaceholder(1)}`;
     const result = await this.executeNonQuery(sql, [id]);
     return result.changes > 0 || result.affectedRows > 0;
   }

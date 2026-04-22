@@ -7,32 +7,35 @@ export class SupportTicketRepository extends BaseRepository<SupportTicket> {
   }
 
   async findByUserId(userId: string): Promise<SupportTicket[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE userId = ?
-      ORDER BY createdAt DESC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('userId')} = ${this.getPlaceholder(1)}
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
     `;
-    const results = await this.db.query(query, [userId]);
+    const results = await this.executeQuery(query, [userId]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findByAssignee(assignedTo: string): Promise<SupportTicket[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE assignedTo = ? AND status NOT IN ('resolved', 'closed')
-      ORDER BY priority DESC, createdAt ASC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('assignedTo')} = ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('status')} NOT IN ('resolved', 'closed')
+      ORDER BY ${this.quoteIdentifier('priority')} DESC, ${this.quoteIdentifier('createdAt')} ASC
     `;
-    const results = await this.db.query(query, [assignedTo]);
+    const results = await this.executeQuery(query, [assignedTo]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findByStatus(status: string): Promise<SupportTicket[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE status = ?
-      ORDER BY priority DESC, createdAt ASC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('status')} = ${this.getPlaceholder(1)}
+      ORDER BY ${this.quoteIdentifier('priority')} DESC, ${this.quoteIdentifier('createdAt')} ASC
     `;
-    const results = await this.db.query(query, [status]);
+    const results = await this.executeQuery(query, [status]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
@@ -43,22 +46,23 @@ export class SupportTicketRepository extends BaseRepository<SupportTicket> {
     resolved: number;
     averageResolutionTime: number;
   }> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const countQuery = `
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open,
-        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as inProgress,
-        SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved
-      FROM ${this.tableName}
+        SUM(CASE WHEN ${this.quoteIdentifier('status')} = 'open' THEN 1 ELSE 0 END) as open,
+        SUM(CASE WHEN ${this.quoteIdentifier('status')} = 'in_progress' THEN 1 ELSE 0 END) as ${this.quoteIdentifier('inProgress')},
+        SUM(CASE WHEN ${this.quoteIdentifier('status')} = 'resolved' THEN 1 ELSE 0 END) as resolved
+      FROM ${quotedTableName}
     `;
-    const countResults = await this.db.query(countQuery);
+    const countResults = await this.executeQuery(countQuery);
 
     const timeQuery = `
-      SELECT AVG(TIMESTAMPDIFF(HOUR, createdAt, resolvedAt)) as avgTime
-      FROM ${this.tableName}
-      WHERE resolvedAt IS NOT NULL
+      SELECT AVG(${this.db.type === 'mysql' ? 'TIMESTAMPDIFF(HOUR, createdAt, resolvedAt)' : 'EXTRACT(EPOCH FROM ("resolvedAt" - "createdAt")) / 3600'}) as ${this.quoteIdentifier('avgTime')}
+      FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('resolvedAt')} IS NOT NULL
     `;
-    const timeResults = await this.db.query(timeQuery);
+    const timeResults = await this.executeQuery(timeQuery);
 
     return {
       total: countResults[0]?.total || 0,
@@ -86,18 +90,19 @@ export class TicketMessageRepository extends BaseRepository<TicketMessage> {
   }
 
   async findByTicketId(ticketId: string, includeInternal: boolean = false): Promise<TicketMessage[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     let query = `
-      SELECT * FROM ${this.tableName}
-      WHERE ticketId = ?
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('ticketId')} = ${this.getPlaceholder(1)}
     `;
     
     if (!includeInternal) {
-      query += ` AND internal = false`;
+      query += ` AND ${this.quoteIdentifier('internal')} = false`;
     }
     
-    query += ` ORDER BY createdAt ASC`;
+    query += ` ORDER BY ${this.quoteIdentifier('createdAt')} ASC`;
     
-    const results = await this.db.query(query, [ticketId]);
+    const results = await this.executeQuery(query, [ticketId]);
     return results.map((row: any) => this.mapToModel(row));
   }
 

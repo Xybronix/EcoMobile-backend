@@ -133,8 +133,9 @@ export class HealthCheckService {
   private async getActiveUserCount(): Promise<number> {
     try {
       const db = getDb();
+      const quotedTableName = '"users"'; // Assuming lowercase 'users' table name is safe but quoting anyway for consistency
       const result = await db.query(
-        "SELECT COUNT(*) as count FROM users WHERE status = 'active'"
+        `SELECT COUNT(*) as count FROM ${quotedTableName} WHERE ${'"status"'} = 'active'`
       );
       return result[0]?.count || 0;
     } catch (error) {
@@ -145,8 +146,9 @@ export class HealthCheckService {
   private async getActiveBikeCount(): Promise<number> {
     try {
       const db = getDb();
+      const quotedTableName = '"bikes"';
       const result = await db.query(
-        "SELECT COUNT(*) as count FROM bikes WHERE status = 'available'"
+        `SELECT COUNT(*) as count FROM ${quotedTableName} WHERE ${'"status"'} = 'available'`
       );
       return result[0]?.count || 0;
     } catch (error) {
@@ -157,8 +159,9 @@ export class HealthCheckService {
   private async getActiveRideCount(): Promise<number> {
     try {
       const db = getDb();
+      const quotedTableName = '"rides"';
       const result = await db.query(
-        "SELECT COUNT(*) as count FROM rides WHERE status = 'in_progress'"
+        `SELECT COUNT(*) as count FROM ${quotedTableName} WHERE ${'"status"'} = 'in_progress'`
       );
       return result[0]?.count || 0;
     } catch (error) {

@@ -8,12 +8,14 @@ export class SessionRepository extends BaseRepository<Session> {
   }
 
   async findByUserId(userId: string): Promise<Session[]> {
-    const sql = `SELECT * FROM ${this.tableName} WHERE userId = ${this.getPlaceholder(1)} AND isActive = ${this.getPlaceholder(2)} ORDER BY updatedAt DESC`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `SELECT * FROM ${quotedTableName} WHERE ${this.quoteIdentifier('userId')} = ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('isActive')} = ${this.getPlaceholder(2)} ORDER BY ${this.quoteIdentifier('updatedAt')} DESC`;
     return this.executeQuery(sql, [userId, true]);
   }
 
   async findByToken(token: string): Promise<Session | null> {
-    const sql = `SELECT * FROM ${this.tableName} WHERE token = ${this.getPlaceholder(1)} AND isActive = ${this.getPlaceholder(2)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `SELECT * FROM ${quotedTableName} WHERE ${this.quoteIdentifier('token')} = ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('isActive')} = ${this.getPlaceholder(2)}`;
     const result = await this.executeQuery(sql, [token, true]);
     return result[0] || null;
   }
@@ -40,18 +42,21 @@ export class SessionRepository extends BaseRepository<Session> {
 
   async deactivateExistingSessions(userId: string, ipAddress?: string, userAgent?: string): Promise<void> {
     if (ipAddress && userAgent) {
-      const sql = `UPDATE ${this.tableName} SET isActive = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE userId = ${this.getPlaceholder(3)} AND ipAddress = ${this.getPlaceholder(4)} AND userAgent = ${this.getPlaceholder(5)} AND isActive = ${this.getPlaceholder(6)}`;
+      const quotedTableName = this.quoteIdentifier(this.tableName);
+      const sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('isActive')} = ${this.getPlaceholder(1)}, ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(2)} WHERE ${this.quoteIdentifier('userId')} = ${this.getPlaceholder(3)} AND ${this.quoteIdentifier('ipAddress')} = ${this.getPlaceholder(4)} AND ${this.quoteIdentifier('userAgent')} = ${this.getPlaceholder(5)} AND ${this.quoteIdentifier('isActive')} = ${this.getPlaceholder(6)}`;
       await this.executeNonQuery(sql, [false, new Date(), userId, ipAddress, userAgent, true]);
     }
   }
 
   async deactivateSession(sessionId: string): Promise<void> {
-    const sql = `UPDATE ${this.tableName} SET isActive = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('isActive')} = ${this.getPlaceholder(1)}, ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
     await this.executeNonQuery(sql, [false, new Date(), sessionId]);
   }
 
   async deactivateAllUserSessions(userId: string, excludeSessionId?: string): Promise<void> {
-    let sql = `UPDATE ${this.tableName} SET isActive = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE userId = ${this.getPlaceholder(3)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    let sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('isActive')} = ${this.getPlaceholder(1)}, ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(2)} WHERE ${this.quoteIdentifier('userId')} = ${this.getPlaceholder(3)}`;
     const values = [false, new Date(), userId];
 
     if (excludeSessionId) {
@@ -63,12 +68,14 @@ export class SessionRepository extends BaseRepository<Session> {
   }
 
   async deleteExpiredSessions(): Promise<void> {
-    const sql = `DELETE FROM ${this.tableName} WHERE expiresAt < ${this.getPlaceholder(1)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `DELETE FROM ${quotedTableName} WHERE ${this.quoteIdentifier('expiresAt')} < ${this.getPlaceholder(1)}`;
     await this.executeNonQuery(sql, [new Date()]);
   }
 
   async updateLastActivity(sessionId: string): Promise<void> {
-    const sql = `UPDATE ${this.tableName} SET updatedAt = ${this.getPlaceholder(1)} WHERE id = ${this.getPlaceholder(2)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(1)} WHERE id = ${this.getPlaceholder(2)}`;
     await this.executeNonQuery(sql, [new Date(), sessionId]);
   }
 
@@ -83,18 +90,18 @@ export class SessionRepository extends BaseRepository<Session> {
         id,
         device,
         location,
-        ipAddress,
-        userAgent,
-        updatedAt,
-        createdAt,
+        ${this.quoteIdentifier('ipAddress')},
+        ${this.quoteIdentifier('userAgent')},
+        ${this.quoteIdentifier('updatedAt')},
+        ${this.quoteIdentifier('createdAt')},
         CASE
-          WHEN updatedAt > ${this.getPlaceholder(2)} THEN true
+          WHEN ${this.quoteIdentifier('updatedAt')} > ${this.getPlaceholder(2)} THEN true
           ELSE false
         END as current
-      FROM ${this.tableName}
-      WHERE userId = ${this.getPlaceholder(1)}
-        AND isActive = true
-      ORDER BY updatedAt DESC
+      FROM ${this.quoteIdentifier(this.tableName)}
+      WHERE ${this.quoteIdentifier('userId')} = ${this.getPlaceholder(1)}
+        AND ${this.quoteIdentifier('isActive')} = true
+      ORDER BY ${this.quoteIdentifier('updatedAt')} DESC
     `;
 
     // Pour PostgreSQL : $1=userId, $2=fiveMinutesAgo → ordre params [userId, fiveMinutesAgo] ✓

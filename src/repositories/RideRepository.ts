@@ -28,14 +28,15 @@ export class RideRepository extends BaseRepository<Ride> {
 
   async completeRide(rideId: string, endLocation: any, distance: number, duration: number, cost: number): Promise<void> {
     const endLocationStr = JSON.stringify(endLocation);
-    const sql = `UPDATE ${this.tableName} SET 
-      endTime = ${this.getPlaceholder(1)}, 
-      endLocation = ${this.getPlaceholder(2)}, 
-      distance = ${this.getPlaceholder(3)}, 
-      duration = ${this.getPlaceholder(4)}, 
-      cost = ${this.getPlaceholder(5)}, 
-      status = ${this.getPlaceholder(6)}, 
-      updatedAt = ${this.getPlaceholder(7)} 
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET 
+      ${this.quoteIdentifier('endTime')} = ${this.getPlaceholder(1)}, 
+      ${this.quoteIdentifier('endLocation')} = ${this.getPlaceholder(2)}, 
+      ${this.quoteIdentifier('distance')} = ${this.getPlaceholder(3)}, 
+      ${this.quoteIdentifier('duration')} = ${this.getPlaceholder(4)}, 
+      ${this.quoteIdentifier('cost')} = ${this.getPlaceholder(5)}, 
+      ${this.quoteIdentifier('status')} = ${this.getPlaceholder(6)}, 
+      ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(7)} 
       WHERE id = ${this.getPlaceholder(8)}`;
     
     await this.executeNonQuery(sql, [
@@ -51,17 +52,19 @@ export class RideRepository extends BaseRepository<Ride> {
   }
 
   async updatePaymentStatus(rideId: string, paymentStatus: Ride['paymentStatus']): Promise<void> {
-    const sql = `UPDATE ${this.tableName} SET paymentStatus = ${this.getPlaceholder(1)}, updatedAt = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
+    const sql = `UPDATE ${quotedTableName} SET ${this.quoteIdentifier('paymentStatus')} = ${this.getPlaceholder(1)}, ${this.quoteIdentifier('updatedAt')} = ${this.getPlaceholder(2)} WHERE id = ${this.getPlaceholder(3)}`;
     await this.executeNonQuery(sql, [paymentStatus, new Date(), rideId]);
   }
 
   async getUserRideStats(userId: string): Promise<{ totalRides: number; totalDistance: number; totalCost: number }> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const sql = `SELECT 
-      COUNT(*) as totalRides, 
-      COALESCE(SUM(distance), 0) as totalDistance, 
-      COALESCE(SUM(cost), 0) as totalCost 
-      FROM ${this.tableName} 
-      WHERE userId = ${this.getPlaceholder(1)} AND status = 'completed'`;
+      COUNT(*) as ${this.quoteIdentifier('totalRides')}, 
+      COALESCE(SUM(${this.quoteIdentifier('distance')}), 0) as ${this.quoteIdentifier('totalDistance')}, 
+      COALESCE(SUM(${this.quoteIdentifier('cost')}), 0) as ${this.quoteIdentifier('totalCost')} 
+      FROM ${quotedTableName} 
+      WHERE ${this.quoteIdentifier('userId')} = ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('status')} = 'completed'`;
     
     const result = await this.executeQuery(sql, [userId]);
     return result[0] || { totalRides: 0, totalDistance: 0, totalCost: 0 };

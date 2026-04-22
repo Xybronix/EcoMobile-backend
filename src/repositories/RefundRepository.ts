@@ -7,48 +7,52 @@ export class RefundRepository extends BaseRepository<Refund> {
   }
 
   async findByUserId(userId: string): Promise<Refund[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE userId = ?
-      ORDER BY createdAt DESC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('userId')} = ${this.getPlaceholder(1)}
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
     `;
-    const results = await this.db.query(query, [userId]);
+    const results = await this.executeQuery(query, [userId]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findByRideId(rideId: string): Promise<Refund | null> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE rideId = ?
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('rideId')} = ${this.getPlaceholder(1)}
       LIMIT 1
     `;
-    const results = await this.db.query(query, [rideId]);
+    const results = await this.executeQuery(query, [rideId]);
     return results.length > 0 ? this.mapToModel(results[0]) : null;
   }
 
   async findPending(): Promise<Refund[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE status = 'pending'
-      ORDER BY createdAt ASC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('status')} = 'pending'
+      ORDER BY ${this.quoteIdentifier('createdAt')} ASC
     `;
-    const results = await this.db.query(query);
+    const results = await this.executeQuery(query);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async getTotalRefundedAmount(period?: { start: Date; end: Date }): Promise<number> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     let query = `
-      SELECT SUM(amount) as total FROM ${this.tableName}
-      WHERE status = 'processed'
+      SELECT SUM(${this.quoteIdentifier('amount')}) as total FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('status')} = 'processed'
     `;
     const params: any[] = [];
 
     if (period) {
-      query += ` AND processedAt >= ? AND processedAt <= ?`;
+      query += ` AND ${this.quoteIdentifier('processedAt')} >= ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('processedAt')} <= ${this.getPlaceholder(2)}`;
       params.push(period.start, period.end);
     }
 
-    const results = await this.db.query(query, params);
+    const results = await this.executeQuery(query, params);
     return results[0]?.total || 0;
   }
 

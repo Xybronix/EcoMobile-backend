@@ -7,22 +7,24 @@ export class GeofenceRepository extends BaseRepository<GeofenceZone> {
   }
 
   async findActiveZones(): Promise<GeofenceZone[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE active = true
-      ORDER BY createdAt DESC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('active')} = true
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
     `;
-    const results = await this.db.query(query);
+    const results = await this.executeQuery(query);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findByType(type: string): Promise<GeofenceZone[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE type = ? AND active = true
-      ORDER BY createdAt DESC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('type')} = ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('active')} = true
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
     `;
-    const results = await this.db.query(query, [type]);
+    const results = await this.executeQuery(query, [type]);
     return results.map((row: any) => this.mapToModel(row));
   }
 

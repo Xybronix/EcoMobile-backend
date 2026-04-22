@@ -7,55 +7,60 @@ export class AuditLogRepository extends BaseRepository<AuditLog> {
   }
 
   async findByUserId(userId: string, limit: number = 100): Promise<AuditLog[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE userId = ?
-      ORDER BY createdAt DESC
-      LIMIT ?
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('userId')} = ${this.getPlaceholder(1)}
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
+      LIMIT ${this.getPlaceholder(2)}
     `;
-    const results = await this.db.query(query, [userId, limit]);
+    const results = await this.executeQuery(query, [userId, limit]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findByEntity(entity: string, entityId: string): Promise<AuditLog[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE entity = ? AND entityId = ?
-      ORDER BY createdAt DESC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('entity')} = ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('entityId')} = ${this.getPlaceholder(2)}
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
     `;
-    const results = await this.db.query(query, [entity, entityId]);
+    const results = await this.executeQuery(query, [entity, entityId]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findByAction(action: string, limit: number = 100): Promise<AuditLog[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE action = ?
-      ORDER BY createdAt DESC
-      LIMIT ?
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('action')} = ${this.getPlaceholder(1)}
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
+      LIMIT ${this.getPlaceholder(2)}
     `;
-    const results = await this.db.query(query, [action, limit]);
+    const results = await this.executeQuery(query, [action, limit]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findByDateRange(startDate: Date, endDate: Date): Promise<AuditLog[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE createdAt >= ? AND createdAt <= ?
-      ORDER BY createdAt DESC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('createdAt')} >= ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('createdAt')} <= ${this.getPlaceholder(2)}
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
     `;
-    const results = await this.db.query(query, [startDate, endDate]);
+    const results = await this.executeQuery(query, [startDate, endDate]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findFailures(limit: number = 50): Promise<AuditLog[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE status = 'failure'
-      ORDER BY createdAt DESC
-      LIMIT ?
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('status')} = 'failure'
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
+      LIMIT ${this.getPlaceholder(1)}
     `;
-    const results = await this.db.query(query, [limit]);
+    const results = await this.executeQuery(query, [limit]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
@@ -70,39 +75,42 @@ export class AuditLogRepository extends BaseRepository<AuditLog> {
     const params: any[] = [];
 
     if (period) {
-      whereClause = 'WHERE createdAt >= ? AND createdAt <= ?';
+      whereClause = `WHERE ${this.quoteIdentifier('createdAt')} >= ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('createdAt')} <= ${this.getPlaceholder(2)}`;
       params.push(period.start, period.end);
     }
+
+    const nextParamIndex = params.length + 1;
+    const quotedTableName = this.quoteIdentifier(this.tableName);
 
     const countQuery = `
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as successful,
-        SUM(CASE WHEN status = 'failure' THEN 1 ELSE 0 END) as failed
-      FROM ${this.tableName}
+        SUM(CASE WHEN ${this.quoteIdentifier('status')} = 'success' THEN 1 ELSE 0 END) as successful,
+        SUM(CASE WHEN ${this.quoteIdentifier('status')} = 'failure' THEN 1 ELSE 0 END) as failed
+      FROM ${quotedTableName}
       ${whereClause}
     `;
-    const countResults = await this.db.query(countQuery, params);
+    const countResults = await this.executeQuery(countQuery, params);
 
     const actionsQuery = `
-      SELECT action, COUNT(*) as count
-      FROM ${this.tableName}
+      SELECT ${this.quoteIdentifier('action')}, COUNT(*) as count
+      FROM ${quotedTableName}
       ${whereClause}
-      GROUP BY action
+      GROUP BY ${this.quoteIdentifier('action')}
       ORDER BY count DESC
       LIMIT 10
     `;
-    const actionsResults = await this.db.query(actionsQuery, params);
+    const actionsResults = await this.executeQuery(actionsQuery, params);
 
     const usersQuery = `
-      SELECT userId, userEmail, COUNT(*) as count
-      FROM ${this.tableName}
+      SELECT ${this.quoteIdentifier('userId')}, ${this.quoteIdentifier('userEmail')}, COUNT(*) as count
+      FROM ${quotedTableName}
       ${whereClause}
-      GROUP BY userId, userEmail
+      GROUP BY ${this.quoteIdentifier('userId')}, ${this.quoteIdentifier('userEmail')}
       ORDER BY count DESC
       LIMIT 10
     `;
-    const usersResults = await this.db.query(usersQuery, params);
+    const usersResults = await this.executeQuery(usersQuery, params);
 
     return {
       totalActions: countResults[0]?.total || 0,

@@ -7,42 +7,46 @@ export class MaintenanceAlertRepository extends BaseRepository<MaintenanceAlert>
   }
 
   async findByBikeId(bikeId: string): Promise<MaintenanceAlert[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE bikeId = ?
-      ORDER BY createdAt DESC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('bikeId')} = ${this.getPlaceholder(1)}
+      ORDER BY ${this.quoteIdentifier('createdAt')} DESC
     `;
-    const results = await this.db.query(query, [bikeId]);
+    const results = await this.executeQuery(query, [bikeId]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findActive(): Promise<MaintenanceAlert[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE status = 'active'
-      ORDER BY severity DESC, createdAt ASC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('status')} = 'active'
+      ORDER BY ${this.quoteIdentifier('severity')} DESC, ${this.quoteIdentifier('createdAt')} ASC
     `;
-    const results = await this.db.query(query);
+    const results = await this.executeQuery(query);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findBySeverity(severity: string): Promise<MaintenanceAlert[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE severity = ? AND status = 'active'
-      ORDER BY createdAt ASC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('severity')} = ${this.getPlaceholder(1)} AND ${this.quoteIdentifier('status')} = 'active'
+      ORDER BY ${this.quoteIdentifier('createdAt')} ASC
     `;
-    const results = await this.db.query(query, [severity]);
+    const results = await this.executeQuery(query, [severity]);
     return results.map((row: any) => this.mapToModel(row));
   }
 
   async findCriticalAlerts(): Promise<MaintenanceAlert[]> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const query = `
-      SELECT * FROM ${this.tableName}
-      WHERE severity = 'critical' AND status = 'active'
-      ORDER BY createdAt ASC
+      SELECT * FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('severity')} = 'critical' AND ${this.quoteIdentifier('status')} = 'active'
+      ORDER BY ${this.quoteIdentifier('createdAt')} ASC
     `;
-    const results = await this.db.query(query);
+    const results = await this.executeQuery(query);
     return results.map((row: any) => this.mapToModel(row));
   }
 
@@ -52,22 +56,23 @@ export class MaintenanceAlertRepository extends BaseRepository<MaintenanceAlert>
     critical: number;
     byType: { [key: string]: number };
   }> {
+    const quotedTableName = this.quoteIdentifier(this.tableName);
     const countQuery = `
       SELECT 
         COUNT(*) as total,
-        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
-        SUM(CASE WHEN severity = 'critical' AND status = 'active' THEN 1 ELSE 0 END) as critical
-      FROM ${this.tableName}
+        SUM(CASE WHEN ${this.quoteIdentifier('status')} = 'active' THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN ${this.quoteIdentifier('severity')} = 'critical' AND ${this.quoteIdentifier('status')} = 'active' THEN 1 ELSE 0 END) as critical
+      FROM ${quotedTableName}
     `;
-    const countResults = await this.db.query(countQuery);
+    const countResults = await this.executeQuery(countQuery);
 
     const typeQuery = `
-      SELECT type, COUNT(*) as count
-      FROM ${this.tableName}
-      WHERE status = 'active'
-      GROUP BY type
+      SELECT ${this.quoteIdentifier('type')}, COUNT(*) as count
+      FROM ${quotedTableName}
+      WHERE ${this.quoteIdentifier('status')} = 'active'
+      GROUP BY ${this.quoteIdentifier('type')}
     `;
-    const typeResults = await this.db.query(typeQuery);
+    const typeResults = await this.executeQuery(typeQuery);
 
     const byType: { [key: string]: number } = {};
     typeResults.forEach((row: any) => {

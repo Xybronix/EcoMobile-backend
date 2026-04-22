@@ -30,9 +30,19 @@ class NotificationRepository extends BaseRepository<Notification> {
    */
   async findByUserId(
     userId: string,
-    options?: { limit?: number; offset?: number; unreadOnly?: boolean }
+    options?: { limit?: number; offset?: number; unreadOnly?: boolean } | boolean
   ): Promise<Notification[]> {
-    const { limit = 50, offset = 0, unreadOnly = false } = options || {};
+    let limit = 50;
+    let offset = 0;
+    let unreadOnly = false;
+
+    if (typeof options === 'boolean') {
+      unreadOnly = options;
+    } else if (options) {
+      limit = options.limit ?? 50;
+      offset = options.offset ?? 0;
+      unreadOnly = options.unreadOnly ?? false;
+    }
 
     const notifications = await prisma.notification.findMany({
       where: {
