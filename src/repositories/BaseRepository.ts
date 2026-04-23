@@ -18,20 +18,33 @@ export abstract class BaseRepository<T> {
     this.db = getDb();
   }
 
+  protected isPostgres(): boolean {
+    const type = (this.db?.type || '').toLowerCase();
+    return type === 'postgres' || type === 'postgresql';
+  }
+
+  protected isMysql(): boolean {
+    const type = (this.db?.type || '').toLowerCase();
+    return type === 'mysql';
+  }
+
+  protected isSqlite(): boolean {
+    const type = (this.db?.type || '').toLowerCase();
+    return type === 'sqlite';
+  }
+
   protected generateId(): string {
     return randomUUID();
   }
 
   protected quoteIdentifier(name: string): string {
-    switch (this.db.type) {
-      case 'mysql':
-        return `\`${name}\``;
-      case 'postgres':
-      case 'sqlite':
-        return `"${name}"`;
-      default:
-        return name;
+    if (this.isPostgres() || this.isSqlite()) {
+      return `"${name}"`;
     }
+    if (this.isMysql()) {
+      return `\`${name}\``;
+    }
+    return name;
   }
 
   protected buildWhereClause(where: Record<string, any>): { clause: string; params: any[] } {
@@ -93,15 +106,10 @@ export abstract class BaseRepository<T> {
   }
 
   protected getPlaceholder(index: number): string {
-    switch (this.db.type) {
-      case 'postgres':
-        return `$${index}`;
-      case 'mysql':
-      case 'sqlite':
-        return '?';
-      default:
-        return '?';
+    if (this.isPostgres()) {
+      return `$${index}`;
     }
+    return '?';
   }
 
   protected async executeQuery(sql: string, params?: any[]): Promise<any> {
@@ -132,7 +140,7 @@ export abstract class BaseRepository<T> {
 
     let sql = `SELECT * FROM ${quotedTableName} ${clause} ORDER BY ${quotedSortBy} ${sortOrder}`;
 
-    if (this.db.type === 'postgres') {
+    if (this.isPostgres()) {
       sql += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
       params.push(limit, offset);
     } else {
@@ -184,6 +192,11 @@ export abstract class BaseRepository<T> {
 
     const quotedTableName = this.quoteIdentifier(this.tableName);
     const sql = `INSERT INTO ${quotedTableName} (${quotedColumns.join(', ')}) VALUES (${placeholders})`;
+    
+    if (process.env.NODE_ENV !== 'production' || true) { // Log in prod temporarily for debugging
+       console.log(`[BaseRepository] Executing CREATE on ${this.tableName} using type: ${this.db?.type}`);
+    }
+
     await this.executeNonQuery(sql, values);
 
     return fullData as T;

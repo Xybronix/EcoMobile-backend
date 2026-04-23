@@ -29,16 +29,16 @@ model User {
   phoneVerified             Boolean  @default(false)
   phoneVerificationCode     String?
   phoneVerificationExpires  DateTime?
-  phoneVerifiedBy           String?  // ID de l'admin qui a validé manuellement
+  phoneVerifiedBy           String?
   phoneVerifiedAt           DateTime?
   accountVerified           Boolean  @default(false)
   accountVerifiedAt         DateTime?
   accountVerifiedBy         String?
   language                  String   @default("fr")
   depositBalance            Float    @default(0)
-  depositExemptionUntil     DateTime? // Date d'expiration du déblocage sans caution
-  depositExemptionGrantedBy String?  // ID de l'admin qui a accordé le déblocage
-  depositExemptionGrantedAt DateTime? // Date d'octroi du déblocage
+  depositExemptionUntil     DateTime?
+  depositExemptionGrantedBy String?
+  depositExemptionGrantedAt DateTime?
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
@@ -408,17 +408,16 @@ model PricingPlan {
 model PlanOverride {
   id             String   @id @default(uuid())
   planId         String
-  overTimeType   String   // 'FIXED_PRICE' | 'PERCENTAGE_REDUCTION'
+  overTimeType   String
   overTimeValue  Float
-  // Plages horaires pour chaque type de forfait
-  hourlyStartHour Int?    // Heure de début pour forfait horaire (0-23)
-  hourlyEndHour   Int?    // Heure de fin pour forfait horaire (0-23)
-  dailyStartHour  Int?    // Heure de début pour forfait journalier (0-23)
-  dailyEndHour    Int?    // Heure de fin pour forfait journalier (0-23)
-  weeklyStartHour Int?    // Heure de début pour forfait hebdomadaire (0-23)
-  weeklyEndHour   Int?    // Heure de fin pour forfait hebdomadaire (0-23)
-  monthlyStartHour Int?   // Heure de début pour forfait mensuel (0-23)
-  monthlyEndHour   Int?    // Heure de fin pour forfait mensuel (0-23)
+  hourlyStartHour Int?
+  hourlyEndHour   Int?
+  dailyStartHour  Int?
+  dailyEndHour    Int?
+  weeklyStartHour Int?
+  weeklyEndHour   Int?
+  monthlyStartHour Int?
+  monthlyEndHour   Int?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -452,10 +451,10 @@ model PricingRule {
 model PricingTier {
   id              String   @id @default(uuid())
   name            String?
-  durationMinutes Int      // Durée couverte par ce palier (en minutes, ex: 60=1h, 120=2h)
-  price           Float    // Prix fixe pour cette durée
-  dayStartHour    Int?     // null = s'applique à toute heure
-  dayEndHour      Int?     // null = s'applique à toute heure
+  durationMinutes Int
+  price           Float
+  dayStartHour    Int?
+  dayEndHour      Int?
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -665,11 +664,11 @@ model FreeDaysRule {
   description                 String?
   numberOfDays                Int
   startType                   String    @default("ON_USE")
-  targetType                  String    @default("NEW_USERS") // "NEW_USERS" = nouveaux utilisateurs, "EXISTING_BY_DAYS" = par jours depuis inscription, "EXISTING_BY_SPEND" = par montant dépensé, "MANUAL" = manuel
+  targetType                  String    @default("NEW_USERS")
   targetDaysSinceRegistration Int?
   targetMinSpend              Float?
-  startHour                   Int?      // Heure de début d'application de la règle (0-23)
-  endHour                     Int?      // Heure de fin d'application de la règle (0-23)
+  startHour                   Int?
+  endHour                     Int?
   isActive                    Boolean   @default(true)
   validFrom                   DateTime?
   validUntil                  DateTime?
@@ -694,7 +693,7 @@ model FreeDaysBeneficiary {
   expiresAt             DateTime
   isActive              Boolean   @default(true)
   appliedAt             DateTime  @default(now())
-  lastFreeDayUsedAt     DateTime? // Date de la dernière journée gratuite consommée (pour éviter plusieurs décréments le même jour)
+  lastFreeDayUsedAt     DateTime?
   subscriptionPausedAt  DateTime?
   subscriptionResumedAt DateTime?
   createdAt             DateTime  @default(now())
@@ -825,7 +824,7 @@ model IdentityDocument {
   documentType      DocumentType
   frontImage        String              @db.Text
   backImage         String?             @db.Text
-  selfieImage       String?             @db.Text // Photo/vidéo selfie de l'utilisateur
+  selfieImage       String?             @db.Text
   status            DocumentStatus      @default(PENDING)
   rejectionReason   String?             @db.Text
   reviewedBy        String?
@@ -887,8 +886,8 @@ model ActivityLocationProof {
   id                String              @id @default(uuid())
   userId            String
   proofType         ActivityLocationProofType
-  documentFile      String?             @db.Text // Photo du document
-  latitude          Float?              // Coordonnées GPS
+  documentFile      String?             @db.Text
+  latitude          Float?
   longitude         Float?
   address           String?             @db.Text
   details           String?             @db.Text

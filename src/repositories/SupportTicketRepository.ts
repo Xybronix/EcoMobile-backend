@@ -58,7 +58,7 @@ export class SupportTicketRepository extends BaseRepository<SupportTicket> {
     const countResults = await this.executeQuery(countQuery);
 
     const timeQuery = `
-      SELECT AVG(${this.db.type === 'mysql' ? 'TIMESTAMPDIFF(HOUR, createdAt, resolvedAt)' : 'EXTRACT(EPOCH FROM ("resolvedAt" - "createdAt")) / 3600'}) as ${this.quoteIdentifier('avgTime')}
+      SELECT AVG(${this.isMysql() ? 'TIMESTAMPDIFF(HOUR, createdAt, resolvedAt)' : 'EXTRACT(EPOCH FROM ("resolvedAt" - "createdAt")) / 3600'}) as ${this.quoteIdentifier('avgTime')}
       FROM ${quotedTableName}
       WHERE ${this.quoteIdentifier('resolvedAt')} IS NOT NULL
     `;

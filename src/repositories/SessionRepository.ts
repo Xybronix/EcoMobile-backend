@@ -107,7 +107,7 @@ export class SessionRepository extends BaseRepository<Session> {
     // Pour PostgreSQL : $1=userId, $2=fiveMinutesAgo → ordre params [userId, fiveMinutesAgo] ✓
     // Pour MySQL/SQLite : 1er ? apparaît dans CASE, 2e ? dans WHERE
     //   → on doit passer [fiveMinutesAgo, userId] pour respecter l'ordre positionnel
-    const params = this.db.type === 'postgres'
+    const params = this.isPostgres()
       ? [userId, fiveMinutesAgo]
       : [fiveMinutesAgo, userId];
 
