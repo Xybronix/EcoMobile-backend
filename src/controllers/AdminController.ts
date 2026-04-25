@@ -1766,23 +1766,14 @@ export class AdminController {
         }
       };
 
-      //const [rides, transactions, wallets] = await Promise.all([
-      const [rides] = await Promise.all([
+      const [rides, totalUsers] = await Promise.all([
         prisma.ride.findMany({
           where: {
             status: 'COMPLETED',
             ...dateFilter
           }
         }),
-        prisma.transaction.findMany({
-          where: {
-            status: 'COMPLETED',
-            ...dateFilter
-          }
-        }),
-        prisma.wallet.aggregate({
-          _sum: { balance: true }
-        })
+        prisma.user.count()
       ]);
 
       // Calculer les statistiques par période
@@ -1802,6 +1793,14 @@ export class AdminController {
       
       const totalRevenue = rides.reduce((sum, r) => sum + (r.cost || 0), 0);
       const avgRevenuePerTrip = rides.length > 0 ? totalRevenue / rides.length : 0;
+      const totalDistance = rides.reduce((sum, r) => sum + (r.distance || 0), 0);
+      const totalDurationMinutes = rides.reduce((sum, r) => sum + (r.duration || 0), 0);
+      const avgRideDuration = rides.length > 0 ? totalDurationMinutes / rides.length : 0;
+      
+      // Calculer le prix moyen par heure (pour les trajets terminés avec coût et durée)
+      const ridesWithDuration = rides.filter(r => (r.duration || 0) > 0);
+      const totalHours = ridesWithDuration.reduce((sum, r) => sum + (r.duration || 0), 0) / 60;
+      const avgPricePerHour = totalHours > 0 ? totalRevenue / totalHours : 0;
 
       await logActivity(
         req.user?.id || null,
@@ -1821,7 +1820,10 @@ export class AdminController {
           monthRevenue,
           avgRevenuePerTrip,
           totalTrips: rides.length,
-          totalUsers: await prisma.user.count()
+          totalUsers,
+          totalDistance,
+          avgRideDuration,
+          avgPricePerHour
         }
       });
     } catch (error: any) {
@@ -1848,60 +1850,83 @@ export class AdminController {
     try {
       const { startDate, endDate, type } = req.query;
       
-      // Générer données pour graphiques basées sur les vraies données
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+
+      // Récupérer toutes les données en une seule fois (plus efficace qu'une boucle)
+      const [allRides, allTransactions] = await Promise.all([
+        prisma.ride.findMany({
+          where: {
+            status: 'COMPLETED',
+            createdAt: { gte: start, lte: end }
+          },
+          include: { plan: true }
+        }),
+        prisma.transaction.findMany({
+          where: {
+            type: { in: ['WITHDRAWAL', 'REFUND'] },
+            status: 'COMPLETED',
+            createdAt: { gte: start, lte: end }
+          }
+        })
+      ]);
+
       const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      
       const shortTermData = [];
       const longTermData = [];
+
+      // Mapper les données par date
+      const dataByDate: Record<string, { revenue: number, expenses: number, trips: number }> = {};
+
+      allRides.forEach(ride => {
+        const dateKey = new Date(ride.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        if (!dataByDate[dateKey]) dataByDate[dateKey] = { revenue: 0, expenses: 0, trips: 0 };
+        dataByDate[dateKey].revenue += (ride.cost || 0);
+        dataByDate[dateKey].trips += 1;
+      });
+
+      allTransactions.forEach(trans => {
+        const dateKey = new Date(trans.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        if (!dataByDate[dateKey]) dataByDate[dateKey] = { revenue: 0, expenses: 0, trips: 0 };
+        dataByDate[dateKey].expenses += (trans.amount || 0);
+      });
 
       for (let i = 0; i <= days; i++) {
         const date = new Date(start);
         date.setDate(start.getDate() + i);
+        const dateKey = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
         
-        const dayStart = new Date(date);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(date);
-        dayEnd.setHours(23, 59, 59, 999);
-
-        const [dayRides, dayTransactions] = await Promise.all([
-          prisma.ride.findMany({
-            where: {
-              status: 'COMPLETED',
-              createdAt: { gte: dayStart, lte: dayEnd }
-            }
-          }),
-          prisma.transaction.findMany({
-            where: {
-              type: { in: ['WITHDRAWAL', 'REFUND'] },
-              status: 'COMPLETED',
-              createdAt: { gte: dayStart, lte: dayEnd }
-            }
-          })
-        ]);
-
-        const revenue = dayRides.reduce((sum, r) => sum + (r.cost || 0), 0);
-        const expenses = dayTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
-
-        const dataPoint = {
-          period: date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
-          revenue,
-          expenses,
-          trips: dayRides.length
+        const point = {
+          period: dateKey,
+          revenue: dataByDate[dateKey]?.revenue || 0,
+          expenses: dataByDate[dateKey]?.expenses || 0,
+          trips: dataByDate[dateKey]?.trips || 0
         };
-
-        shortTermData.push(dataPoint);
-        longTermData.push(dataPoint);
+        shortTermData.push(point);
+        longTermData.push(point);
       }
 
-      // Répartition des forfaits (données simulées basées sur la base)
-      const planDistribution = [
-        { name: 'Standard', value: 45, color: '#10b981' },
-        { name: 'Heures de Pointe', value: 25, color: '#f59e0b' },
-        { name: 'Weekend', value: 20, color: '#3b82f6' },
-        { name: 'Étudiant', value: 10, color: '#8b5cf6' }
-      ];
+      // Calculer la vraie répartition des forfaits
+      const planCounts: Record<string, number> = {};
+      allRides.forEach(ride => {
+        const planName = ride.plan?.name || 'Inconnu';
+        planCounts[planName] = (planCounts[planName] || 0) + 1;
+      });
+
+      const totalRides = allRides.length;
+      const colors = ['#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#6366f1'];
+      
+      const planDistribution = Object.keys(planCounts).map((name, index) => ({
+        name,
+        value: totalRides > 0 ? Math.round((planCounts[name] / totalRides) * 100) : 0,
+        color: colors[index % colors.length]
+      }));
+
+      // Si aucune donnée, mettre un placeholder informatif
+      if (planDistribution.length === 0) {
+        planDistribution.push({ name: 'Aucune donnée', value: 100, color: '#94a3b8' });
+      }
 
       await logActivity(
         req.user?.id || null,
