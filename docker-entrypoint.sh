@@ -26,7 +26,7 @@ npx prisma generate
 # We use db push to bypass the migration history, which is ideal for hybrid setups
 echo "🗄️ Syncing database schema (Hybrid Mode)..."
 if [ -n "$DATABASE_URL" ]; then
-    npx prisma db push --accept-data-loss
+    npx prisma db push
 else
     echo "⚠️ DATABASE_URL not set, skipping schema sync."
 fi
