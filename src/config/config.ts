@@ -8,17 +8,14 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // 0. Configuration des URLs de base de données par plateforme
-const deployTarget = process.env.DEPLOY_TARGET || 'JELASTIC';
+const deployTarget = process.env.DEPLOY_TARGET || 'LOCAL';
 
-if (deployTarget === 'RENDER') {
-  if (process.env.RENDER_DATABASE_URL) {
-    process.env.DATABASE_URL = process.env.RENDER_DATABASE_URL;
-  }
-} else {
-  if (process.env.JELASTIC_DATABASE_URL) {
-    process.env.DATABASE_URL = process.env.JELASTIC_DATABASE_URL;
-  }
+if (deployTarget === 'RENDER' && process.env.RENDER_DATABASE_URL && process.env.RENDER_DATABASE_URL !== 'your_aiven_key') {
+  process.env.DATABASE_URL = process.env.RENDER_DATABASE_URL;
+} else if (deployTarget === 'JELASTIC' && process.env.JELASTIC_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.JELASTIC_DATABASE_URL;
 }
+// If DEPLOY_TARGET is LOCAL or anything else, we keep the DATABASE_URL defined in .env
 
 export const config = {
   env: process.env.NODE_ENV || 'development',

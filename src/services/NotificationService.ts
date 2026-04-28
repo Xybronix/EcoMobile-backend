@@ -1,4 +1,4 @@
-import NotificationRepository, { Notification } from '../repositories/NotificationRepository';
+import { NotificationRepository, Notification } from '../repositories/NotificationRepository';
 import EmailService from './EmailService';
 import { notificationSSEService } from './NotificationSSEService';
 import { t } from '../locales';
@@ -20,9 +20,11 @@ export interface NotificationWithEmail {
 class NotificationService {
   
   private emailService: EmailService;
+  private notificationRepository: NotificationRepository;
 
   constructor() {
     this.emailService = new EmailService();
+    this.notificationRepository = new NotificationRepository();
   }
 
   /**
@@ -30,7 +32,7 @@ class NotificationService {
    */
   async createNotification(data: NotificationWithEmail): Promise<Notification> {
     // Create notification in database
-    const notification = await NotificationRepository.createNotification({
+    const notification = await this.notificationRepository.createNotification({
       userId: data.userId,
       title: data.title,
       message: data.message,
@@ -76,7 +78,7 @@ class NotificationService {
       throw new Error('Invalid notification IDs provided');
     }
 
-    await NotificationRepository.bulkDeleteNotifications(notificationIds);
+    await this.notificationRepository.bulkDeleteNotifications(notificationIds);
   }
 
   /**
@@ -438,7 +440,7 @@ class NotificationService {
       type: 'PROMOTION',
     }));
 
-    const notificationsCreated = await NotificationRepository.createBulkNotifications(
+    const notificationsCreated = await this.notificationRepository.createBulkNotifications(
       notificationData
     );
 
@@ -483,21 +485,21 @@ class NotificationService {
     userId: string,
     options?: { limit?: number; offset?: number; unreadOnly?: boolean }
   ): Promise<Notification[]> {
-    return await NotificationRepository.findByUserId(userId, options);
+    return await this.notificationRepository.findByUserId(userId, options);
   }
 
   /**
    * Get unread count
    */
   async getUnreadCount(userId: string): Promise<number> {
-    return await NotificationRepository.getUnreadCount(userId);
+    return await this.notificationRepository.getUnreadCount(userId);
   }
 
   /**
    * Mark as read
    */
   async markAsRead(notificationId: string): Promise<Notification | null> {
-    const notification = await NotificationRepository.markAsRead(notificationId);
+    const notification = await this.notificationRepository.markAsRead(notificationId);
     
     // Mettre à jour le nombre de notifications non lues via SSE
     if (notification) {
@@ -515,7 +517,7 @@ class NotificationService {
    * Mark all as read
    */
   async markAllAsRead(userId: string): Promise<number> {
-    const count = await NotificationRepository.markAllAsRead(userId);
+    const count = await this.notificationRepository.markAllAsRead(userId);
     
     // Mettre à jour le nombre de notifications non lues via SSE
     try {
@@ -531,7 +533,7 @@ class NotificationService {
    * Delete notification
    */
   async deleteNotification(notificationId: string): Promise<boolean> {
-    return await NotificationRepository.deleteNotification(notificationId);
+    return await this.notificationRepository.deleteNotification(notificationId);
   }
 
   /**

@@ -22,4 +22,4 @@ export { PricingConfigRepository } from './PricingConfigRepository';
 export { ActivityLogRepository } from './ActivityLogRepository';
 
 // Exporting NotificationRepository from its individual file
-export { default as NotificationRepository } from './NotificationRepository';
+export { NotificationRepository } from './NotificationRepository';

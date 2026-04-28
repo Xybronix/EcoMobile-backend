@@ -17,8 +17,7 @@ import {
   TransactionRepository,
   IncidentRepository,
   ChatMessageRepository,
-  ConversationRepository,
-  NotificationRepository
+  ConversationRepository
 } from '../repositories';
 import { AppError } from '../middleware/errorHandler';
 import { t } from '../locales';
@@ -235,26 +234,4 @@ export class ChatService {
   }
 }
 
-export class NotificationService {
-  private notificationRepository: NotificationRepository;
-
-  constructor() {
-    this.notificationRepository = new NotificationRepository();
-  }
-
-  async getUserNotifications(userId: string, unreadOnly: boolean = false) {
-    return this.notificationRepository.findByUserId(userId, unreadOnly);
-  }
-
-  async markAsRead(notificationId: string) {
-    return this.notificationRepository.markAsRead(notificationId);
-  }
-
-  async markAllAsRead(userId: string) {
-    return this.notificationRepository.markAllAsRead(userId);
-  }
-
-  async createNotification(data: Partial<any>) {
-    return this.notificationRepository.create(data);
-  }
-}
+export { default as NotificationService } from './NotificationService';

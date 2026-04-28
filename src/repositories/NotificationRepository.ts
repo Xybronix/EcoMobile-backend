@@ -20,7 +20,7 @@ export interface CreateNotificationDTO {
   metadata?: any;
 }
 
-class NotificationRepository extends BaseRepository<Notification> {
+export class NotificationRepository extends BaseRepository<Notification> {
   constructor() {
     super('notification');
   }
@@ -216,5 +216,4 @@ class NotificationRepository extends BaseRepository<Notification> {
     return notifications as Notification[];
   }
 }
-
-export default new NotificationRepository();
+
