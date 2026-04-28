@@ -19,14 +19,14 @@ services:
     networks:
       - ecomobile-net
     restart: always
-
-networks:
-  ecomobile-net:
-    external: true
-    name: ecomobile_eco-mobile-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+networks:
+  ecomobile-net:
+    external: true
+    name: ecomobile_eco-mobile-net
