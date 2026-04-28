@@ -16,7 +16,14 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./data:/app/data
+    networks:
+      - ecomobile-net
     restart: always
+
+networks:
+  ecomobile-net:
+    external: true
+    name: ecomobile_eco-mobile-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
       interval: 30s
