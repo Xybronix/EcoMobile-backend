@@ -311,8 +311,10 @@ export const requirePermission = (resource: string, action: string) => {
       return;
     }
 
+    const userRole = req.user.role?.toUpperCase();
     const requiredPermission = `${resource}:${action}`;
-    const hasPermission = req.user.role === 'SUPER_ADMIN' ||
+    
+    const hasPermission = userRole === 'SUPER_ADMIN' ||
                          req.user.permissions?.includes(requiredPermission) || 
                          req.user.permissions?.includes(`${resource}:manage`) ||
                          req.user.permissions?.includes('admin:manage');
@@ -329,9 +331,12 @@ export const requirePermission = (resource: string, action: string) => {
         req
       );
 
+      console.warn(`[AUTH] Access denied: User ${req.user.id} (${userRole}) attempted ${action} on ${resource}. Required: ${requiredPermission}`);
+      
       res.status(403).json({
         success: false,
-        error: t('auth.insufficient_permissions', req.language)
+        error: t('auth.insufficient_permissions', req.language),
+        details: process.env.NODE_ENV === 'development' ? `Required: ${requiredPermission}` : undefined
       });
       return;
     }

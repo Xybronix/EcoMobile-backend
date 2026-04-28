@@ -14,8 +14,10 @@ if (deployTarget === 'RENDER' && process.env.RENDER_DATABASE_URL && process.env.
   process.env.DATABASE_URL = process.env.RENDER_DATABASE_URL;
 } else if (deployTarget === 'JELASTIC' && process.env.JELASTIC_DATABASE_URL) {
   process.env.DATABASE_URL = process.env.JELASTIC_DATABASE_URL;
+} else if (deployTarget === 'DOCKER' && process.env.DATABASE_URL) {
+  // En Docker, on privilégie toujours DATABASE_URL si présent
+  console.log('🐳 Running in Docker mode - using DATABASE_URL');
 }
-// If DEPLOY_TARGET is LOCAL or anything else, we keep the DATABASE_URL defined in .env
 
 export const config = {
   env: process.env.NODE_ENV || 'development',

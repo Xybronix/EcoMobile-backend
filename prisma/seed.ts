@@ -399,12 +399,9 @@ async function main() {
   console.log('✅ Permissions assigned to roles (only missing ones)');
 
   // Créer les utilisateurs uniquement s'ils n'existent pas
-  const maskPassword = await bcrypt.hash('mask123', 10);
-  const hashedPassword = await bcrypt.hash('admin123', 10);
-  const userPassword = await bcrypt.hash('user123', 10);
-  // const maskPassword = await bcrypt.hash('EcoMask@2024!', 12);
-  // const hashedPassword = await bcrypt.hash('AdminEco@FreeBike#2024', 12);
-  // const userPassword = await bcrypt.hash('UserEco@2024!', 12);
+  const maskPassword = await bcrypt.hash('EcoMask#Xybronix@2026', 12);
+  const hashedPassword = await bcrypt.hash('AdminEco@FreeBike#2026', 12);
+  const userPassword = await bcrypt.hash('UserEco@SafePass#2026', 12);
 
   await prisma.user.upsert({
     where: { email: 'xybronix@xybronix.cm' },
