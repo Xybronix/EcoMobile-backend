@@ -20,6 +20,7 @@ WORKDIR /app
 
 # Install production dependencies only
 COPY package*.json ./
+COPY prisma ./prisma/
 RUN npm install --production
 
 # Copy built assets and prisma schema
