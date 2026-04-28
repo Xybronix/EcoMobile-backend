@@ -8,13 +8,13 @@ echo "🚀 Starting EcoMobile Backend Entrypoint..."
 echo "🔍 Detecting database provider from DATABASE_URL..."
 if [[ "$DATABASE_URL" == postgresql://* ]] || [[ "$DATABASE_URL" == postgres://* ]]; then
     echo "🐘 Setting provider to postgresql"
-    sed -i 's/provider = "[^"]*"/provider = "postgresql"/' prisma/schema.prisma
+    sed -i '/datasource db {/,/}/ s/provider = "[^"]*"/provider = "postgresql"/' prisma/schema.prisma
 elif [[ "$DATABASE_URL" == mysql://* ]]; then
     echo "🐬 Setting provider to mysql"
-    sed -i 's/provider = "[^"]*"/provider = "mysql"/' prisma/schema.prisma
+    sed -i '/datasource db {/,/}/ s/provider = "[^"]*"/provider = "mysql"/' prisma/schema.prisma
 elif [[ "$DATABASE_URL" == file:* ]] || [[ "$DATABASE_URL" == *.db ]]; then
     echo "📁 Setting provider to sqlite"
-    sed -i 's/provider = "[^"]*"/provider = "sqlite"/' prisma/schema.prisma
+    sed -i '/datasource db {/,/}/ s/provider = "[^"]*"/provider = "sqlite"/' prisma/schema.prisma
 else
     echo "ℹ️ Using default provider from schema.prisma"
 fi
