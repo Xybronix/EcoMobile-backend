@@ -16,8 +16,8 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./data:/app/data
-      # Uncomment if using SQLite
-      # - ./prisma/dev.db:/app/prisma/dev.db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
