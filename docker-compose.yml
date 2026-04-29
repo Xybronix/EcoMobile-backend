@@ -13,6 +13,15 @@ services:
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
       - DEPLOY_TARGET=DOCKER
+      - GPS_API_URL=${GPS_API_URL}
+      - GPS_USERNAME=${GPS_USERNAME}
+      - GPS_PASSWORD=${GPS_PASSWORD}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_SECURE=${EMAIL_SECURE}
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_FROM=${EMAIL_FROM}
     volumes:
       - ./uploads:/app/uploads
       - ./data:/app/data
