@@ -20,6 +20,20 @@ async function restore() {
     'subscription', 'transaction', 'ride', 'incident', 'reservation'
   ];
 
+  // Order for deletion (dependent first to avoid FK errors)
+  const deleteOrder = [...models].reverse();
+  
+  console.log('🧹 Clearing target tables...');
+  for (const model of deleteOrder) {
+    try {
+      // @ts-ignore
+      await prisma[model].deleteMany();
+      console.log(`🗑️ Cleared ${model}`);
+    } catch (e: any) {
+      console.warn(`⚠️ Could not clear ${model}:`, e.message);
+    }
+  }
+
   for (const model of models) {
     if (!data[model] || data[model].length === 0) continue;
     
@@ -27,12 +41,10 @@ async function restore() {
     
     for (const item of data[model]) {
       try {
-        // We use upsert to avoid duplicates
+        // Now create is safe since table is empty
         // @ts-ignore
-        await prisma[model].upsert({
-          where: { id: item.id },
-          update: item,
-          create: item,
+        await prisma[model].create({
+          data: item,
         });
       } catch (e: any) {
         console.error(`❌ Error restoring ${model} (ID: ${item.id}):`, e.message);
