@@ -84,12 +84,10 @@ class GpsService {
     field: string = '',
     callback: string = 'JsonPCallback'
   ): Promise<JsonPResponse<T>> {
-    const dataParam = data.length > 0 ? data.map(d => `N'${d}'`).join(',') : '';
-    const url = `${this.config.baseUrl}/AppJson.asp?Cmd=${cmd}&Data=${dataParam}&Field=${field}&Callback=${callback}`;
-
     try {
+      const dataParam = data.length > 0 ? encodeURIComponent(data.map(d => `N'${d}'`).join(',')) : '';
+      const url = `${this.config.baseUrl}/AppJson.asp?Cmd=${cmd}&Data=${dataParam}&Field=${field}&Callback=${callback}`;
       const controller = new AbortController();
-      // Augmenter le timeout à 30 secondes pour les requêtes GPS qui peuvent être lentes
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(url, {
@@ -109,9 +107,17 @@ class GpsService {
 
       const text = await response.text();
       const jsonText = text.replace(new RegExp(`^${callback}\\(`), '').replace(/\);?\s*$/, '');
-      const result = JSON.parse(jsonText);
+      
+      let result: any;
+      try {
+        result = JSON.parse(jsonText);
+      } catch (e) {
+        console.error('Failed to parse GPS API response:', jsonText);
+        throw new Error('Invalid JSON response from GPS API');
+      }
       
       if (result.m_isResultOk !== 1) {
+        console.error(`GPS API Error for Cmd=${cmd}:`, JSON.stringify(result));
         throw new Error(`GPS API returned error: ${result.m_isResultOk}`);
       }
       
