@@ -90,12 +90,20 @@ class GpsService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
 
+      // Log the URL for debugging (masking password)
+      const maskedUrl = url.replace(/Data=[^&]+/, (match) => {
+        const parts = match.split('%2C');
+        if (parts.length > 1) return parts[0] + '%2C%27***%27';
+        return 'Data=***';
+      });
+      console.log(`📡 GPS Request: ${maskedUrl}`);
+
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'EcoMobile-Backend/1.0',
-          'Accept': 'text/javascript, application/javascript, application/json',
-          'Cache-Control': 'no-cache'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': '*/*',
+          'Connection': 'keep-alive'
         }
       });
 
