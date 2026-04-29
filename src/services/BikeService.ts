@@ -91,6 +91,16 @@ export class BikeService {
     // Generate QR code
     const qrCode = `ECOMOBILE-${data.code}-${randomUUID()}`;
 
+    // Check if gpsDeviceId already exists
+    if (data.gpsDeviceId) {
+      const existingBike = await prisma.bike.findFirst({
+        where: { gpsDeviceId: data.gpsDeviceId }
+      });
+      if (existingBike) {
+        throw new AppError(t('error.bike.gps_device_exists', 'fr'), 400);
+      }
+    }
+
     const bike = await prisma.bike.create({
       data: {
         code: data.code,
