@@ -85,7 +85,7 @@ class GpsService {
     callback: string = 'JsonPCallback'
   ): Promise<JsonPResponse<T>> {
     try {
-      const dataParam = data.length > 0 ? encodeURIComponent(data.map(d => `N'${d}'`).join(',')) : '';
+      const dataParam = data.length > 0 ? encodeURIComponent(data.map(d => `'${d}'`).join(',')) : '';
       const url = `${this.config.baseUrl}/AppJson.asp?Cmd=${cmd}&Data=${dataParam}&Field=${field}&Callback=${callback}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
