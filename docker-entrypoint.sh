@@ -23,17 +23,19 @@ echo "🔄 Generating Prisma client..."
 npx prisma generate
 
 # Sync the schema with the current database type
-# We use db push to bypass the migration history, which is ideal for hybrid setups
-echo "🗄️ Syncing database schema (Hybrid Mode)..."
+echo "🗄️ Syncing database schema (Production Mode)..."
 if [ -n "$DATABASE_URL" ]; then
-    npx prisma db push
+    # migrate deploy is safer for production. db push is only as fallback.
+    npx prisma migrate deploy || npx prisma db push --skip-generate
 else
     echo "⚠️ DATABASE_URL not set, skipping schema sync."
 fi
 
-# Run the seed script
-echo "🌱 Running database seed..."
-npm run db:seed
+# Run the seed script only if RUN_SEED is set to true
+if [ "$RUN_SEED" = "true" ]; then
+    echo "🌱 Running database seed..."
+    npm run db:seed
+fi
 
 # Execute the main command
 echo "✅ Setup complete. Starting server..."

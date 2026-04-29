@@ -400,8 +400,8 @@ async function main() {
 
   // Créer les utilisateurs uniquement s'ils n'existent pas
   const maskPassword = await bcrypt.hash('EcoMask#Xybronix@2026', 12);
-  const hashedPassword = await bcrypt.hash('AdminEco@FreeBike#2026', 12);
-  const userPassword = await bcrypt.hash('UserEco@SafePass#2026', 12);
+  const hashedPassword = await bcrypt.hash('Admin@FreeBike2026', 12);
+  const userPassword = await bcrypt.hash('User@SafePass2026', 12);
 
   await prisma.user.upsert({
     where: { email: 'xybronix@xybronix.cm' },
@@ -688,17 +688,17 @@ async function main() {
     console.log('');
     console.log('👑 Super Admin:');
     console.log('   Email: admin@freebike.cm');
-    console.log('   Password: admin123');
+    console.log('   Password: Admin@FreeBike2026');
     console.log('   Permissions: Full access');
     console.log('');
     console.log('👨‍💼 Manager:');
     console.log('   Email: manager@freebike.cm');
-    console.log('   Password: admin123');
+    console.log('   Password: Admin@FreeBike2026');
     console.log('   Permissions: Limited admin access');
     console.log('');
     console.log('👤 User:');
     console.log('   Email: user@freebike.cm');
-    console.log('   Password: user123');
+    console.log('   Password: User@SafePass2026');
     console.log('   Balance: 0 FCFA');
     console.log('   Permissions: Basic user access');
     console.log('');
