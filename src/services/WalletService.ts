@@ -52,10 +52,38 @@ export class WalletService {
     
     const hasActiveExemption = user?.depositExemptionUntil && new Date(user.depositExemptionUntil) > new Date();
     
+    // Vérifier si l'utilisateur a un abonnement actif
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      }
+    });
+
+    // Vérifier si l'utilisateur a un forfait gratuit actif valide aujourd'hui
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const activeFreePlan = await prisma.freeDaysBeneficiary.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        startDate: { lte: new Date() },
+        expiresAt: { gte: new Date() },
+        OR: [
+          { daysRemaining: { gt: 0 } },
+          { lastFreeDayUsedAt: { gte: todayStart } },
+        ]
+      }
+    });
+
+    const hasActivePlan = !!activeSubscription || !!activeFreePlan;
+    
     return {
       currentDeposit: wallet.deposit,
       requiredDeposit,
-      canUseService: hasActiveExemption || wallet.deposit >= requiredDeposit,
+      canUseService: hasActiveExemption || wallet.deposit >= requiredDeposit || hasActivePlan,
       negativeBalance: wallet.negativeBalance,
       hasDepositExemption: hasActiveExemption,
       depositExemptionUntil: user?.depositExemptionUntil || null
@@ -97,6 +125,39 @@ export class WalletService {
 
     const requiredDeposit = await this.getRequiredDeposit();
     const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    // Récupérer les abonnements actifs
+    const activeSubscriptions = await prisma.subscription.findMany({
+      where: {
+        userId: { in: userIds },
+        isActive: true,
+        startDate: { lte: now },
+        endDate: { gte: now }
+      },
+      select: { userId: true }
+    });
+
+    // Récupérer les forfaits gratuits actifs
+    const activeFreePlans = await prisma.freeDaysBeneficiary.findMany({
+      where: {
+        userId: { in: userIds },
+        isActive: true,
+        startDate: { lte: now },
+        expiresAt: { gte: now },
+        OR: [
+          { daysRemaining: { gt: 0 } },
+          { lastFreeDayUsedAt: { gte: todayStart } }
+        ]
+      },
+      select: { userId: true }
+    });
+
+    const usersWithActivePlans = new Set([
+      ...activeSubscriptions.map(s => s.userId),
+      ...activeFreePlans.map(p => p.userId)
+    ]);
 
     // Créer un Map pour un accès rapide
     const walletMap = new Map();
@@ -105,6 +166,7 @@ export class WalletService {
     wallets.forEach(wallet => {
       const user = userMap.get(wallet.userId);
       const hasActiveExemption = user?.depositExemptionUntil && new Date(user.depositExemptionUntil) > now;
+      const hasActivePlan = usersWithActivePlans.has(wallet.userId);
 
       walletMap.set(wallet.userId, {
         balance: wallet.balance,
@@ -112,7 +174,7 @@ export class WalletService {
         negativeBalance: wallet.negativeBalance,
         currentDeposit: wallet.deposit,
         requiredDeposit,
-        canUseService: hasActiveExemption || wallet.deposit >= requiredDeposit,
+        canUseService: hasActiveExemption || wallet.deposit >= requiredDeposit || hasActivePlan,
         hasDepositExemption: hasActiveExemption,
         depositExemptionUntil: user?.depositExemptionUntil || null,
       });
@@ -123,6 +185,7 @@ export class WalletService {
       if (!walletMap.has(userId)) {
         const user = userMap.get(userId);
         const hasActiveExemption = user?.depositExemptionUntil && new Date(user.depositExemptionUntil) > now;
+        const hasActivePlan = usersWithActivePlans.has(userId);
 
         walletMap.set(userId, {
           balance: 0,
@@ -130,7 +193,7 @@ export class WalletService {
           negativeBalance: 0,
           currentDeposit: 0,
           requiredDeposit,
-          canUseService: hasActiveExemption,
+          canUseService: hasActiveExemption || hasActivePlan,
           hasDepositExemption: hasActiveExemption,
           depositExemptionUntil: user?.depositExemptionUntil || null,
         });
@@ -631,13 +694,21 @@ export class WalletService {
     const wallet = await this.getOrCreateWallet(userId);
 
     await prisma.$transaction(async (tx) => {
+      // Calculate how much to decrement from negativeBalance
+      let decrementNegative = 0;
+      let incrementBalance = amount;
+      
+      if (wallet.negativeBalance > 0) {
+        decrementNegative = Math.min(amount, wallet.negativeBalance);
+        incrementBalance = amount - decrementNegative;
+      }
+
       // Update wallet balance
       await tx.wallet.update({
         where: { id: wallet.id },
         data: {
-          balance: {
-            increment: amount
-          }
+          balance: { increment: incrementBalance },
+          negativeBalance: { decrement: decrementNegative }
         }
       });
 
@@ -927,11 +998,20 @@ export class WalletService {
         }
       });
 
-      // Credit wallet
+      // Credit wallet taking into account negative balance
+      let decrementNegative = 0;
+      let incrementBalance = transaction.amount;
+      
+      if (transaction.wallet.negativeBalance > 0) {
+        decrementNegative = Math.min(transaction.amount, transaction.wallet.negativeBalance);
+        incrementBalance = transaction.amount - decrementNegative;
+      }
+
       await tx.wallet.update({
         where: { id: transaction.walletId },
         data: {
-          balance: { increment: transaction.amount }
+          balance: { increment: incrementBalance },
+          negativeBalance: { decrement: decrementNegative }
         }
       });
 
@@ -1108,9 +1188,8 @@ export class WalletService {
    * Check if user can use service (has sufficient deposit)
    */
   async canUseService(userId: string): Promise<boolean> {
-    const wallet = await this.getOrCreateWallet(userId);
-    const requiredDeposit = await this.getRequiredDeposit();
-    return wallet.deposit >= requiredDeposit;
+    const depositInfo = await this.getDepositInfo(userId);
+    return depositInfo.canUseService;
   }
 
   /**

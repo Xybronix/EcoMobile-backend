@@ -194,13 +194,20 @@ export class PaymentService {
             }
           });
 
-          // Credit wallet
+          // Credit wallet taking into account negative balance
+          let decrementNegative = 0;
+          let incrementBalance = transaction.amount;
+          
+          if (transaction.wallet.negativeBalance > 0) {
+            decrementNegative = Math.min(transaction.amount, transaction.wallet.negativeBalance);
+            incrementBalance = transaction.amount - decrementNegative;
+          }
+
           await tx.wallet.update({
             where: { id: transaction.walletId },
             data: {
-              balance: {
-                increment: transaction.amount
-              }
+              balance: { increment: incrementBalance },
+              negativeBalance: { decrement: decrementNegative }
             }
           });
 

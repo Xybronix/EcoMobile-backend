@@ -135,13 +135,24 @@ export class ReservationService {
       throw new Error('Une réservation existe déjà pour cette période');
     }
 
+    // Fallback pour le plan "default" venant de l'application mobile
+    if (data.planId === 'default') {
+      const defaultPlan = await prisma.pricingPlan.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' }
+      });
+      if (defaultPlan) {
+        data.planId = defaultPlan.id;
+      }
+    }
+
     // Vérifier que le plan existe
     const plan = await prisma.pricingPlan.findUnique({
       where: { id: data.planId }
     });
 
     if (!plan) {
-      throw new Error(`Plan "${data.planId}" non trouvé`);
+      throw new Error(`Plan "${data.planId}" non trouvé. Veuillez contacter l'administration.`);
     }
 
     // Vérifier la caution de l'utilisateur
@@ -466,9 +477,21 @@ export class ReservationService {
       include: { plan: true }
     });
 
+    let actualPlanId = planId;
+    // Fallback pour le plan "default"
+    if (actualPlanId === 'default') {
+      const defaultPlan = await prisma.pricingPlan.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' }
+      });
+      if (defaultPlan) {
+        actualPlanId = defaultPlan.id;
+      }
+    }
+
     // Récupérer le plan de pricing
     const plan = await prisma.pricingPlan.findUnique({
-      where: { id: planId }
+      where: { id: actualPlanId }
     });
 
     if (!plan) {
