@@ -29,10 +29,15 @@ export class WalletService {
    */
   async getBalance(userId: string) {
     const wallet = await this.getOrCreateWallet(userId);
+    const requiredDeposit = await this.getRequiredDeposit();
+    const isDepositEnabled = requiredDeposit > 0;
+    const effectiveBalance = wallet.balance - wallet.negativeBalance;
     return {
       balance: wallet.balance,
       deposit: wallet.deposit,
       negativeBalance: wallet.negativeBalance,
+      isDepositEnabled,
+      effectiveBalance,
       walletId: wallet.id
     };
   }

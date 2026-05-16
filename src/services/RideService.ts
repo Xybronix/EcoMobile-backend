@@ -51,13 +51,36 @@ export class RideService {
       throw new AppError(t('bike.unavailable', language), 400);
     }
 
+    // Check if this bike is blocked for this user
+    const bikeBlock = await prisma.bikeUserBlock.findUnique({
+      where: { bikeId_userId: { bikeId, userId } }
+    });
+    if (bikeBlock) {
+      throw new AppError(
+        language === 'fr'
+          ? 'Ce vélo n\'est pas disponible pour votre compte'
+          : 'This bike is not available for your account',
+        403
+      );
+    }
+
     // Check user wallet balance
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { wallet: true }
     });
 
-    if (!user?.wallet || user.wallet.balance < 5) { // Minimum 5 units required
+    // Allow unlock when an active subscription exists (already paid)
+    const activeSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() }
+      }
+    });
+
+    if (!activeSubscription && (!user?.wallet || user.wallet.balance < 5)) {
       throw new AppError(t('wallet.insufficient_balance', language), 400);
     }
 

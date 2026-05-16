@@ -3935,6 +3935,68 @@ export class AdminController {
       return res.status(500).json({ success: false, message: error.message });
     }
   }
+
+  async blockUserFromBike(req: AuthRequest, res: express.Response) {
+    try {
+      const { bikeId, userId } = req.params;
+
+      const [bike, user] = await Promise.all([
+        prisma.bike.findUnique({ where: { id: bikeId } }),
+        prisma.user.findUnique({ where: { id: userId }, select: { id: true, firstName: true, lastName: true } })
+      ]);
+
+      if (!bike) return res.status(404).json({ success: false, message: 'Vélo introuvable' });
+      if (!user) return res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
+
+      const block = await prisma.bikeUserBlock.upsert({
+        where: { bikeId_userId: { bikeId, userId } },
+        update: { createdBy: req.user?.id },
+        create: { bikeId, userId, createdBy: req.user?.id }
+      });
+
+      return res.status(200).json({ success: true, data: block });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async unblockUserFromBike(req: AuthRequest, res: express.Response) {
+    try {
+      const { bikeId, userId } = req.params;
+
+      const block = await prisma.bikeUserBlock.findUnique({
+        where: { bikeId_userId: { bikeId, userId } }
+      });
+      if (!block) return res.status(404).json({ success: false, message: 'Blocage introuvable' });
+
+      await prisma.bikeUserBlock.delete({ where: { bikeId_userId: { bikeId, userId } } });
+
+      return res.status(200).json({ success: true, message: 'Blocage supprimé' });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  async getBlockedUsersForBike(req: AuthRequest, res: express.Response) {
+    try {
+      const { bikeId } = req.params;
+
+      const bike = await prisma.bike.findUnique({ where: { id: bikeId } });
+      if (!bike) return res.status(404).json({ success: false, message: 'Vélo introuvable' });
+
+      const blocks = await prisma.bikeUserBlock.findMany({
+        where: { bikeId },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true, avatar: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      return res.status(200).json({ success: true, data: blocks });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
 }
 
 export default new AdminController();

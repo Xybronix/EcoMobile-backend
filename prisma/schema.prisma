@@ -63,6 +63,7 @@ model User {
   residenceProofs   ResidenceProof[]
   activityLocationProofs ActivityLocationProof[]
   freeDaysBeneficiaries FreeDaysBeneficiary[]
+  bikeBlocks            BikeUserBlock[]
 
   @@map("users")
 }
@@ -232,6 +233,7 @@ model Bike {
   unlockRequests   UnlockRequest[]
   lockRequests     LockRequest[]
   pricingPlan      PricingPlan? @relation(fields: [pricingPlanId], references: [id], onDelete: SetNull)
+  blockedUsers     BikeUserBlock[]
 
   @@map("bikes")
 }
@@ -798,6 +800,20 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   CANCELLED
+}
+
+model BikeUserBlock {
+  id        String   @id @default(uuid())
+  bikeId    String
+  userId    String
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  bike Bike @relation(fields: [bikeId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bikeId, userId])
+  @@map("bike_user_blocks")
 }
 
 enum IncidentStatus {

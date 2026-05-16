@@ -258,4 +258,9 @@ router.put('/roles/:id/permissions', requirePermission('roles', 'update'), Admin
  */
 router.post('/users/:userId/reset-password', requirePermission('users', 'update'), AdminController.resetUserPassword);
 
+// Bike user blocks
+router.get('/bikes/:bikeId/blocked-users', requirePermission('bikes', 'read'), AdminController.getBlockedUsersForBike);
+router.post('/bikes/:bikeId/block-user/:userId', requirePermission('bikes', 'update'), AdminController.blockUserFromBike);
+router.delete('/bikes/:bikeId/block-user/:userId', requirePermission('bikes', 'update'), AdminController.unblockUserFromBike);
+
 export default router;

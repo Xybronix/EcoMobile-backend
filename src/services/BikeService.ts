@@ -310,7 +310,7 @@ export class BikeService {
   /**
    * Get avaible bikes
    */
-  async getAvailableBikes(filter?: BikeFilter, page: number = 1, limit: number = 20) {
+  async getAvailableBikes(filter?: BikeFilter, page: number = 1, limit: number = 20, userId?: string) {
     const where: any = {
       status: BikeStatus.AVAILABLE,
       isActive: true
@@ -328,6 +328,18 @@ export class BikeService {
 
     if (reservedBikeIds.length > 0) {
       where.id = { notIn: reservedBikeIds.map(r => r.bikeId) };
+    }
+
+    // Exclure les vélos bloqués pour cet utilisateur
+    if (userId) {
+      const blockedBikeIds = await prisma.bikeUserBlock.findMany({
+        where: { userId },
+        select: { bikeId: true }
+      });
+      if (blockedBikeIds.length > 0) {
+        const existingNotIn: string[] = where.id?.notIn || [];
+        where.id = { notIn: [...existingNotIn, ...blockedBikeIds.map(b => b.bikeId)] };
+      }
     }
 
     if (filter?.minBatteryLevel !== undefined) {

@@ -222,7 +222,7 @@ export class BikeController {
         filter.radiusKm = radius;
       }
 
-      const result = await BikeService.getAvailableBikes(filter, page, limit);
+      const result = await BikeService.getAvailableBikes(filter, page, limit, req.user?.id);
 
       await logActivity(
         req.user?.id || null,
